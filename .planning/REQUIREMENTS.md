@@ -9,10 +9,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Authentication
 
-- [ ] **AUTH-01**: User can log in with company email and password
-- [ ] **AUTH-02**: User session persists across browser refresh (JWT)
-- [ ] **AUTH-03**: User can log out from any page
-- [ ] **AUTH-04**: Admin can create and manage user accounts (no self-signup)
+- [x] **AUTH-01**: User can log in with company email and password
+- [x] **AUTH-02**: User session persists across browser refresh (JWT)
+- [x] **AUTH-03**: User can log out from any page
+- [x] **AUTH-04**: Admin can create and manage user accounts (no self-signup)
 
 ### Aircraft Data
 
@@ -100,10 +100,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 1 | Pending |
-| AUTH-02 | Phase 1 | Pending |
-| AUTH-03 | Phase 1 | Pending |
-| AUTH-04 | Phase 1 | Pending |
+| AUTH-01 | Phase 1 | Complete |
+| AUTH-02 | Phase 1 | Complete |
+| AUTH-03 | Phase 1 | Complete |
+| AUTH-04 | Phase 1 | Complete |
 | UI-01 | Phase 1 | Pending |
 | UI-05 | Phase 1 | Pending |
 | ACFT-01 | Phase 2 | Pending |
