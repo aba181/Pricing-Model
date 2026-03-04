@@ -56,7 +56,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **UI-02**: Data displayed in responsive, sortable tables with detail panes
 - [ ] **UI-03**: Dark/light mode toggle persisted per user
 - [ ] **UI-04**: Dashboard shows summary stats: total quotes, quotes by status, recent activity
-- [ ] **UI-05**: Application matches AeroVista visual style (Tailwind, Zustand, component patterns)
+- [x] **UI-05**: Application matches AeroVista visual style (Tailwind, Zustand, component patterns)
 
 ## v2 Requirements
 
@@ -105,7 +105,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUTH-03 | Phase 1 | Complete |
 | AUTH-04 | Phase 1 | Complete |
 | UI-01 | Phase 1 | Pending |
-| UI-05 | Phase 1 | Pending |
+| UI-05 | Phase 1 | Complete |
 | ACFT-01 | Phase 2 | Pending |
 | ACFT-02 | Phase 2 | Pending |
 | ACFT-03 | Phase 2 | Pending |

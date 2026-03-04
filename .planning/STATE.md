@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-01-PLAN.md
-last_updated: "2026-03-04T17:21:00Z"
-last_activity: 2026-03-04 — Completed 01-01-PLAN.md (FastAPI scaffold, DB layer, pytest Wave 0)
+stopped_at: Completed 01-03-PLAN.md
+last_updated: "2026-03-04T17:28:03Z"
+last_activity: 2026-03-04 — Completed 01-03-PLAN.md (Next.js frontend auth, login page, middleware)
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 4
-  completed_plans: 1
-  percent: 5
+  completed_plans: 3
+  percent: 50
 ---
 
 # Project State
@@ -26,28 +26,28 @@ See: .planning/PROJECT.md (updated 2026-03-04)
 ## Current Position
 
 Phase: 1 of 5 (Foundation and Authentication)
-Plan: 1 of 4 in current phase
+Plan: 3 of 4 in current phase
 Status: Executing
-Last activity: 2026-03-04 — Completed 01-01-PLAN.md (FastAPI scaffold, DB layer, pytest Wave 0)
+Last activity: 2026-03-04 — Completed 01-03-PLAN.md (Next.js frontend auth, login page, middleware)
 
-Progress: [█░░░░░░░░░] 5%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 1
+- Total plans completed: 3
 - Average duration: 4min
-- Total execution time: 0.07 hours
+- Total execution time: 0.18 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1 - Foundation | 1 | 4min | 4min |
+| 1 - Foundation | 3 | 11min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (4min)
-- Trend: Starting
+- Last 5 plans: 01-01 (4min), 01-02 (4min), 01-03 (3min)
+- Trend: Consistent
 
 *Updated after each plan completion*
 
@@ -65,6 +65,10 @@ Recent decisions affecting current work:
 - [01-01]: BaseRepository uses `from __future__ import annotations` for Python 3.9 dev compatibility while targeting 3.12+ in production
 - [01-01]: CORS allows only settings.frontend_url origin with credentials for cookie-based auth
 - [01-01]: Default config values in Settings class so app imports without .env file
+- [01-03]: Used useActionState (React 19) instead of deprecated useFormState for login form
+- [01-03]: Server Actions use API_URL (no NEXT_PUBLIC_ prefix) to keep backend URL server-only
+- [01-03]: Root page redirects to /dashboard; middleware handles unauthenticated redirect to /login
+- [01-03]: Auth route group (auth) isolates login page from future app shell layout
 
 ### Pending Todos
 
@@ -76,6 +80,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-04T17:21:00Z
-Stopped at: Completed 01-01-PLAN.md
-Resume file: .planning/phases/01-foundation-and-authentication/01-02-PLAN.md
+Last session: 2026-03-04T17:28:03Z
+Stopped at: Completed 01-03-PLAN.md
+Resume file: .planning/phases/01-foundation-and-authentication/01-04-PLAN.md

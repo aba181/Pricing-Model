@@ -32,8 +32,8 @@ Five phases that follow the dependency chain of the product itself. Authenticati
 
 Plans:
 - [x] 01-01-PLAN.md — FastAPI scaffold, asyncpg DB layer, users table migration, pytest Wave 0
-- [ ] 01-02-PLAN.md — FastAPI auth backend (login, logout, /auth/me, admin user CRUD, 8 tests green)
-- [ ] 01-03-PLAN.md — Next.js project, login page, middleware, auth Server Actions, session helper
+- [x] 01-02-PLAN.md — FastAPI auth backend (login, logout, /auth/me, admin user CRUD, 8 tests green)
+- [x] 01-03-PLAN.md — Next.js project, login page, middleware, auth Server Actions, session helper
 - [ ] 01-04-PLAN.md — App shell: collapsible sidebar, 5 nav pages, top bar, logout, human verify checkpoint
 
 ### Phase 2: Aircraft Master Data
@@ -90,7 +90,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation and Authentication | 1/4 | In Progress | - |
+| 1. Foundation and Authentication | 3/4 | In Progress | - |
 | 2. Aircraft Master Data | 0/? | Not started | - |
 | 3. Pricing Engine | 0/? | Not started | - |
 | 4. Quote Persistence and History | 0/? | Not started | - |
