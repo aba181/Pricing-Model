@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-03-PLAN.md
-last_updated: "2026-03-04T17:28:03Z"
+stopped_at: Completed 01-02-PLAN.md
+last_updated: "2026-03-04T17:31:13.818Z"
 last_activity: 2026-03-04 — Completed 01-03-PLAN.md (Next.js frontend auth, login page, middleware)
 progress:
   total_phases: 5
@@ -50,6 +50,7 @@ Progress: [█████░░░░░] 50%
 - Trend: Consistent
 
 *Updated after each plan completion*
+| Phase 01 P02 | 5min | 2 tasks | 15 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,8 @@ Recent decisions affecting current work:
 - [01-03]: Server Actions use API_URL (no NEXT_PUBLIC_ prefix) to keep backend URL server-only
 - [01-03]: Root page redirects to /dashboard; middleware handles unauthenticated redirect to /login
 - [01-03]: Auth route group (auth) isolates login page from future app shell layout
+- [Phase 01-02]: Mock DB conftest: replaced real asyncpg pool fixtures with in-memory MockConnection to enable testing without PostgreSQL
+- [Phase 01-02]: Added pydantic[email] and eval_type_backport for Python 3.9 compatibility with Pydantic EmailStr and union type syntax
 
 ### Pending Todos
 
@@ -80,6 +83,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-04T17:28:03Z
-Stopped at: Completed 01-03-PLAN.md
-Resume file: .planning/phases/01-foundation-and-authentication/01-04-PLAN.md
+Last session: 2026-03-04T17:31:13.816Z
+Stopped at: Completed 01-02-PLAN.md
+Resume file: None
