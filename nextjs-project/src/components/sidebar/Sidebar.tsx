@@ -1,0 +1,85 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import {
+  LayoutDashboard,
+  TrendingUp,
+  FileText,
+  Plane,
+  Settings,
+  ChevronLeft,
+} from 'lucide-react'
+import { useSidebarStore } from '@/stores/sidebar-store'
+
+const navItems = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/pricing', label: 'Pricing', icon: TrendingUp },
+  { href: '/quotes', label: 'Quotes', icon: FileText },
+  { href: '/aircraft', label: 'Aircraft', icon: Plane },
+  { href: '/admin', label: 'Admin', icon: Settings },
+]
+
+export function Sidebar() {
+  const { isCollapsed, toggle } = useSidebarStore()
+  const [mounted, setMounted] = useState(false)
+  const pathname = usePathname()
+
+  useEffect(() => setMounted(true), [])
+
+  // Before hydration, render expanded state to match server
+  const collapsed = mounted ? isCollapsed : false
+
+  return (
+    <aside
+      className={`${
+        collapsed ? 'w-16' : 'w-64'
+      } transition-all duration-300 bg-gray-900 border-r border-gray-800 h-screen flex flex-col shrink-0`}
+    >
+      {/* Header with toggle */}
+      <div className="flex items-center h-14 px-4 border-b border-gray-800">
+        {!collapsed && (
+          <span className="text-sm font-semibold text-gray-100 flex-1">
+            ACMI Pricing
+          </span>
+        )}
+        <button
+          onClick={toggle}
+          className="p-1 text-gray-400 hover:text-gray-100 rounded-md hover:bg-gray-800 transition-colors"
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          <ChevronLeft
+            size={18}
+            className={`transition-transform duration-300 ${
+              collapsed ? 'rotate-180' : ''
+            }`}
+          />
+        </button>
+      </div>
+
+      {/* Navigation items */}
+      <nav className="flex-1 p-2 space-y-0.5">
+        {navItems.map(({ href, label, icon: Icon }) => {
+          const isActive = pathname.startsWith(href)
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors group ${
+                isActive
+                  ? 'text-indigo-400 bg-gray-800'
+                  : 'text-gray-400 hover:text-gray-100 hover:bg-gray-800'
+              }`}
+            >
+              <Icon size={18} className="shrink-0" />
+              {!collapsed && (
+                <span className="text-sm font-medium truncate">{label}</span>
+              )}
+            </Link>
+          )
+        })}
+      </nav>
+    </aside>
+  )
+}
