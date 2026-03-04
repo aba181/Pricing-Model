@@ -100,42 +100,42 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | — | Pending |
-| AUTH-02 | — | Pending |
-| AUTH-03 | — | Pending |
-| AUTH-04 | — | Pending |
-| ACFT-01 | — | Pending |
-| ACFT-02 | — | Pending |
-| ACFT-03 | — | Pending |
-| ACFT-04 | — | Pending |
-| PRIC-01 | — | Pending |
-| PRIC-02 | — | Pending |
-| PRIC-03 | — | Pending |
-| PRIC-04 | — | Pending |
-| PRIC-05 | — | Pending |
-| PRIC-06 | — | Pending |
-| CONF-01 | — | Pending |
-| CONF-02 | — | Pending |
-| CONF-03 | — | Pending |
-| SENS-01 | — | Pending |
-| SENS-02 | — | Pending |
-| QUOT-01 | — | Pending |
-| QUOT-02 | — | Pending |
-| QUOT-03 | — | Pending |
-| QUOT-04 | — | Pending |
-| QUOT-05 | — | Pending |
-| QUOT-06 | — | Pending |
-| UI-01 | — | Pending |
-| UI-02 | — | Pending |
-| UI-03 | — | Pending |
-| UI-04 | — | Pending |
-| UI-05 | — | Pending |
+| AUTH-01 | Phase 1 | Pending |
+| AUTH-02 | Phase 1 | Pending |
+| AUTH-03 | Phase 1 | Pending |
+| AUTH-04 | Phase 1 | Pending |
+| UI-01 | Phase 1 | Pending |
+| UI-05 | Phase 1 | Pending |
+| ACFT-01 | Phase 2 | Pending |
+| ACFT-02 | Phase 2 | Pending |
+| ACFT-03 | Phase 2 | Pending |
+| ACFT-04 | Phase 2 | Pending |
+| PRIC-01 | Phase 3 | Pending |
+| PRIC-02 | Phase 3 | Pending |
+| PRIC-03 | Phase 3 | Pending |
+| PRIC-04 | Phase 3 | Pending |
+| PRIC-05 | Phase 3 | Pending |
+| PRIC-06 | Phase 3 | Pending |
+| CONF-01 | Phase 3 | Pending |
+| CONF-02 | Phase 3 | Pending |
+| CONF-03 | Phase 3 | Pending |
+| QUOT-01 | Phase 4 | Pending |
+| QUOT-02 | Phase 4 | Pending |
+| QUOT-03 | Phase 4 | Pending |
+| QUOT-04 | Phase 4 | Pending |
+| QUOT-05 | Phase 4 | Pending |
+| QUOT-06 | Phase 4 | Pending |
+| SENS-01 | Phase 4 | Pending |
+| SENS-02 | Phase 4 | Pending |
+| UI-02 | Phase 5 | Pending |
+| UI-03 | Phase 5 | Pending |
+| UI-04 | Phase 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 30 total
-- Mapped to phases: 0
-- Unmapped: 30 ⚠️
+- Mapped to phases: 30
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-04*
-*Last updated: 2026-03-04 after initial definition*
+*Last updated: 2026-03-04 after roadmap creation — all requirements mapped*
