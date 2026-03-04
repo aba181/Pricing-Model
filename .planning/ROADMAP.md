@@ -28,7 +28,13 @@ Five phases that follow the dependency chain of the product itself. Authenticati
   3. User can log out from any page and is immediately redirected to the login screen
   4. Admin can create a new user account without that user self-registering
   5. Application sidebar navigation renders with all five pages (Dashboard, Pricing, Quotes, Aircraft, Admin) and matches AeroVista visual style
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — FastAPI scaffold, asyncpg DB layer, users table migration, pytest Wave 0
+- [ ] 01-02-PLAN.md — FastAPI auth backend (login, logout, /auth/me, admin user CRUD, 8 tests green)
+- [ ] 01-03-PLAN.md — Next.js project, login page, middleware, auth Server Actions, session helper
+- [ ] 01-04-PLAN.md — App shell: collapsible sidebar, 5 nav pages, top bar, logout, human verify checkpoint
 
 ### Phase 2: Aircraft Master Data
 **Goal**: Aircraft records with MSN, registration, and cost parameters exist in the database and are browsable by users
@@ -84,7 +90,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation and Authentication | 0/? | Not started | - |
+| 1. Foundation and Authentication | 0/4 | Not started | - |
 | 2. Aircraft Master Data | 0/? | Not started | - |
 | 3. Pricing Engine | 0/? | Not started | - |
 | 4. Quote Persistence and History | 0/? | Not started | - |
