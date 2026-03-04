@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: #030712;   /* gray-950 -- dark background per AeroVista style */
+  color: #e5e7eb;        /* gray-200 */
+  font-family: var(--font-sans);
+}
