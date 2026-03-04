@@ -38,8 +38,9 @@ async def health_check():
     return {"status": "ok"}
 
 
-# Router includes — uncomment as endpoints are implemented in Plan 02
-# from app.auth.router import router as auth_router
-# from app.users.router import router as users_router
-# app.include_router(auth_router)
-# app.include_router(users_router)
+# Router includes
+from app.auth.router import router as auth_router
+from app.users.router import router as users_router
+
+app.include_router(auth_router)
+app.include_router(users_router)
