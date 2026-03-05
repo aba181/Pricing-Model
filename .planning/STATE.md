@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-02-PLAN.md
-last_updated: "2026-03-04T17:31:13.818Z"
-last_activity: 2026-03-04 — Completed 01-03-PLAN.md (Next.js frontend auth, login page, middleware)
+stopped_at: Completed 01-04-PLAN.md (Phase 1 complete)
+last_updated: "2026-03-05T08:18:27Z"
+last_activity: 2026-03-05 — Completed 01-04-PLAN.md (App shell, sidebar, placeholder pages, cookie fix)
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 4
-  completed_plans: 3
-  percent: 50
+  completed_plans: 4
+  percent: 100
 ---
 
 # Project State
@@ -21,36 +21,36 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-04)
 
 **Core value:** Accurate, repeatable ACMI pricing quotes that the sales team can generate, save, and retrieve — replacing manual spreadsheet-based pricing with a structured tool that produces consistent results.
-**Current focus:** Phase 1 — Foundation and Authentication
+**Current focus:** Phase 1 complete — ready for Phase 2 (Aircraft Master Data)
 
 ## Current Position
 
-Phase: 1 of 5 (Foundation and Authentication)
-Plan: 3 of 4 in current phase
-Status: Executing
-Last activity: 2026-03-04 — Completed 01-03-PLAN.md (Next.js frontend auth, login page, middleware)
+Phase: 1 of 5 (Foundation and Authentication) -- COMPLETE
+Plan: 4 of 4 in current phase (all done)
+Status: Phase 1 Complete
+Last activity: 2026-03-05 — Completed 01-04-PLAN.md (App shell, collapsible sidebar, placeholder pages, cookie fix)
 
-Progress: [█████░░░░░] 50%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: 4min
-- Total execution time: 0.18 hours
+- Total plans completed: 4
+- Average duration: 5min
+- Total execution time: 0.32 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1 - Foundation | 3 | 11min | 4min |
+| 1 - Foundation | 4 | 19min | 5min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (4min), 01-02 (4min), 01-03 (3min)
-- Trend: Consistent
+- Last 5 plans: 01-01 (4min), 01-02 (4min), 01-03 (3min), 01-04 (8min)
+- Trend: Consistent (01-04 slightly longer due to checkpoint + cookie fix)
 
 *Updated after each plan completion*
-| Phase 01 P02 | 5min | 2 tasks | 15 files |
+| Phase 01 P04 | 8min | 2 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -72,6 +72,10 @@ Recent decisions affecting current work:
 - [01-03]: Auth route group (auth) isolates login page from future app shell layout
 - [Phase 01-02]: Mock DB conftest: replaced real asyncpg pool fixtures with in-memory MockConnection to enable testing without PostgreSQL
 - [Phase 01-02]: Added pydantic[email] and eval_type_backport for Python 3.9 compatibility with Pydantic EmailStr and union type syntax
+- [01-04]: Server Actions must forward Set-Cookie from FastAPI to browser via Next.js cookies() API -- server-to-server fetch does not propagate cookies to the client
+- [01-04]: logoutAction clears cookie directly via cookies().delete() instead of calling FastAPI -- simpler, avoids cookie propagation issue
+- [01-04]: Sidebar hydration guard: useEffect + mounted state renders expanded on server, reads Zustand after mount
+- [01-04]: Defense-in-depth: dashboard layout checks getSession() in addition to middleware route protection
 
 ### Pending Todos
 
@@ -83,6 +87,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-04T17:31:13.816Z
-Stopped at: Completed 01-02-PLAN.md
+Last session: 2026-03-05T08:18:27Z
+Stopped at: Completed 01-04-PLAN.md (Phase 1 complete)
 Resume file: None

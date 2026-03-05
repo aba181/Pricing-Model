@@ -10,7 +10,7 @@ Five phases that follow the dependency chain of the product itself. Authenticati
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
-- [ ] **Phase 1: Foundation and Authentication** - Secure access, project scaffold, and database schema foundation
+- [x] **Phase 1: Foundation and Authentication** - Secure access, project scaffold, and database schema foundation
 - [ ] **Phase 2: Aircraft Master Data** - Aircraft records with cost parameters that feed the pricing engine
 - [ ] **Phase 3: Pricing Engine** - Formula-accurate EUR/BH calculation across all seven ACMI cost components
 - [ ] **Phase 4: Quote Persistence and History** - Save, retrieve, and manage pricing quotes as auditable records
@@ -34,7 +34,7 @@ Plans:
 - [x] 01-01-PLAN.md — FastAPI scaffold, asyncpg DB layer, users table migration, pytest Wave 0
 - [x] 01-02-PLAN.md — FastAPI auth backend (login, logout, /auth/me, admin user CRUD, 8 tests green)
 - [x] 01-03-PLAN.md — Next.js project, login page, middleware, auth Server Actions, session helper
-- [ ] 01-04-PLAN.md — App shell: collapsible sidebar, 5 nav pages, top bar, logout, human verify checkpoint
+- [x] 01-04-PLAN.md — App shell: collapsible sidebar, 5 nav pages, top bar, logout, human verify checkpoint
 
 ### Phase 2: Aircraft Master Data
 **Goal**: Aircraft records with MSN, registration, and cost parameters exist in the database and are browsable by users
@@ -90,7 +90,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation and Authentication | 3/4 | In Progress | - |
+| 1. Foundation and Authentication | 4/4 | Complete | 2026-03-05 |
 | 2. Aircraft Master Data | 0/? | Not started | - |
 | 3. Pricing Engine | 0/? | Not started | - |
 | 4. Quote Persistence and History | 0/? | Not started | - |

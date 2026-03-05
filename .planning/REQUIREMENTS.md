@@ -52,7 +52,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### UI / UX
 
-- [ ] **UI-01**: Application has sidebar navigation with pages: Dashboard, Pricing, Quotes, Aircraft, Admin
+- [x] **UI-01**: Application has sidebar navigation with pages: Dashboard, Pricing, Quotes, Aircraft, Admin
 - [ ] **UI-02**: Data displayed in responsive, sortable tables with detail panes
 - [ ] **UI-03**: Dark/light mode toggle persisted per user
 - [ ] **UI-04**: Dashboard shows summary stats: total quotes, quotes by status, recent activity
@@ -104,7 +104,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUTH-02 | Phase 1 | Complete |
 | AUTH-03 | Phase 1 | Complete |
 | AUTH-04 | Phase 1 | Complete |
-| UI-01 | Phase 1 | Pending |
+| UI-01 | Phase 1 | Complete |
 | UI-05 | Phase 1 | Complete |
 | ACFT-01 | Phase 2 | Pending |
 | ACFT-02 | Phase 2 | Pending |
