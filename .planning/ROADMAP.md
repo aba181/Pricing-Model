@@ -96,7 +96,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation and Authentication | 4/4 | Complete | 2026-03-05 |
-| 2. Aircraft Master Data | 3/3 | Complete   | 2026-03-05 |
+| 2. Aircraft Master Data | 3/3 | Complete    | 2026-03-05 |
 | 3. Pricing Engine | 0/? | Not started | - |
 | 4. Quote Persistence and History | 0/? | Not started | - |
 | 5. Polish and Production Readiness | 0/? | Not started | - |
