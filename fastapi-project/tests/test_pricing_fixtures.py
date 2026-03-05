@@ -433,19 +433,13 @@ def test_fixture_project_aggregation():
 
     msn_results = [
         {
-            "msn": 3055,
             "mgh": Decimal("350"),
-            "total_cost_per_bh": result1.total_cost_per_bh,
-            "final_rate_per_bh": result1.final_rate_per_bh,
             "monthly_cost": result1.total_cost_per_bh * Decimal("350"),
             "monthly_revenue": result1.final_rate_per_bh * Decimal("350"),
             "monthly_pnl": (result1.final_rate_per_bh - result1.total_cost_per_bh) * Decimal("350"),
         },
         {
-            "msn": 3378,
             "mgh": Decimal("300"),
-            "total_cost_per_bh": result2.total_cost_per_bh,
-            "final_rate_per_bh": result2.final_rate_per_bh,
             "monthly_cost": result2.total_cost_per_bh * Decimal("300"),
             "monthly_revenue": result2.final_rate_per_bh * Decimal("300"),
             "monthly_pnl": (result2.final_rate_per_bh - result2.total_cost_per_bh) * Decimal("300"),

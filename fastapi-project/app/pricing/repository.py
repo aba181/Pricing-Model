@@ -137,17 +137,26 @@ class ProjectRepository(BaseRepository):
     """Repository for mutable pricing projects and MSN inputs."""
 
     async def create_project(
-        self, created_by: int, name: str | None = None
+        self,
+        created_by: int,
+        name: str | None = None,
+        config_version_id: int | None = None,
+        crew_config_a320_id: int | None = None,
+        crew_config_a321_id: int | None = None,
     ) -> dict:
-        """Create a new pricing project."""
+        """Create a new pricing project with optional config FK snapshots."""
         return await self.fetch_one(
             """
-            INSERT INTO pricing_projects (name, created_by)
-            VALUES ($1, $2)
+            INSERT INTO pricing_projects (name, created_by, config_version_id,
+                                          crew_config_a320_id, crew_config_a321_id)
+            VALUES ($1, $2, $3, $4, $5)
             RETURNING *
             """,
             name,
             created_by,
+            config_version_id,
+            crew_config_a320_id,
+            crew_config_a321_id,
         )
 
     async def get_project(self, project_id: int) -> dict | None:

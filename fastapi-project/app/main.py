@@ -42,7 +42,9 @@ async def health_check():
 from app.auth.router import router as auth_router
 from app.users.router import router as users_router
 from app.aircraft.router import router as aircraft_router
+from app.pricing.router import router as pricing_router
 
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(aircraft_router)
+app.include_router(pricing_router)

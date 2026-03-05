@@ -205,19 +205,11 @@ class TestCalcAircraft:
             exchange_rate=_TEST_EXCHANGE_RATE,
             mgh=_TEST_MGH,
         )
-        # Total USD = lease_rent + 6y + 12y + ldg + (epr * 2) + llp1 + llp2 + apu
-        # = 185000 + 15413.95 + 8418.19 + 4333.21 + (448.22 * 2) + 317.905 + 317.905 + 59.74
-        # = 185000 + 15413.95 + 8418.19 + 4333.21 + 896.44 + 317.905 + 317.905 + 59.74
-        # = 214757.3500
-        # EUR = 214757.3500 * 0.85 = 182543.7475
-        # Per BH = 182543.7475 / 350 = 521.5535...
-        # We use exact Decimal arithmetic so the result should be precisely what the engine computes
         assert isinstance(result, Decimal)
         assert result > Decimal("0")
 
     def test_epr_multiplied_by_two(self):
         """EPR rate is per-engine; must be multiplied by 2 for twin-engine aircraft."""
-        # With epr_rate=100, if doubled, total goes up by 100
         costs_low_epr = AircraftCosts(
             lease_rent_usd=Decimal("0"),
             six_year_check_usd=Decimal("0"),
@@ -230,8 +222,8 @@ class TestCalcAircraft:
         )
         result = _calc_aircraft(
             aircraft_costs=costs_low_epr,
-            exchange_rate=Decimal("1"),  # no conversion
-            mgh=Decimal("1"),  # per BH = per month
+            exchange_rate=Decimal("1"),
+            mgh=Decimal("1"),
         )
         # Total = epr * 2 = 200, EUR = 200 * 1 = 200, per BH = 200 / 1 = 200
         assert result == Decimal("200")
@@ -294,10 +286,6 @@ class TestCalcMaintenance:
             mgh=_TEST_MGH,
             config=_TEST_PRICING_CONFIG,
         )
-        # Fixed = line + base + personnel + c_check + training = 35000 + 15000 + 25000 + 18000 + 5500 = 98500
-        # Variable = spare_parts_rate * MGH + per_diem = 12.50 * 350 + 3500 = 4375 + 3500 = 7875
-        # Total = 98500 + 7875 = 106375
-        # Per BH = 106375 / 350 = 303.928571...
         assert isinstance(result, Decimal)
         assert result > Decimal("0")
 
@@ -322,7 +310,6 @@ class TestCalcInsurance:
             exchange_rate=_TEST_EXCHANGE_RATE,
             mgh=_TEST_MGH,
         )
-        # = 45000 * 0.85 / 350 = 38250 / 350 = 109.285714...
         assert isinstance(result, Decimal)
         assert result > Decimal("0")
 
@@ -337,7 +324,6 @@ class TestCalcDoc:
     def test_basic_calculation(self):
         """DOC = doc_total_budget / average_active_fleet / MGH."""
         result = _calc_doc(config=_TEST_PRICING_CONFIG, mgh=_TEST_MGH)
-        # = 110000 / 11 / 350 = 10000 / 350 = 28.571428...
         assert isinstance(result, Decimal)
         assert result > Decimal("0")
 
@@ -352,7 +338,6 @@ class TestCalcOtherCogs:
     def test_basic_calculation(self):
         """Other COGS = other_cogs_monthly / MGH."""
         result = _calc_other_cogs(config=_TEST_PRICING_CONFIG, mgh=_TEST_MGH)
-        # = 8500 / 350 = 24.285714...
         assert isinstance(result, Decimal)
         assert result > Decimal("0")
 
@@ -367,7 +352,6 @@ class TestCalcOverhead:
     def test_basic_calculation(self):
         """Overhead = overhead_total_budget / average_active_fleet / MGH."""
         result = _calc_overhead(config=_TEST_PRICING_CONFIG, mgh=_TEST_MGH)
-        # = 165000 / 11 / 350 = 15000 / 350 = 42.857142...
         assert isinstance(result, Decimal)
         assert result > Decimal("0")
 
@@ -559,7 +543,6 @@ class TestCalculatePricing:
             pricing_config=_TEST_PRICING_CONFIG, crew_config=_TEST_CREW_CONFIG,
             margin_percent=Decimal("0"), exchange_rate=_TEST_EXCHANGE_RATE,
         )
-        # Create aircraft costs with hot EPR rate
         hot_aircraft_costs = AircraftCosts(
             lease_rent_usd=_TEST_AIRCRAFT_COSTS.lease_rent_usd,
             six_year_check_usd=_TEST_AIRCRAFT_COSTS.six_year_check_usd,
@@ -615,11 +598,8 @@ class TestCalculateProjectPnl:
             self._make_result(Decimal("300"), Decimal("900"), Decimal("1000")),
         ]
         totals = calculate_project_pnl(results)
-        # Total cost: 350*1000 + 300*900 = 350000 + 270000 = 620000
         assert totals["total_monthly_cost"] == Decimal("620000")
-        # Total revenue: 350*1100 + 300*1000 = 385000 + 300000 = 685000
         assert totals["total_monthly_revenue"] == Decimal("685000")
-        # Total PnL: 685000 - 620000 = 65000
         assert totals["total_monthly_pnl"] == Decimal("65000")
 
     def test_weighted_average_rate(self):
@@ -629,7 +609,6 @@ class TestCalculateProjectPnl:
             self._make_result(Decimal("300"), Decimal("900"), Decimal("1000")),
         ]
         totals = calculate_project_pnl(results)
-        # Weighted avg cost = 620000 / (350 + 300) = 620000 / 650
         expected_avg_cost = Decimal("620000") / Decimal("650")
         assert totals["weighted_avg_cost_per_bh"] == expected_avg_cost
 
