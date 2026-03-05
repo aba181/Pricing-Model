@@ -5,7 +5,8 @@ data in-memory. This allows integration tests to run without a real PostgreSQL
 database. The mock supports the same interface as BaseRepository expects:
 fetchrow, fetch, and execute.
 
-Supports tables: users, aircraft, aircraft_rates, epr_matrix_rows.
+Supports tables: users, aircraft, aircraft_rates, epr_matrix_rows,
+pricing_config, crew_config, pricing_projects, project_msn_inputs.
 """
 from __future__ import annotations
 
@@ -37,9 +38,20 @@ def _detect_table(query: str) -> str:
 
     For JOINs (e.g., aircraft LEFT JOIN aircraft_rates), the primary table
     is determined by the FROM clause (aircraft), not the joined table.
-    For INSERT/UPDATE, we check the INTO/UPDATE target.
+    For INSERT/UPDATE/DELETE, we check the INTO/UPDATE/FROM target.
     """
     q_upper = query.upper()
+
+    # ---- Pricing tables (check before aircraft to avoid false matches) ----
+    # project_msn_inputs must be checked before pricing_projects
+    if "PROJECT_MSN_INPUTS" in q_upper:
+        return "project_msn_inputs"
+    if "PRICING_PROJECTS" in q_upper:
+        return "pricing_projects"
+    if "PRICING_CONFIG" in q_upper:
+        return "pricing_config"
+    if "CREW_CONFIG" in q_upper:
+        return "crew_config"
 
     # EPR matrix is unambiguous
     if "FROM EPR_MATRIX_ROWS" in q_upper or "INTO EPR_MATRIX_ROWS" in q_upper:
@@ -102,6 +114,14 @@ class MockConnection:
                 return self._handle_aircraft_select(query, args)
             elif table == "epr_matrix_rows":
                 return self._handle_epr_select(query, args)
+            elif table == "pricing_config":
+                return self._handle_pricing_config_select(query, args)
+            elif table == "crew_config":
+                return self._handle_crew_config_select(query, args)
+            elif table == "pricing_projects":
+                return self._handle_projects_select(query, args)
+            elif table == "project_msn_inputs":
+                return self._handle_msn_inputs_select(query, args)
         elif q.startswith("INSERT"):
             if table == "users":
                 return self._handle_users_insert(query, args)
@@ -111,14 +131,32 @@ class MockConnection:
                 return self._handle_aircraft_rates_insert(query, args)
             elif table == "epr_matrix_rows":
                 return self._handle_epr_insert(query, args)
+            elif table == "pricing_config":
+                return self._handle_pricing_config_insert(query, args)
+            elif table == "crew_config":
+                return self._handle_crew_config_insert(query, args)
+            elif table == "pricing_projects":
+                return self._handle_projects_insert(query, args)
+            elif table == "project_msn_inputs":
+                return self._handle_msn_inputs_insert(query, args)
         elif q.startswith("UPDATE"):
             if table == "users":
                 return self._handle_users_update(query, args)
             elif table == "aircraft_rates":
                 return self._handle_aircraft_rates_update(query, args)
+            elif table == "pricing_config":
+                return self._handle_pricing_config_update(query, args)
+            elif table == "crew_config":
+                return self._handle_crew_config_update(query, args)
+            elif table == "pricing_projects":
+                return self._handle_projects_update(query, args)
+            elif table == "project_msn_inputs":
+                return self._handle_msn_inputs_update(query, args)
         elif q.startswith("DELETE"):
             if table == "users":
                 return self._handle_users_delete(query, args)
+            elif table == "project_msn_inputs":
+                return self._handle_msn_inputs_delete(query, args)
         return []
 
     # ---- Users table handlers ----
@@ -460,13 +498,415 @@ class MockConnection:
             return [MockRecord(new_row)]
         return []
 
+    # ---- Pricing config table handlers ----
+
+    def _handle_pricing_config_select(self, query: str, args: tuple) -> list[MockRecord]:
+        """Handle SELECT queries on pricing_config."""
+        rows = self.store.get("pricing_config", [])
+        q_upper = query.upper()
+
+        if "WHERE IS_CURRENT" in q_upper or "IS_CURRENT = TRUE" in q_upper:
+            return [MockRecord(r) for r in rows if r.get("is_current")]
+        if "WHERE ID" in q_upper and args:
+            row_id = args[0]
+            return [MockRecord(r) for r in rows if r["id"] == row_id]
+        return [MockRecord(r) for r in rows]
+
+    def _handle_pricing_config_insert(self, query: str, args: tuple) -> list[MockRecord]:
+        """Handle INSERT into pricing_config."""
+        rows = self.store.setdefault("pricing_config", [])
+        now = datetime.now(timezone.utc)
+        q_upper = query.upper()
+
+        # Parse column names from the INSERT statement
+        col_match = re.search(
+            r'INSERT\s+INTO\s+pricing_config\s*\((.+?)\)\s*VALUES',
+            query, re.IGNORECASE | re.DOTALL,
+        )
+        columns = [c.strip() for c in col_match.group(1).split(",")] if col_match else []
+
+        # Build row from columns and args
+        new_row = {}
+        arg_idx = 0
+        for col in columns:
+            col_clean = col.strip()
+            if "TRUE" in col_clean.upper() or "FALSE" in col_clean.upper():
+                continue
+            if arg_idx < len(args):
+                new_row[col_clean] = args[arg_idx]
+                arg_idx += 1
+
+        # Handle is_current (may be a literal TRUE in VALUES, not a parameter)
+        if "TRUE" in q_upper.split("VALUES")[1] if "VALUES" in q_upper else "":
+            new_row["is_current"] = True
+        else:
+            new_row.setdefault("is_current", True)
+
+        max_id = max((r["id"] for r in rows), default=0)
+        new_row["id"] = max_id + 1
+        new_row.setdefault("created_at", now)
+        new_row.setdefault("version", 1)
+
+        rows.append(new_row)
+
+        if "RETURNING" in q_upper:
+            return [MockRecord(new_row)]
+        return []
+
+    def _handle_pricing_config_update(self, query: str, args: tuple) -> list[MockRecord]:
+        """Handle UPDATE on pricing_config."""
+        rows = self.store.get("pricing_config", [])
+        q_upper = query.upper()
+        now = datetime.now(timezone.utc)
+
+        # Simple case: SET is_current = FALSE WHERE id = $1
+        if "IS_CURRENT = FALSE" in q_upper:
+            if args:
+                row_id = args[0]
+                for r in rows:
+                    if r["id"] == row_id:
+                        r["is_current"] = False
+                        if "RETURNING" in q_upper:
+                            return [MockRecord(r)]
+                        return []
+            return []
+
+        # Dynamic SET clause
+        row_id = args[-1]
+        target = None
+        for r in rows:
+            if r["id"] == row_id:
+                target = r
+                break
+        if not target:
+            return []
+
+        set_match = re.search(r'SET\s+(.+?)\s+WHERE', query, re.IGNORECASE | re.DOTALL)
+        if set_match:
+            set_clause = set_match.group(1)
+            parts = [p.strip() for p in set_clause.split(",")]
+            arg_idx = 0
+            for part in parts:
+                if "NOW()" in part.upper():
+                    field = part.split("=")[0].strip()
+                    target[field] = now
+                elif "=" in part:
+                    field = part.split("=")[0].strip()
+                    target[field] = args[arg_idx]
+                    arg_idx += 1
+
+        if "RETURNING" in q_upper:
+            return [MockRecord(target)]
+        return []
+
+    # ---- Crew config table handlers ----
+
+    def _handle_crew_config_select(self, query: str, args: tuple) -> list[MockRecord]:
+        """Handle SELECT queries on crew_config."""
+        rows = self.store.get("crew_config", [])
+        q_upper = query.upper()
+
+        if "WHERE AIRCRAFT_TYPE" in q_upper and "IS_CURRENT" in q_upper and args:
+            aircraft_type = args[0]
+            return [
+                MockRecord(r) for r in rows
+                if r.get("aircraft_type") == aircraft_type and r.get("is_current")
+            ]
+        if "WHERE ID" in q_upper and args:
+            row_id = args[0]
+            return [MockRecord(r) for r in rows if r["id"] == row_id]
+        if "WHERE IS_CURRENT" in q_upper or "IS_CURRENT = TRUE" in q_upper:
+            result = [MockRecord(r) for r in rows if r.get("is_current")]
+            if "ORDER BY" in q_upper:
+                result.sort(key=lambda r: r.get("aircraft_type", ""))
+            return result
+        return [MockRecord(r) for r in rows]
+
+    def _handle_crew_config_insert(self, query: str, args: tuple) -> list[MockRecord]:
+        """Handle INSERT into crew_config."""
+        rows = self.store.setdefault("crew_config", [])
+        now = datetime.now(timezone.utc)
+        q_upper = query.upper()
+
+        # Parse column names from the INSERT statement
+        col_match = re.search(
+            r'INSERT\s+INTO\s+crew_config\s*\((.+?)\)\s*VALUES',
+            query, re.IGNORECASE | re.DOTALL,
+        )
+        columns = [c.strip() for c in col_match.group(1).split(",")] if col_match else []
+
+        # Build row from columns and args
+        new_row = {}
+        arg_idx = 0
+        for col in columns:
+            col_clean = col.strip()
+            if "TRUE" in col_clean.upper() or "FALSE" in col_clean.upper():
+                continue
+            if arg_idx < len(args):
+                new_row[col_clean] = args[arg_idx]
+                arg_idx += 1
+
+        # Handle is_current
+        if "TRUE" in q_upper.split("VALUES")[1] if "VALUES" in q_upper else "":
+            new_row["is_current"] = True
+        else:
+            new_row.setdefault("is_current", True)
+
+        max_id = max((r["id"] for r in rows), default=0)
+        new_row["id"] = max_id + 1
+        new_row.setdefault("created_at", now)
+        new_row.setdefault("version", 1)
+        new_row.setdefault("aircraft_type", "A320")
+
+        rows.append(new_row)
+
+        if "RETURNING" in q_upper:
+            return [MockRecord(new_row)]
+        return []
+
+    def _handle_crew_config_update(self, query: str, args: tuple) -> list[MockRecord]:
+        """Handle UPDATE on crew_config."""
+        rows = self.store.get("crew_config", [])
+        q_upper = query.upper()
+        now = datetime.now(timezone.utc)
+
+        # Simple case: SET is_current = FALSE WHERE id = $1
+        if "IS_CURRENT = FALSE" in q_upper:
+            if args:
+                row_id = args[0]
+                for r in rows:
+                    if r["id"] == row_id:
+                        r["is_current"] = False
+                        if "RETURNING" in q_upper:
+                            return [MockRecord(r)]
+                        return []
+            return []
+
+        # Dynamic SET clause
+        row_id = args[-1]
+        target = None
+        for r in rows:
+            if r["id"] == row_id:
+                target = r
+                break
+        if not target:
+            return []
+
+        set_match = re.search(r'SET\s+(.+?)\s+WHERE', query, re.IGNORECASE | re.DOTALL)
+        if set_match:
+            set_clause = set_match.group(1)
+            parts = [p.strip() for p in set_clause.split(",")]
+            arg_idx = 0
+            for part in parts:
+                if "NOW()" in part.upper():
+                    field = part.split("=")[0].strip()
+                    target[field] = now
+                elif "=" in part:
+                    field = part.split("=")[0].strip()
+                    target[field] = args[arg_idx]
+                    arg_idx += 1
+
+        if "RETURNING" in q_upper:
+            return [MockRecord(target)]
+        return []
+
+    # ---- Pricing projects table handlers ----
+
+    def _handle_projects_select(self, query: str, args: tuple) -> list[MockRecord]:
+        """Handle SELECT queries on pricing_projects."""
+        rows = self.store.get("pricing_projects", [])
+        q_upper = query.upper()
+
+        if "WHERE ID" in q_upper and args:
+            project_id = args[0]
+            return [MockRecord(r) for r in rows if r["id"] == project_id]
+        if "WHERE CREATED_BY" in q_upper and args:
+            user_id = args[0]
+            result = [MockRecord(r) for r in rows if r.get("created_by") == user_id]
+            if "ORDER BY" in q_upper and "DESC" in q_upper:
+                result.sort(key=lambda r: r.get("created_at", datetime.min), reverse=True)
+            return result
+        return [MockRecord(r) for r in rows]
+
+    def _handle_projects_insert(self, query: str, args: tuple) -> list[MockRecord]:
+        """Handle INSERT into pricing_projects."""
+        rows = self.store.setdefault("pricing_projects", [])
+        now = datetime.now(timezone.utc)
+        q_upper = query.upper()
+
+        # Parse column names from the INSERT statement
+        col_match = re.search(
+            r'INSERT\s+INTO\s+pricing_projects\s*\((.+?)\)\s*VALUES',
+            query, re.IGNORECASE | re.DOTALL,
+        )
+        columns = [c.strip() for c in col_match.group(1).split(",")] if col_match else []
+
+        new_row = {}
+        for i, col in enumerate(columns):
+            if i < len(args):
+                new_row[col] = args[i]
+
+        max_id = max((r["id"] for r in rows), default=0)
+        new_row["id"] = max_id + 1
+        new_row.setdefault("name", None)
+        new_row.setdefault("exchange_rate", Decimal("0.85"))
+        new_row.setdefault("margin_percent", Decimal("0"))
+        new_row.setdefault("config_version_id", None)
+        new_row.setdefault("crew_config_a320_id", None)
+        new_row.setdefault("crew_config_a321_id", None)
+        new_row.setdefault("created_at", now)
+        new_row.setdefault("updated_at", now)
+
+        rows.append(new_row)
+
+        if "RETURNING" in q_upper:
+            return [MockRecord(new_row)]
+        return []
+
+    def _handle_projects_update(self, query: str, args: tuple) -> list[MockRecord]:
+        """Handle UPDATE on pricing_projects."""
+        rows = self.store.get("pricing_projects", [])
+        q_upper = query.upper()
+        now = datetime.now(timezone.utc)
+
+        project_id = args[-1]
+        target = None
+        for r in rows:
+            if r["id"] == project_id:
+                target = r
+                break
+        if not target:
+            return []
+
+        set_match = re.search(r'SET\s+(.+?)\s+WHERE', query, re.IGNORECASE | re.DOTALL)
+        if set_match:
+            set_clause = set_match.group(1)
+            parts = [p.strip() for p in set_clause.split(",")]
+            arg_idx = 0
+            for part in parts:
+                if "NOW()" in part.upper():
+                    field = part.split("=")[0].strip()
+                    target[field] = now
+                elif "=" in part:
+                    field = part.split("=")[0].strip()
+                    target[field] = args[arg_idx]
+                    arg_idx += 1
+
+        target["updated_at"] = now
+
+        if "RETURNING" in q_upper:
+            return [MockRecord(target)]
+        return []
+
+    # ---- Project MSN inputs table handlers ----
+
+    def _handle_msn_inputs_select(self, query: str, args: tuple) -> list[MockRecord]:
+        """Handle SELECT queries on project_msn_inputs."""
+        rows = self.store.get("project_msn_inputs", [])
+        q_upper = query.upper()
+
+        if "WHERE PROJECT_ID" in q_upper and args:
+            project_id = args[0]
+            result = [MockRecord(r) for r in rows if r.get("project_id") == project_id]
+            if "ORDER BY" in q_upper:
+                result.sort(key=lambda r: r.get("id", 0))
+            return result
+        if "WHERE ID" in q_upper and args:
+            input_id = args[0]
+            return [MockRecord(r) for r in rows if r["id"] == input_id]
+        return [MockRecord(r) for r in rows]
+
+    def _handle_msn_inputs_insert(self, query: str, args: tuple) -> list[MockRecord]:
+        """Handle INSERT into project_msn_inputs."""
+        rows = self.store.setdefault("project_msn_inputs", [])
+        now = datetime.now(timezone.utc)
+        q_upper = query.upper()
+
+        # Parse column names from the INSERT statement
+        col_match = re.search(
+            r'INSERT\s+INTO\s+project_msn_inputs\s*\((.+?)\)\s*VALUES',
+            query, re.IGNORECASE | re.DOTALL,
+        )
+        columns = [c.strip() for c in col_match.group(1).split(",")] if col_match else []
+
+        new_row = {}
+        for i, col in enumerate(columns):
+            if i < len(args):
+                new_row[col] = args[i]
+
+        max_id = max((r["id"] for r in rows), default=0)
+        new_row["id"] = max_id + 1
+        new_row.setdefault("period_months", 12)
+        new_row.setdefault("lease_type", "wet")
+        new_row.setdefault("crew_sets", 4)
+        new_row.setdefault("created_at", now)
+        new_row.setdefault("updated_at", now)
+
+        rows.append(new_row)
+
+        if "RETURNING" in q_upper:
+            return [MockRecord(new_row)]
+        return []
+
+    def _handle_msn_inputs_update(self, query: str, args: tuple) -> list[MockRecord]:
+        """Handle UPDATE on project_msn_inputs."""
+        rows = self.store.get("project_msn_inputs", [])
+        q_upper = query.upper()
+        now = datetime.now(timezone.utc)
+
+        input_id = args[-1]
+        target = None
+        for r in rows:
+            if r["id"] == input_id:
+                target = r
+                break
+        if not target:
+            return []
+
+        set_match = re.search(r'SET\s+(.+?)\s+WHERE', query, re.IGNORECASE | re.DOTALL)
+        if set_match:
+            set_clause = set_match.group(1)
+            parts = [p.strip() for p in set_clause.split(",")]
+            arg_idx = 0
+            for part in parts:
+                if "NOW()" in part.upper():
+                    field = part.split("=")[0].strip()
+                    target[field] = now
+                elif "=" in part:
+                    field = part.split("=")[0].strip()
+                    target[field] = args[arg_idx]
+                    arg_idx += 1
+
+        target["updated_at"] = now
+
+        if "RETURNING" in q_upper:
+            return [MockRecord(target)]
+        return []
+
+    def _handle_msn_inputs_delete(self, query: str, args: tuple) -> list[MockRecord]:
+        """Handle DELETE from project_msn_inputs."""
+        rows = self.store.get("project_msn_inputs", [])
+        if args:
+            input_id = args[0]
+            self.store["project_msn_inputs"] = [r for r in rows if r["id"] != input_id]
+        return []
+
 
 # ---- Fixtures ----
 
 @pytest.fixture
 def db_store():
     """Shared in-memory store for mock database."""
-    return {"users": [], "aircraft": [], "aircraft_rates": [], "epr_matrix_rows": []}
+    return {
+        "users": [],
+        "aircraft": [],
+        "aircraft_rates": [],
+        "epr_matrix_rows": [],
+        "pricing_config": [],
+        "crew_config": [],
+        "pricing_projects": [],
+        "project_msn_inputs": [],
+    }
 
 
 @pytest.fixture
@@ -617,3 +1057,69 @@ def test_aircraft_data(db_store):
         "rates": db_store["aircraft_rates"],
         "epr": db_store["epr_matrix_rows"],
     }
+
+
+@pytest.fixture
+def test_pricing_config(db_store):
+    """Insert initial pricing config version 1 with realistic values."""
+    now = datetime.now(timezone.utc)
+    config = {
+        "id": 1,
+        "version": 1,
+        "exchange_rate": Decimal("0.8500"),
+        "insurance_usd": Decimal("45000.00"),
+        "doc_total_budget": Decimal("110000.00"),
+        "overhead_total_budget": Decimal("165000.00"),
+        "other_cogs_monthly": Decimal("8500.00"),
+        "line_maintenance_monthly": Decimal("35000.00"),
+        "base_maintenance_monthly": Decimal("15000.00"),
+        "personnel_salary_monthly": Decimal("25000.00"),
+        "c_check_monthly": Decimal("18000.00"),
+        "maintenance_training_monthly": Decimal("5500.00"),
+        "spare_parts_rate": Decimal("12.5000"),
+        "maintenance_per_diem": Decimal("3500.00"),
+        "average_active_fleet": Decimal("11.0"),
+        "created_at": now,
+        "created_by": None,
+        "is_current": True,
+    }
+    db_store["pricing_config"].append(config)
+    return config
+
+
+@pytest.fixture
+def test_crew_config(db_store):
+    """Insert A320 and A321 crew configs with realistic values."""
+    now = datetime.now(timezone.utc)
+    a320 = {
+        "id": 1,
+        "version": 1,
+        "aircraft_type": "A320",
+        "pilot_salary_monthly": Decimal("12500.00"),
+        "senior_attendant_salary_monthly": Decimal("4500.00"),
+        "regular_attendant_salary_monthly": Decimal("3500.00"),
+        "per_diem_rate": Decimal("75.00"),
+        "accommodation_monthly_budget": Decimal("44000.00"),
+        "training_total_budget": Decimal("55000.00"),
+        "uniform_total_budget": Decimal("22000.00"),
+        "created_at": now,
+        "created_by": None,
+        "is_current": True,
+    }
+    a321 = {
+        "id": 2,
+        "version": 1,
+        "aircraft_type": "A321",
+        "pilot_salary_monthly": Decimal("13000.00"),
+        "senior_attendant_salary_monthly": Decimal("4800.00"),
+        "regular_attendant_salary_monthly": Decimal("3700.00"),
+        "per_diem_rate": Decimal("80.00"),
+        "accommodation_monthly_budget": Decimal("55000.00"),
+        "training_total_budget": Decimal("66000.00"),
+        "uniform_total_budget": Decimal("27500.00"),
+        "created_at": now,
+        "created_by": None,
+        "is_current": True,
+    }
+    db_store["crew_config"].extend([a320, a321])
+    return {"A320": a320, "A321": a321}
