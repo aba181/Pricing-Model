@@ -138,6 +138,7 @@ const PNL_ROWS: PnlRowDef[] = [
   { kind: 'kpi', label: 'FH', key: 'fh' },
   { kind: 'kpi', label: 'FC', key: 'fc' },
   { kind: 'kpi', label: 'FH:FC', key: 'fhFcRatio' },
+  { kind: 'kpi', label: 'APU FH', key: 'apuFh' },
 ]
 
 // Keys for variable cost items
@@ -182,7 +183,8 @@ function buildMonthlyData(
   mgh: number,
   acmiRate: number,
   cycleRatio: number,
-  bhFhRatio: number
+  bhFhRatio: number,
+  apuFhRatio: number
 ): Record<string, number[]> {
   const data: Record<string, number[]> = {}
 
@@ -196,7 +198,7 @@ function buildMonthlyData(
     'totalFixedCost', 'contributionII', 'totalOverhead',
     'ebitda', 'ebitdaMargin', 'depAmort', 'ebit', 'ebitMargin',
     'interestNet', 'fxNet', 'tax', 'netProfit', 'netProfitMargin',
-    'acOperational', 'bh', 'avgBhPerAc', 'fh', 'fc', 'fhFcRatio',
+    'acOperational', 'bh', 'avgBhPerAc', 'fh', 'fc', 'fhFcRatio', 'apuFh',
   ]
   for (const k of allKeys) {
     data[k] = new Array(monthCount).fill(0)
@@ -308,6 +310,7 @@ function buildMonthlyData(
     data['fh'][m] = fh
     data['fc'][m] = cycleRatio > 0 ? fh / cycleRatio : 0
     data['fhFcRatio'][m] = cycleRatio
+    data['apuFh'][m] = fh * apuFhRatio
   }
 
   return data
@@ -332,6 +335,7 @@ export function PnlTable() {
   let acmiRate = 0
   let cycleRatio = 1
   let bhFhRatio = 1.2
+  let apuFhRatio = 1.1
   let periodStart = ''
   let periodEnd = ''
 
@@ -344,6 +348,7 @@ export function PnlTable() {
       acmiRate = input ? parseFloat(input.acmiRate || '0') : 0
       cycleRatio = input ? parseFloat(input.cycleRatio || '1') : 1
       bhFhRatio = input ? parseFloat(input.bhFhRatio || '1.2') : 1.2
+      apuFhRatio = input ? parseFloat(input.apuFhRatio || '1.1') : 1.1
     }
     if (input) {
       periodStart = input.periodStart
@@ -358,12 +363,14 @@ export function PnlTable() {
       // Weighted average cycle ratio
       cycleRatio = msnInputs.reduce((sum, i) => sum + parseFloat(i.cycleRatio || '1') * parseFloat(i.mgh), 0) / (mgh || 1)
       bhFhRatio = msnInputs.reduce((sum, i) => sum + parseFloat(i.bhFhRatio || '1.2') * parseFloat(i.mgh), 0) / (mgh || 1)
+      apuFhRatio = msnInputs.reduce((sum, i) => sum + parseFloat(i.apuFhRatio || '1.1') * parseFloat(i.mgh), 0) / (mgh || 1)
     } else if (msnResults.length === 1) {
       breakdown = msnResults[0].breakdown
       mgh = msnInputs.length > 0 ? parseFloat(msnInputs[0].mgh) : 0
       acmiRate = msnInputs.length > 0 ? parseFloat(msnInputs[0].acmiRate || '0') : 0
       cycleRatio = msnInputs.length > 0 ? parseFloat(msnInputs[0].cycleRatio || '1') : 1
       bhFhRatio = msnInputs.length > 0 ? parseFloat(msnInputs[0].bhFhRatio || '1.2') : 1.2
+      apuFhRatio = msnInputs.length > 0 ? parseFloat(msnInputs[0].apuFhRatio || '1.1') : 1.1
     }
     if (msnInputs.length > 0) {
       periodStart = msnInputs[0].periodStart
@@ -383,7 +390,7 @@ export function PnlTable() {
 
   const months = generateMonthRange(periodStart, periodEnd)
   const periodMonths = computePeriodMonths(periodStart, periodEnd)
-  const monthlyData = buildMonthlyData(periodMonths, breakdown, mgh, acmiRate, cycleRatio, bhFhRatio)
+  const monthlyData = buildMonthlyData(periodMonths, breakdown, mgh, acmiRate, cycleRatio, bhFhRatio, apuFhRatio)
 
   // Empty state
   if (!breakdown && msnResults.length === 0) {

@@ -11,7 +11,7 @@ interface MsnInputRowProps {
 
 export function MsnInputRow({ input, onUpdate, onRemove }: MsnInputRowProps) {
   return (
-    <div className="grid grid-cols-[80px_70px_90px_100px_90px_80px_120px_120px_100px_80px_110px_80px_40px] gap-2 items-center py-2 px-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
+    <div className="grid grid-cols-[80px_70px_90px_100px_90px_80px_120px_120px_100px_80px_110px_80px_90px_40px] gap-2 items-center py-2 px-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
       {/* Read-only fields */}
       <div className="text-sm text-gray-100 font-medium">{input.msn}</div>
       <div className="text-sm text-gray-400">{input.aircraftType}</div>
@@ -110,6 +110,16 @@ export function MsnInputRow({ input, onUpdate, onRemove }: MsnInputRowProps) {
         onChange={(e) => onUpdate(input.msn, 'bhFhRatio', e.target.value)}
         className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-gray-100 focus:border-indigo-400 focus:outline-none"
         aria-label={`BH:FH Ratio for MSN ${input.msn}`}
+      />
+
+      {/* APU FH:FH Ratio */}
+      <input
+        type="number"
+        step="0.01"
+        value={input.apuFhRatio}
+        onChange={(e) => onUpdate(input.msn, 'apuFhRatio', e.target.value)}
+        className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-gray-100 focus:border-indigo-400 focus:outline-none"
+        aria-label={`APU FH:FH Ratio for MSN ${input.msn}`}
       />
 
       {/* Remove button */}

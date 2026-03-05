@@ -17,6 +17,7 @@ export interface MsnInput {
   crewSets: number
   acmiRate: string // EUR per BH — revenue = acmiRate × MGH
   bhFhRatio: string // BH:FH ratio — FH = BH / bhFhRatio (default 1.2)
+  apuFhRatio: string // APU FH:FH ratio — APU FH = FH * apuFhRatio (default 1.1)
 }
 
 /** Compute period in months from start/end YYYY-MM strings (inclusive) */
