@@ -28,13 +28,13 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **PRIC-03**: User can enter margin percentage and see final EUR/BH rate
 - [ ] **PRIC-04**: Calculation results update in real-time as inputs change
 - [ ] **PRIC-05**: Calculation output matches Excel workbook exactly (verified with test fixtures)
-- [ ] **PRIC-06**: All monetary calculations use Decimal precision (never floating-point)
+- [x] **PRIC-06**: All monetary calculations use Decimal precision (never floating-point)
 
 ### Pricing Configuration
 
 - [ ] **CONF-01**: Admin can view and update base rates and pricing parameters via admin page
-- [ ] **CONF-02**: Pricing config changes are versioned (old quotes reference the config version they were created with)
-- [ ] **CONF-03**: System prevents config changes from altering previously saved quotes
+- [x] **CONF-02**: Pricing config changes are versioned (old quotes reference the config version they were created with)
+- [x] **CONF-03**: System prevents config changes from altering previously saved quotes
 
 ### Sensitivity Analysis
 
@@ -115,10 +115,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PRIC-03 | Phase 3 | Pending |
 | PRIC-04 | Phase 3 | Pending |
 | PRIC-05 | Phase 3 | Pending |
-| PRIC-06 | Phase 3 | Pending |
+| PRIC-06 | Phase 3 | Complete |
 | CONF-01 | Phase 3 | Pending |
-| CONF-02 | Phase 3 | Pending |
-| CONF-03 | Phase 3 | Pending |
+| CONF-02 | Phase 3 | Complete |
+| CONF-03 | Phase 3 | Complete |
 | QUOT-01 | Phase 4 | Pending |
 | QUOT-02 | Phase 4 | Pending |
 | QUOT-03 | Phase 4 | Pending |

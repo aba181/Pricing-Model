@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Completed 02-03-PLAN.md (Phase 2 complete)
-last_updated: "2026-03-05T10:09:30.221Z"
-last_activity: "2026-03-05 — Completed 02-03-PLAN.md (Aircraft frontend: searchable list, detail with 4 cost sections, admin edit)"
+status: in-progress
+stopped_at: Completed 03-01-PLAN.md
+last_updated: "2026-03-05T12:14:01Z"
+last_activity: "2026-03-05 — Completed 03-01-PLAN.md (Pricing config data foundation: versioned tables, schemas, repositories, mock DB)"
 progress:
   total_phases: 5
   completed_phases: 2
-  total_plans: 7
-  completed_plans: 7
-  percent: 100
+  total_plans: 12
+  completed_plans: 8
+  percent: 67
 ---
 
 # Project State
@@ -21,23 +21,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-04)
 
 **Core value:** Accurate, repeatable ACMI pricing quotes that the sales team can generate, save, and retrieve — replacing manual spreadsheet-based pricing with a structured tool that produces consistent results.
-**Current focus:** Phase 2 complete — Aircraft Master Data (all 3 plans done). Phase 3 next (Pricing Engine).
+**Current focus:** Phase 3 in progress — Pricing Engine (1/5 plans done). Data foundation complete, calculation service next.
 
 ## Current Position
 
-Phase: 2 of 5 (Aircraft Master Data) -- COMPLETE
-Plan: 3 of 3 in current phase (all done)
-Status: Phase 2 Complete, Phase 3 Not Started
-Last activity: 2026-03-05 — Completed 02-03-PLAN.md (Aircraft frontend: searchable list, detail with 4 cost sections, admin edit)
+Phase: 3 of 5 (Pricing Engine)
+Plan: 1 of 5 in current phase
+Status: Phase 3 In Progress
+Last activity: 2026-03-05 — Completed 03-01-PLAN.md (Pricing config data foundation: versioned tables, schemas, repositories, mock DB)
 
-Progress: [██████████] 100% (Phases 1-2 complete, 7/7 plans)
+Progress: [██████░░░░] 67% (Phases 1-2 complete, Phase 3: 1/5, 8/12 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 7
+- Total plans completed: 8
 - Average duration: 5min
-- Total execution time: 0.57 hours
+- Total execution time: 0.65 hours
 
 **By Phase:**
 
@@ -45,15 +45,17 @@ Progress: [██████████] 100% (Phases 1-2 complete, 7/7 plans)
 |-------|-------|-------|----------|
 | 1 - Foundation | 4 | 19min | 5min |
 | 2 - Aircraft Master Data | 3/3 | 18min | 6min |
+| 3 - Pricing Engine | 1/5 | 5min | 5min |
 
 **Recent Trend:**
-- Last 5 plans: 01-04 (8min), 02-01 (7min), 02-02 (3min), 02-03 (8min)
+- Last 5 plans: 02-01 (7min), 02-02 (3min), 02-03 (8min), 03-01 (5min)
 - Trend: Consistent
 
 *Updated after each plan completion*
 | Phase 02 P01 | 7min | 2 tasks | 9 files |
 | Phase 02 P02 | 3min | 2 tasks | 6 files |
 | Phase 02 P03 | 8min | 3 tasks | 7 files |
+| Phase 03 P01 | 5min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -90,6 +92,10 @@ Recent decisions affecting current work:
 - [02-03]: Admin detection via /auth/me fetch in Server Component, passed as isAdmin prop to client components
 - [02-03]: All 4 cost sections visible at once (no tabs) -- research recommended for 11-aircraft dataset
 - [02-03]: EPR matrix read-only in v1 -- admin editing deferred as discretion item
+- [03-01]: Append-only config versioning uses is_current boolean flag with partial unique index (not temporal tables)
+- [03-01]: crew_config per aircraft_type (A320/A321) to handle different cabin crew compositions
+- [03-01]: pricing_projects stores separate crew_config_a320_id and crew_config_a321_id FKs for quote immutability
+- [03-01]: crew_sets modeled as per-MSN input in project_msn_inputs (not global project setting)
 
 ### Pending Todos
 
@@ -101,6 +107,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-05T10:03:36.140Z
-Stopped at: Completed 02-03-PLAN.md (Phase 2 complete)
-Resume file: None
+Last session: 2026-03-05T12:14:01Z
+Stopped at: Completed 03-01-PLAN.md
+Resume file: .planning/phases/03-pricing-engine/03-02-PLAN.md
