@@ -6,16 +6,22 @@ from pydantic import BaseModel
 
 
 class AircraftListResponse(BaseModel):
-    """Aircraft summary for list views with fixed monthly rates."""
+    """Aircraft summary for list views with fixed monthly rates (USD + EUR)."""
 
     id: int
     msn: int
     aircraft_type: str
     registration: str | None = None
+    # Fixed monthly rates (USD)
     lease_rent_usd: Decimal | None = None
     six_year_check_usd: Decimal | None = None
     twelve_year_check_usd: Decimal | None = None
     ldg_usd: Decimal | None = None
+    # EUR conversions (computed on read via apply_eur_conversion)
+    lease_rent_eur: Decimal | None = None
+    six_year_check_eur: Decimal | None = None
+    twelve_year_check_eur: Decimal | None = None
+    ldg_eur: Decimal | None = None
 
 
 class EprMatrixRow(BaseModel):
@@ -42,6 +48,14 @@ class AircraftDetailResponse(BaseModel):
     apu_rate_usd: Decimal | None = None
     llp1_rate_usd: Decimal | None = None
     llp2_rate_usd: Decimal | None = None
+    # EUR conversions (computed on read via apply_eur_conversion)
+    lease_rent_eur: Decimal | None = None
+    six_year_check_eur: Decimal | None = None
+    twelve_year_check_eur: Decimal | None = None
+    ldg_eur: Decimal | None = None
+    apu_rate_eur: Decimal | None = None
+    llp1_rate_eur: Decimal | None = None
+    llp2_rate_eur: Decimal | None = None
     # Escalation rates
     epr_escalation: Decimal | None = None
     llp_escalation: Decimal | None = None
