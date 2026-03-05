@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: in_progress
-stopped_at: Completed 02-02-PLAN.md
-last_updated: "2026-03-05T09:37:18Z"
-last_activity: 2026-03-05 — Completed 02-02-PLAN.md (Aircraft API router, EUR conversion, 41 green tests)
+status: completed
+stopped_at: Completed 02-03-PLAN.md (Phase 2 complete)
+last_updated: "2026-03-05T10:03:53.243Z"
+last_activity: "2026-03-05 — Completed 02-03-PLAN.md (Aircraft frontend: searchable list, detail with 4 cost sections, admin edit)"
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 7
-  completed_plans: 6
-  percent: 86
+  completed_plans: 7
+  percent: 100
 ---
 
 # Project State
@@ -21,38 +21,39 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-04)
 
 **Core value:** Accurate, repeatable ACMI pricing quotes that the sales team can generate, save, and retrieve — replacing manual spreadsheet-based pricing with a structured tool that produces consistent results.
-**Current focus:** Phase 2 in progress — Aircraft Master Data (API router complete, frontend next)
+**Current focus:** Phase 2 complete — Aircraft Master Data (all 3 plans done). Phase 3 next (Pricing Engine).
 
 ## Current Position
 
-Phase: 2 of 5 (Aircraft Master Data)
-Plan: 2 of 3 in current phase (API router done)
-Status: Phase 2 In Progress
-Last activity: 2026-03-05 — Completed 02-02-PLAN.md (Aircraft API router, EUR conversion, 41 green tests)
+Phase: 2 of 5 (Aircraft Master Data) -- COMPLETE
+Plan: 3 of 3 in current phase (all done)
+Status: Phase 2 Complete, Phase 3 Not Started
+Last activity: 2026-03-05 — Completed 02-03-PLAN.md (Aircraft frontend: searchable list, detail with 4 cost sections, admin edit)
 
-Progress: [████████░░] 86%
+Progress: [██████████] 100% (Phases 1-2 complete, 7/7 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 6
+- Total plans completed: 7
 - Average duration: 5min
-- Total execution time: 0.50 hours
+- Total execution time: 0.57 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1 - Foundation | 4 | 19min | 5min |
-| 2 - Aircraft Master Data | 2/3 | 10min | 5min |
+| 2 - Aircraft Master Data | 3/3 | 18min | 6min |
 
 **Recent Trend:**
-- Last 5 plans: 01-03 (3min), 01-04 (8min), 02-01 (7min), 02-02 (3min)
+- Last 5 plans: 01-04 (8min), 02-01 (7min), 02-02 (3min), 02-03 (8min)
 - Trend: Consistent
 
 *Updated after each plan completion*
 | Phase 02 P01 | 7min | 2 tasks | 9 files |
 | Phase 02 P02 | 3min | 2 tasks | 6 files |
+| Phase 02 P03 | 8min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -85,6 +86,10 @@ Recent decisions affecting current work:
 - [02-02]: EUR fields added explicitly to Pydantic schemas for type-safe API contract rather than response_model=None
 - [02-02]: apply_eur_conversion returns new dict, never mutates input -- safe for concurrent use
 - [02-02]: Router uses Depends(get_current_user) for read, Depends(require_admin) for write endpoints
+- [02-03]: Server Components fetch API with cookie forwarding (cookies() from next/headers) -- keeps API_URL server-only
+- [02-03]: Admin detection via /auth/me fetch in Server Component, passed as isAdmin prop to client components
+- [02-03]: All 4 cost sections visible at once (no tabs) -- research recommended for 11-aircraft dataset
+- [02-03]: EPR matrix read-only in v1 -- admin editing deferred as discretion item
 
 ### Pending Todos
 
@@ -96,6 +101,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-05T09:37:18Z
-Stopped at: Completed 02-02-PLAN.md
-Resume file: .planning/phases/02-aircraft-master-data/02-03-PLAN.md
+Last session: 2026-03-05T10:03:36.140Z
+Stopped at: Completed 02-03-PLAN.md (Phase 2 complete)
+Resume file: None
