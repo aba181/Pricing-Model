@@ -15,6 +15,7 @@ export interface MsnInput {
   periodEnd: string // "YYYY-MM" format
   leaseType: 'wet' | 'damp' | 'moist'
   crewSets: number
+  acmiRate: string // EUR per BH — revenue = acmiRate × MGH
 }
 
 /** Compute period in months from start/end YYYY-MM strings (inclusive) */

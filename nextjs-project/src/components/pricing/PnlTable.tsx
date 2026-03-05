@@ -179,7 +179,8 @@ function buildMonthlyData(
     marginPercent: string
     finalRatePerBh: string
   } | null,
-  mgh: number
+  mgh: number,
+  acmiRate: number
 ): Record<string, number[]> {
   const data: Record<string, number[]> = {}
 
@@ -209,7 +210,8 @@ function buildMonthlyData(
   const doc = parseFloat(breakdown.docEurPerBh) * mgh
   const otherCogs = parseFloat(breakdown.otherCogsEurPerBh) * mgh
   const overhead = parseFloat(breakdown.overheadEurPerBh) * mgh
-  const revenue = parseFloat(breakdown.finalRatePerBh) * mgh
+  // Revenue = ACMI Rate × MGH (user-provided rate, not backend finalRate)
+  const revenue = acmiRate * mgh
 
   for (let m = 0; m < monthCount; m++) {
     // Revenue
@@ -324,6 +326,7 @@ export function PnlTable() {
   // Determine which data to display
   let breakdown: typeof totalResult = null
   let mgh = 0
+  let acmiRate = 0
   let periodStart = ''
   let periodEnd = ''
 
@@ -333,6 +336,7 @@ export function PnlTable() {
     if (match) {
       breakdown = match.breakdown
       mgh = input ? parseFloat(input.mgh) : 0
+      acmiRate = input ? parseFloat(input.acmiRate || '0') : 0
     }
     if (input) {
       periodStart = input.periodStart
@@ -343,9 +347,11 @@ export function PnlTable() {
     if (totalResult) {
       breakdown = totalResult
       mgh = msnInputs.reduce((sum, i) => sum + parseFloat(i.mgh), 0)
+      acmiRate = msnInputs.reduce((sum, i) => sum + parseFloat(i.acmiRate || '0') * parseFloat(i.mgh), 0) / (mgh || 1)
     } else if (msnResults.length === 1) {
       breakdown = msnResults[0].breakdown
       mgh = msnInputs.length > 0 ? parseFloat(msnInputs[0].mgh) : 0
+      acmiRate = msnInputs.length > 0 ? parseFloat(msnInputs[0].acmiRate || '0') : 0
     }
     if (msnInputs.length > 0) {
       periodStart = msnInputs[0].periodStart
@@ -365,7 +371,7 @@ export function PnlTable() {
 
   const months = generateMonthRange(periodStart, periodEnd)
   const periodMonths = computePeriodMonths(periodStart, periodEnd)
-  const monthlyData = buildMonthlyData(periodMonths, breakdown, mgh)
+  const monthlyData = buildMonthlyData(periodMonths, breakdown, mgh, acmiRate)
 
   // Empty state
   if (!breakdown && msnResults.length === 0) {

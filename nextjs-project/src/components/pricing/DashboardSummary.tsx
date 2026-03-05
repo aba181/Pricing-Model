@@ -173,6 +173,7 @@ export function DashboardSummary({ aircraftList }: DashboardSummaryProps) {
       periodEnd: defaultEnd,
       leaseType: 'wet',
       crewSets: 4,
+      acmiRate: '0',
     }
 
     addMsnInput(newInput)
@@ -184,8 +185,9 @@ export function DashboardSummary({ aircraftList }: DashboardSummaryProps) {
     (sum, r) => sum + parseFloat(r.monthlyCost || '0'),
     0
   )
-  const totalMonthlyRevenue = msnResults.reduce(
-    (sum, r) => sum + parseFloat(r.monthlyRevenue || '0'),
+  // Revenue = ACMI Rate × MGH for each MSN
+  const totalMonthlyRevenue = msnInputs.reduce(
+    (sum, i) => sum + parseFloat(i.acmiRate || '0') * parseFloat(i.mgh || '0'),
     0
   )
   const totalMonthlyPnl = totalMonthlyRevenue - totalMonthlyCost
@@ -291,7 +293,7 @@ export function DashboardSummary({ aircraftList }: DashboardSummaryProps) {
 
         {/* Column headers */}
         {msnInputs.length > 0 && (
-          <div className="grid grid-cols-[80px_70px_90px_100px_90px_80px_120px_120px_100px_80px_40px] gap-2 px-3 mb-1">
+          <div className="grid grid-cols-[80px_70px_90px_100px_90px_80px_120px_120px_100px_80px_110px_40px] gap-2 px-3 mb-1">
             <span className="text-xs font-medium text-gray-500">MSN</span>
             <span className="text-xs font-medium text-gray-500">Type</span>
             <span className="text-xs font-medium text-gray-500">Reg</span>
@@ -304,6 +306,7 @@ export function DashboardSummary({ aircraftList }: DashboardSummaryProps) {
             <span className="text-xs font-medium text-gray-500">End</span>
             <span className="text-xs font-medium text-gray-500">Lease</span>
             <span className="text-xs font-medium text-gray-500">Crew</span>
+            <span className="text-xs font-medium text-gray-500">ACMI Rate</span>
             <span />
           </div>
         )}
