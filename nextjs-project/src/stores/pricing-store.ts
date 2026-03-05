@@ -18,6 +18,11 @@ export interface MsnInput {
   acmiRate: string // EUR per BH — revenue = acmiRate × MGH
   bhFhRatio: string // BH:FH ratio — FH = BH / bhFhRatio (default 1.2)
   apuFhRatio: string // APU FH:FH ratio — APU FH = FH * apuFhRatio (default 1.1)
+  // Aircraft rates from Aircraft tab (EUR, monthly)
+  leaseRentEur: string // Dry lease rent per month
+  sixYearCheckEur: string // 6-year check reserve per month
+  twelveYearCheckEur: string // 12-year check reserve per month
+  ldgEur: string // Landing gear reserve per month
 }
 
 /** Compute period in months from start/end YYYY-MM strings (inclusive) */

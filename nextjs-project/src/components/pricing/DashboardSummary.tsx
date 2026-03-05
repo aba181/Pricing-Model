@@ -14,6 +14,10 @@ interface AircraftOption {
   msn: number
   aircraft_type: string
   registration: string | null
+  lease_rent_eur: string | null
+  six_year_check_eur: string | null
+  twelve_year_check_eur: string | null
+  ldg_eur: string | null
 }
 
 interface DashboardSummaryProps {
@@ -176,6 +180,11 @@ export function DashboardSummary({ aircraftList }: DashboardSummaryProps) {
       acmiRate: '0',
       bhFhRatio: '1.2',
       apuFhRatio: '1.1',
+      // Aircraft rates from Aircraft tab (EUR)
+      leaseRentEur: ac.lease_rent_eur ?? '0',
+      sixYearCheckEur: ac.six_year_check_eur ?? '0',
+      twelveYearCheckEur: ac.twelve_year_check_eur ?? '0',
+      ldgEur: ac.ldg_eur ?? '0',
     }
 
     addMsnInput(newInput)

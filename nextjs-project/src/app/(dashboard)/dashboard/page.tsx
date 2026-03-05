@@ -8,6 +8,10 @@ interface AircraftOption {
   msn: number
   aircraft_type: string
   registration: string | null
+  lease_rent_eur: string | null
+  six_year_check_eur: string | null
+  twelve_year_check_eur: string | null
+  ldg_eur: string | null
 }
 
 async function getAircraftList(): Promise<AircraftOption[]> {

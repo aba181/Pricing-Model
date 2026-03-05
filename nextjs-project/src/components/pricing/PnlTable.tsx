@@ -184,7 +184,10 @@ function buildMonthlyData(
   acmiRate: number,
   cycleRatio: number,
   bhFhRatio: number,
-  apuFhRatio: number
+  apuFhRatio: number,
+  // Aircraft rates from Aircraft tab (EUR monthly)
+  leaseRentEur: number,
+  maintReservesFixedEur: number, // sum of 6yr + 12yr + LDG
 ): Record<string, number[]> {
   const data: Record<string, number[]> = {}
 
@@ -255,9 +258,9 @@ function buildMonthlyData(
     data['totalVariableCost'][m] = totalVar
     data['contributionI'][m] = revenue - totalVar
 
-    // Fixed cost -- currently map from existing breakdown split
-    data['dryLease'][m] = aircraft * 0.5
-    data['maintReservesFixed'][m] = aircraft * 0.3
+    // Fixed cost -- A component: from Aircraft tab rates
+    data['dryLease'][m] = leaseRentEur
+    data['maintReservesFixed'][m] = maintReservesFixedEur
 
     data['pilotSalary'][m] = crew * 0.35
     data['cabinCrewSalary'][m] = crew * 0.3
@@ -336,8 +339,17 @@ export function PnlTable() {
   let cycleRatio = 1
   let bhFhRatio = 1.2
   let apuFhRatio = 1.1
+  let leaseRentEur = 0
+  let maintReservesFixedEur = 0
   let periodStart = ''
   let periodEnd = ''
+
+  /** Sum of 6yr + 12yr + LDG from an MsnInput */
+  function calcMaintFixed(i: typeof msnInputs[number]): number {
+    return parseFloat(i.sixYearCheckEur || '0')
+      + parseFloat(i.twelveYearCheckEur || '0')
+      + parseFloat(i.ldgEur || '0')
+  }
 
   if (selectedMsn !== null) {
     const match = msnResults.find((r) => r.msn === selectedMsn)
@@ -353,6 +365,8 @@ export function PnlTable() {
     if (input) {
       periodStart = input.periodStart
       periodEnd = input.periodEnd
+      leaseRentEur = parseFloat(input.leaseRentEur || '0')
+      maintReservesFixedEur = calcMaintFixed(input)
     }
   } else {
     // Total project view: use first MSN's period as representative
@@ -364,6 +378,9 @@ export function PnlTable() {
       cycleRatio = msnInputs.reduce((sum, i) => sum + parseFloat(i.cycleRatio || '1') * parseFloat(i.mgh), 0) / (mgh || 1)
       bhFhRatio = msnInputs.reduce((sum, i) => sum + parseFloat(i.bhFhRatio || '1.2') * parseFloat(i.mgh), 0) / (mgh || 1)
       apuFhRatio = msnInputs.reduce((sum, i) => sum + parseFloat(i.apuFhRatio || '1.1') * parseFloat(i.mgh), 0) / (mgh || 1)
+      // Sum aircraft rates across all MSNs
+      leaseRentEur = msnInputs.reduce((sum, i) => sum + parseFloat(i.leaseRentEur || '0'), 0)
+      maintReservesFixedEur = msnInputs.reduce((sum, i) => sum + calcMaintFixed(i), 0)
     } else if (msnResults.length === 1) {
       breakdown = msnResults[0].breakdown
       mgh = msnInputs.length > 0 ? parseFloat(msnInputs[0].mgh) : 0
@@ -371,6 +388,8 @@ export function PnlTable() {
       cycleRatio = msnInputs.length > 0 ? parseFloat(msnInputs[0].cycleRatio || '1') : 1
       bhFhRatio = msnInputs.length > 0 ? parseFloat(msnInputs[0].bhFhRatio || '1.2') : 1.2
       apuFhRatio = msnInputs.length > 0 ? parseFloat(msnInputs[0].apuFhRatio || '1.1') : 1.1
+      leaseRentEur = msnInputs.length > 0 ? parseFloat(msnInputs[0].leaseRentEur || '0') : 0
+      maintReservesFixedEur = msnInputs.length > 0 ? calcMaintFixed(msnInputs[0]) : 0
     }
     if (msnInputs.length > 0) {
       periodStart = msnInputs[0].periodStart
@@ -390,7 +409,7 @@ export function PnlTable() {
 
   const months = generateMonthRange(periodStart, periodEnd)
   const periodMonths = computePeriodMonths(periodStart, periodEnd)
-  const monthlyData = buildMonthlyData(periodMonths, breakdown, mgh, acmiRate, cycleRatio, bhFhRatio, apuFhRatio)
+  const monthlyData = buildMonthlyData(periodMonths, breakdown, mgh, acmiRate, cycleRatio, bhFhRatio, apuFhRatio, leaseRentEur, maintReservesFixedEur)
 
   // Empty state
   if (!breakdown && msnResults.length === 0) {
