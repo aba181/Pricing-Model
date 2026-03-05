@@ -2,6 +2,8 @@
 
 import { usePricingStore } from '@/stores/pricing-store'
 import { generateMonthRange, computePeriodMonths } from '@/stores/pricing-store'
+import { useCrewConfigStore } from '@/stores/crew-config-store'
+import { useCostsConfigStore } from '@/stores/costs-config-store'
 
 // ---- Formatting helpers ----
 
@@ -165,29 +167,54 @@ const OVERHEAD_KEYS = [
 
 // ---- Build monthly data from breakdown (placeholder zeros + available breakdown mapping) ----
 
+/** All derived config values that feed into P&L line items */
+interface PnlLineConfig {
+  // A component (from Aircraft tab)
+  leaseRentEur: number
+  maintReservesFixedEur: number
+  // C component (from Crew tab)
+  pilotSalary: number       // (pilot SS + copilot SS) × crewSets
+  cabinCrewSalary: number   // depends on leaseType + aircraftType
+  staffUniformF: number     // uniform per month (per AC)
+  trainingC: number         // training total per month (per AC)
+  // M component (from Costs tab)
+  lineMaintenance: number   // internal + 3rd party
+  baseMaintenance: number   // capital maintenance
+  maintPersonnelSalary: number
+  trainningM: number
+  maintCCheck: number
+  // I component (from Costs tab)
+  insuranceFixed: number    // insurance for selected MSN
+  // Other (from Costs tab)
+  technical: number
+  otherFixed: number
+  // Overhead (from Costs tab) — per month per AC
+  personnelCostSS: number
+  personnelCost: number
+  travelExpenses: number
+  legalExpenses: number
+  licenseRegCost: number
+  adminCost: number
+  itComms: number
+  adminGeneralExp: number
+  sellingMarketingCost: number
+  // DOC (from Costs tab) — per month per AC
+  fuel: number
+  handling: number
+  navigation: number
+  airportCharges: number
+  // Other COGS (from Costs tab)
+  commissions: number
+}
+
 function buildMonthlyData(
   monthCount: number,
-  breakdown: {
-    aircraftEurPerBh: string
-    crewEurPerBh: string
-    maintenanceEurPerBh: string
-    insuranceEurPerBh: string
-    docEurPerBh: string
-    otherCogsEurPerBh: string
-    overheadEurPerBh: string
-    totalCostPerBh: string
-    revenuePerBh: string
-    marginPercent: string
-    finalRatePerBh: string
-  } | null,
   mgh: number,
   acmiRate: number,
   cycleRatio: number,
   bhFhRatio: number,
   apuFhRatio: number,
-  // Aircraft rates from Aircraft tab (EUR monthly)
-  leaseRentEur: number,
-  maintReservesFixedEur: number, // sum of 6yr + 12yr + LDG
+  cfg: PnlLineConfig,
 ): Record<string, number[]> {
   const data: Record<string, number[]> = {}
 
@@ -207,17 +234,9 @@ function buildMonthlyData(
     data[k] = new Array(monthCount).fill(0)
   }
 
-  if (!breakdown || mgh === 0) return data
+  if (mgh === 0) return data
 
-  // Map breakdown values into monthly amounts (each active month gets same value)
-  const aircraft = parseFloat(breakdown.aircraftEurPerBh) * mgh
-  const crew = parseFloat(breakdown.crewEurPerBh) * mgh
-  const maintenance = parseFloat(breakdown.maintenanceEurPerBh) * mgh
-  const insurance = parseFloat(breakdown.insuranceEurPerBh) * mgh
-  const doc = parseFloat(breakdown.docEurPerBh) * mgh
-  const otherCogs = parseFloat(breakdown.otherCogsEurPerBh) * mgh
-  const overhead = parseFloat(breakdown.overheadEurPerBh) * mgh
-  // Revenue = ACMI Rate × MGH (user-provided rate, not backend finalRate)
+  // Revenue = ACMI Rate × MGH
   const revenue = acmiRate * mgh
 
   for (let m = 0; m < monthCount; m++) {
@@ -227,70 +246,82 @@ function buildMonthlyData(
     data['financeIncome'][m] = 0
     data['totalRevenue'][m] = revenue
 
-    // Variable cost -- distribute breakdown buckets to line items
-    // Aircraft bucket -> maintenance reserves variable
-    data['maintReservesVariable'][m] = aircraft * 0.7
-    data['assetMgmtFee'][m] = aircraft * 0.3
+    // ── VARIABLE COST ──
+    // A: reserves variable + asset mgmt fee (still from backend breakdown for now)
+    data['maintReservesVariable'][m] = 0
+    data['assetMgmtFee'][m] = 0
 
-    // Crew bucket -> per diems
-    data['pilotPerDiem'][m] = crew * 0.4
-    data['cabinCrewPerDiem'][m] = crew * 0.35
-    data['accomTravelC'][m] = crew * 0.25
+    // C: per diems (kept as 0 for now — per diem logic can be added later)
+    data['pilotPerDiem'][m] = 0
+    data['cabinCrewPerDiem'][m] = 0
+    data['accomTravelC'][m] = 0
 
-    // Maintenance bucket -> variable maintenance items
-    data['spareParts'][m] = maintenance * 0.3
-    data['maintPersonnelPerDiem'][m] = maintenance * 0.25
-    data['accomTravelM'][m] = maintenance * 0.25
-    data['otherMaintV'][m] = maintenance * 0.2
+    // M: variable maintenance
+    data['spareParts'][m] = 0
+    data['maintPersonnelPerDiem'][m] = 0
+    data['accomTravelM'][m] = 0
+    data['otherMaintV'][m] = 0
 
-    // DOC bucket
-    data['fuel'][m] = doc * 0.5
-    data['handling'][m] = doc * 0.2
-    data['navigation'][m] = doc * 0.15
-    data['airportCharges'][m] = doc * 0.15
+    // DOC: from Costs tab
+    data['fuel'][m] = cfg.fuel
+    data['handling'][m] = cfg.handling
+    data['navigation'][m] = cfg.navigation
+    data['airportCharges'][m] = cfg.airportCharges
 
-    // Other COGS
-    data['commissions'][m] = otherCogs * 0.6
-    data['delaysCancellations'][m] = otherCogs * 0.4
+    // Other COGS: from Costs tab
+    data['commissions'][m] = cfg.commissions
+    data['delaysCancellations'][m] = 0
 
     // Total variable cost
     const totalVar = VARIABLE_COST_KEYS.reduce((s, k) => s + data[k][m], 0)
     data['totalVariableCost'][m] = totalVar
     data['contributionI'][m] = revenue - totalVar
 
-    // Fixed cost -- A component: from Aircraft tab rates
-    data['dryLease'][m] = leaseRentEur
-    data['maintReservesFixed'][m] = maintReservesFixedEur
+    // ── FIXED COST ──
+    // A: from Aircraft tab rates
+    data['dryLease'][m] = cfg.leaseRentEur
+    data['maintReservesFixed'][m] = cfg.maintReservesFixedEur
 
-    data['pilotSalary'][m] = crew * 0.35
-    data['cabinCrewSalary'][m] = crew * 0.3
-    data['staffUniformF'][m] = crew * 0.05
-    data['trainingC'][m] = crew * 0.1
+    // C: from Crew tab
+    data['pilotSalary'][m] = cfg.pilotSalary
+    data['cabinCrewSalary'][m] = cfg.cabinCrewSalary
+    data['staffUniformF'][m] = cfg.staffUniformF
+    data['trainingC'][m] = cfg.trainingC
 
-    data['lineMaintenance'][m] = maintenance * 0.2
-    data['baseMaintenance'][m] = maintenance * 0.2
-    data['maintPersonnelSalary'][m] = maintenance * 0.2
-    data['trainningM'][m] = maintenance * 0.1
-    data['maintCCheck'][m] = maintenance * 0.15
+    // M: from Costs tab
+    data['lineMaintenance'][m] = cfg.lineMaintenance
+    data['baseMaintenance'][m] = cfg.baseMaintenance
+    data['maintPersonnelSalary'][m] = cfg.maintPersonnelSalary
+    data['trainningM'][m] = cfg.trainningM
+    data['maintCCheck'][m] = cfg.maintCCheck
 
-    data['insuranceFixed'][m] = insurance
+    // I: from Costs tab (insurance for selected MSN)
+    data['insuranceFixed'][m] = cfg.insuranceFixed
 
-    data['technical'][m] = otherCogs * 0.3
-    data['otherFixed'][m] = otherCogs * 0.2
+    // Other: from Costs tab
+    data['technical'][m] = cfg.technical
+    data['otherFixed'][m] = cfg.otherFixed
 
     const totalFixed = FIXED_COST_KEYS.reduce((s, k) => s + data[k][m], 0)
     data['totalFixedCost'][m] = totalFixed
     data['contributionII'][m] = data['contributionI'][m] - totalFixed
 
-    // Overhead
-    const ohPerItem = overhead / OVERHEAD_KEYS.length
-    for (const k of OVERHEAD_KEYS) {
-      data[k][m] = ohPerItem
-    }
-    data['totalOverhead'][m] = overhead
+    // ── OVERHEAD ── from Costs tab (per month per AC)
+    data['personnelCostSS'][m] = cfg.personnelCostSS
+    data['personnelCost'][m] = cfg.personnelCost
+    data['travelExpenses'][m] = cfg.travelExpenses
+    data['legalExpenses'][m] = cfg.legalExpenses
+    data['licenseRegCost'][m] = cfg.licenseRegCost
+    data['adminCost'][m] = cfg.adminCost
+    data['itComms'][m] = cfg.itComms
+    data['adminGeneralExp'][m] = cfg.adminGeneralExp
+    data['sellingMarketingCost'][m] = cfg.sellingMarketingCost
+
+    const totalOH = OVERHEAD_KEYS.reduce((s, k) => s + data[k][m], 0)
+    data['totalOverhead'][m] = totalOH
 
     // EBITDA
-    data['ebitda'][m] = data['contributionII'][m] - overhead
+    data['ebitda'][m] = data['contributionII'][m] - totalOH
     data['ebitdaMargin'][m] = revenue > 0 ? data['ebitda'][m] / revenue : 0
 
     // D&A, EBIT
@@ -332,8 +363,80 @@ export function PnlTable() {
   const isCalculating = usePricingStore((s) => s.isCalculating)
   const msnInputs = usePricingStore((s) => s.msnInputs)
 
-  // Determine which data to display
-  let breakdown: typeof totalResult = null
+  // ── Crew config store ──
+  const crewPayroll = useCrewConfigStore((s) => s.payroll)
+  const crewOtherCost = useCrewConfigStore((s) => s.otherCost)
+  const crewTraining = useCrewConfigStore((s) => s.training)
+  const crewAvgAC = useCrewConfigStore((s) => s.averageAC)
+
+  // ── Costs config store ──
+  const costsMaintCosts = useCostsConfigStore((s) => s.maintCosts)
+  const costsInsurance = useCostsConfigStore((s) => s.insurance)
+  const costsDoc = useCostsConfigStore((s) => s.doc)
+  const costsOtherCogs = useCostsConfigStore((s) => s.otherCogs)
+  const costsOverhead = useCostsConfigStore((s) => s.overhead)
+  const costsAvgAc = useCostsConfigStore((s) => s.avgAc)
+
+  // ── Derive crew values for P&L ──
+  // Pilot salary per crew set = (pilot SS) + (copilot SS) where SS = gross + benefits
+  const pilotSalaryPerSet = (crewPayroll[0].grossSalary + crewPayroll[0].benefits)
+    + (crewPayroll[1].grossSalary + crewPayroll[1].benefits)
+  // Cabin attendant SS (any of rows 2-5)
+  const cabinAttendantSS = crewPayroll[2].grossSalary + crewPayroll[2].benefits
+  // Senior attendant SS (row 6)
+  const seniorAttendantSS = crewPayroll[6].grossSalary + crewPayroll[6].benefits
+  // Uniform per month (per AC) = Uniforms amount / avgAC / 12
+  const uniformsRow = crewOtherCost.find((r) => r.item === 'Uniforms')
+  const uniformPerMonth = uniformsRow?.amount && crewAvgAC > 0 ? uniformsRow.amount / crewAvgAC / 12 : 0
+  // Training total per month (per AC) = sum of all training amounts / avgAC / 12
+  const trainingTotal = crewTraining.reduce((s, r) => s + (r.amount ?? 0), 0)
+  const trainingPerMonth = crewAvgAC > 0 ? trainingTotal / crewAvgAC / 12 : 0
+
+  // ── Derive costs tab values for P&L ──
+  // M component: look up by name in maintCosts
+  const findMaintCost = (name: string) => costsMaintCosts.find((c) => c.name === name)?.perMonthPerAc ?? 0
+  const lineMaintenanceVal = findMaintCost('Line Maintenance - Internal') + findMaintCost('Line Maintenance - 3rd Party')
+  const baseMaintenanceVal = findMaintCost('Capital Maintenance')
+  const maintPersonnelSalaryVal = findMaintCost('Maintenance Personnel Salary')
+  const trainningVal = findMaintCost('Trainning')
+  const cCheckVal = findMaintCost('C-Check')
+
+  // Insurance: build MSN -> amount map
+  const insuranceByMsn: Record<number, number> = {}
+  for (const ins of costsInsurance) {
+    insuranceByMsn[ins.msn] = ins.priceUsd
+  }
+
+  // Other COGS: Technical and Other Fixed (per month per AC)
+  const otherCogsComputed = costsOtherCogs.map((item) => {
+    if (item.hasTotal && item.total !== undefined) {
+      if (item.name === 'Other Fixed') return { ...item, perMonth: item.total / 9 / 7 }
+      if (item.name === 'Technical') return { ...item, perMonth: costsAvgAc > 0 ? item.total / costsAvgAc / 12 : 0 }
+    }
+    return item
+  })
+  const technicalVal = otherCogsComputed.find((c) => c.name === 'Technical')?.perMonth ?? 0
+  const otherFixedVal = otherCogsComputed.find((c) => c.name === 'Other Fixed')?.perMonth ?? 0
+  // Commissions = sum of all commission items
+  const commissionsVal = otherCogsComputed
+    .filter((c) => c.mapping === 'Commissions')
+    .reduce((s, c) => s + c.perMonth, 0)
+
+  // DOC: per month per AC = total / avgAc / 12
+  const docPerMonth = costsDoc.map((d) => (costsAvgAc > 0 ? d.total / costsAvgAc / 12 : 0))
+  const fuelVal = docPerMonth[0] ?? 0
+  const handlingVal = docPerMonth[1] ?? 0
+  const navigationVal = docPerMonth[2] ?? 0
+  const airportChargesVal = docPerMonth[3] ?? 0
+
+  // Overhead: per month per AC = total / avgAc / 12
+  const overheadPerMonth = costsOverhead.map((o) => (costsAvgAc > 0 ? o.total / costsAvgAc / 12 : 0))
+  // Map overhead items to P&L keys by order (they match 1:1)
+  // Personnel Cost - SS, Personnel Cost, Travel Expenses, Legal Expenses,
+  // License & Registration Cost, Admin Cost, IT and Communications,
+  // Admin and General Expenses, Selling & Marketing Cost
+
+  // ── Determine which MSN data to display ──
   let mgh = 0
   let acmiRate = 0
   let cycleRatio = 1
@@ -341,8 +444,13 @@ export function PnlTable() {
   let apuFhRatio = 1.1
   let leaseRentEur = 0
   let maintReservesFixedEur = 0
+  let crewSets = 4
+  let leaseType: 'wet' | 'damp' | 'moist' = 'wet'
+  let aircraftType = 'A320'
+  let insuranceMsn = 0
   let periodStart = ''
   let periodEnd = ''
+  let hasData = false
 
   /** Sum of 6yr + 12yr + LDG from an MsnInput */
   function calcMaintFixed(i: typeof msnInputs[number]): number {
@@ -354,47 +462,91 @@ export function PnlTable() {
   if (selectedMsn !== null) {
     const match = msnResults.find((r) => r.msn === selectedMsn)
     const input = msnInputs.find((i) => i.msn === selectedMsn)
-    if (match) {
-      breakdown = match.breakdown
-      mgh = input ? parseFloat(input.mgh) : 0
-      acmiRate = input ? parseFloat(input.acmiRate || '0') : 0
-      cycleRatio = input ? parseFloat(input.cycleRatio || '1') : 1
-      bhFhRatio = input ? parseFloat(input.bhFhRatio || '1.2') : 1.2
-      apuFhRatio = input ? parseFloat(input.apuFhRatio || '1.1') : 1.1
-    }
+    if (match || input) hasData = true
     if (input) {
+      mgh = parseFloat(input.mgh) || 0
+      acmiRate = parseFloat(input.acmiRate || '0')
+      cycleRatio = parseFloat(input.cycleRatio || '1')
+      bhFhRatio = parseFloat(input.bhFhRatio || '1.2')
+      apuFhRatio = parseFloat(input.apuFhRatio || '1.1')
       periodStart = input.periodStart
       periodEnd = input.periodEnd
       leaseRentEur = parseFloat(input.leaseRentEur || '0')
       maintReservesFixedEur = calcMaintFixed(input)
+      crewSets = input.crewSets
+      leaseType = input.leaseType
+      aircraftType = input.aircraftType
+      insuranceMsn = input.msn
     }
   } else {
-    // Total project view: use first MSN's period as representative
-    if (totalResult) {
-      breakdown = totalResult
+    // Total project view
+    if (msnInputs.length > 0) {
+      hasData = true
       mgh = msnInputs.reduce((sum, i) => sum + parseFloat(i.mgh), 0)
       acmiRate = msnInputs.reduce((sum, i) => sum + parseFloat(i.acmiRate || '0') * parseFloat(i.mgh), 0) / (mgh || 1)
-      // Weighted average cycle ratio
       cycleRatio = msnInputs.reduce((sum, i) => sum + parseFloat(i.cycleRatio || '1') * parseFloat(i.mgh), 0) / (mgh || 1)
       bhFhRatio = msnInputs.reduce((sum, i) => sum + parseFloat(i.bhFhRatio || '1.2') * parseFloat(i.mgh), 0) / (mgh || 1)
       apuFhRatio = msnInputs.reduce((sum, i) => sum + parseFloat(i.apuFhRatio || '1.1') * parseFloat(i.mgh), 0) / (mgh || 1)
-      // Sum aircraft rates across all MSNs
       leaseRentEur = msnInputs.reduce((sum, i) => sum + parseFloat(i.leaseRentEur || '0'), 0)
       maintReservesFixedEur = msnInputs.reduce((sum, i) => sum + calcMaintFixed(i), 0)
-    } else if (msnResults.length === 1) {
-      breakdown = msnResults[0].breakdown
-      mgh = msnInputs.length > 0 ? parseFloat(msnInputs[0].mgh) : 0
-      acmiRate = msnInputs.length > 0 ? parseFloat(msnInputs[0].acmiRate || '0') : 0
-      cycleRatio = msnInputs.length > 0 ? parseFloat(msnInputs[0].cycleRatio || '1') : 1
-      bhFhRatio = msnInputs.length > 0 ? parseFloat(msnInputs[0].bhFhRatio || '1.2') : 1.2
-      apuFhRatio = msnInputs.length > 0 ? parseFloat(msnInputs[0].apuFhRatio || '1.1') : 1.1
-      leaseRentEur = msnInputs.length > 0 ? parseFloat(msnInputs[0].leaseRentEur || '0') : 0
-      maintReservesFixedEur = msnInputs.length > 0 ? calcMaintFixed(msnInputs[0]) : 0
-    }
-    if (msnInputs.length > 0) {
+      // Use first MSN's crew/lease settings
+      crewSets = msnInputs[0].crewSets
+      leaseType = msnInputs[0].leaseType
+      aircraftType = msnInputs[0].aircraftType
+      insuranceMsn = msnInputs[0].msn
       periodStart = msnInputs[0].periodStart
       periodEnd = msnInputs[0].periodEnd
     }
+  }
+
+  // Compute C component values
+  const pilotSalaryVal = pilotSalaryPerSet * crewSets
+  let cabinCrewSalaryVal = 0
+  if (leaseType === 'wet') {
+    if (aircraftType === 'A321') {
+      cabinCrewSalaryVal = (4 * cabinAttendantSS + seniorAttendantSS) * crewSets
+    } else {
+      // A320 default
+      cabinCrewSalaryVal = (3 * cabinAttendantSS + seniorAttendantSS) * crewSets
+    }
+  } else if (leaseType === 'moist') {
+    cabinCrewSalaryVal = seniorAttendantSS * crewSets
+  }
+  // damp lease: cabin crew salary = 0
+
+  // Insurance for selected MSN
+  const insuranceFixedVal = insuranceByMsn[insuranceMsn] ?? 0
+
+  // Build PnlLineConfig
+  const cfg: PnlLineConfig = {
+    leaseRentEur,
+    maintReservesFixedEur,
+    pilotSalary: pilotSalaryVal,
+    cabinCrewSalary: cabinCrewSalaryVal,
+    staffUniformF: uniformPerMonth,
+    trainingC: trainingPerMonth,
+    lineMaintenance: lineMaintenanceVal,
+    baseMaintenance: baseMaintenanceVal,
+    maintPersonnelSalary: maintPersonnelSalaryVal,
+    trainningM: trainningVal,
+    maintCCheck: cCheckVal,
+    insuranceFixed: insuranceFixedVal,
+    technical: technicalVal,
+    otherFixed: otherFixedVal,
+    personnelCostSS: overheadPerMonth[0] ?? 0,
+    personnelCost: overheadPerMonth[1] ?? 0,
+    travelExpenses: overheadPerMonth[2] ?? 0,
+    legalExpenses: overheadPerMonth[3] ?? 0,
+    licenseRegCost: overheadPerMonth[4] ?? 0,
+    adminCost: overheadPerMonth[5] ?? 0,
+    itComms: overheadPerMonth[6] ?? 0,
+    adminGeneralExp: overheadPerMonth[7] ?? 0,
+    sellingMarketingCost: overheadPerMonth[8] ?? 0,
+    fuel: fuelVal,
+    handling: handlingVal,
+    navigation: navigationVal,
+    airportCharges: airportChargesVal,
+    commissions: commissionsVal,
   }
 
   // Fallback: if no period set, default to 12 months from now
@@ -409,10 +561,10 @@ export function PnlTable() {
 
   const months = generateMonthRange(periodStart, periodEnd)
   const periodMonths = computePeriodMonths(periodStart, periodEnd)
-  const monthlyData = buildMonthlyData(periodMonths, breakdown, mgh, acmiRate, cycleRatio, bhFhRatio, apuFhRatio, leaseRentEur, maintReservesFixedEur)
+  const monthlyData = buildMonthlyData(periodMonths, mgh, acmiRate, cycleRatio, bhFhRatio, apuFhRatio, cfg)
 
   // Empty state
-  if (!breakdown && msnResults.length === 0) {
+  if (!hasData && msnInputs.length === 0) {
     return (
       <div className="bg-gray-900 border border-gray-800 rounded-lg p-8 text-center">
         <p className="text-gray-500 text-sm">
@@ -422,7 +574,7 @@ export function PnlTable() {
     )
   }
 
-  if (!breakdown) {
+  if (!hasData) {
     return (
       <div className="bg-gray-900 border border-gray-800 rounded-lg p-8 text-center">
         <p className="text-gray-500 text-sm">

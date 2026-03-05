@@ -2,67 +2,7 @@
 
 import { useState, useCallback, useMemo } from 'react'
 import { usePricingStore } from '@/stores/pricing-store'
-
-// ──────────────────────────────────────────────────────
-// Types
-// ──────────────────────────────────────────────────────
-
-interface PayrollRow {
-  position: string
-  grossSalary: number
-  benefits: number
-  perDiemFD: number
-  perDiemNFD: number
-  perBhPerdiem: number
-}
-
-interface CostRow {
-  item: string
-  amount: number | null
-}
-
-interface TrainingRow {
-  item: string
-  amount: number | null
-}
-
-// ──────────────────────────────────────────────────────
-// Initial data from "Crew Cost.xlsx" (yellow cells)
-// ──────────────────────────────────────────────────────
-
-const INITIAL_PAYROLL: PayrollRow[] = [
-  { position: 'Flight-pilot, Instructor', grossSalary: 6036.31, benefits: 178, perDiemFD: 355, perDiemNFD: 60, perBhPerdiem: 11 },
-  { position: 'Co-pilot', grossSalary: 4480.45, benefits: 178, perDiemFD: 230, perDiemNFD: 60, perBhPerdiem: 5 },
-  { position: 'Cabin Attendant / Steward(ess)', grossSalary: 1222.50, benefits: 178, perDiemFD: 100, perDiemNFD: 60, perBhPerdiem: 0 },
-  { position: 'Cabin Attendant / Steward(ess)', grossSalary: 1222.50, benefits: 178, perDiemFD: 100, perDiemNFD: 60, perBhPerdiem: 0 },
-  { position: 'Cabin Attendant / Steward(ess)', grossSalary: 1222.50, benefits: 178, perDiemFD: 100, perDiemNFD: 60, perBhPerdiem: 0 },
-  { position: 'Cabin Attendant / Steward(ess)', grossSalary: 1222.50, benefits: 178, perDiemFD: 100, perDiemNFD: 60, perBhPerdiem: 0 },
-  { position: 'Senior Cabin Attendant / Senior Steward(ess)', grossSalary: 1396.34, benefits: 178, perDiemFD: 150, perDiemNFD: 60, perBhPerdiem: 0 },
-  { position: 'Senior Steward Instructor', grossSalary: 1572.73, benefits: 178, perDiemFD: 150, perDiemNFD: 60, perBhPerdiem: 0 },
-]
-
-const INITIAL_OTHER_COST: CostRow[] = [
-  { item: 'Uniforms', amount: 110000 },
-  { item: 'Travel costs', amount: 90000 },
-  { item: 'Insurance validations', amount: null },
-  { item: 'Crew Validation', amount: null },
-  { item: 'Buffet (Overtime for emp.)', amount: 60000 },
-  { item: 'Postholders', amount: null },
-  { item: 'Accomodation', amount: 60000 },
-]
-
-const INITIAL_TRAINING: TrainingRow[] = [
-  { item: 'Sim training permanent crew', amount: 264000 },
-  { item: 'Sim training seasonal crew', amount: 0 },
-  { item: 'Scandlearn permanent crew', amount: 60000 },
-  { item: 'Scandlearn seasonal crew', amount: 0 },
-  { item: 'CC training', amount: 120000 },
-  { item: 'Upgrades in the company', amount: 30000 },
-]
-
-const INITIAL_AVERAGE_AC = 10.17
-const INITIAL_FD_DAYS = 15
-const INITIAL_NFD_DAYS = 16
+import { useCrewConfigStore, type PayrollRow } from '@/stores/crew-config-store'
 
 // ──────────────────────────────────────────────────────
 // Formatting helpers
@@ -168,13 +108,21 @@ const borderRow = 'border-b border-gray-800/60'
 // ──────────────────────────────────────────────────────
 
 export function CrewConfigTable() {
-  // ── State: all yellow (editable) cells ──
-  const [payroll, setPayroll] = useState<PayrollRow[]>(INITIAL_PAYROLL)
-  const [otherCost, setOtherCost] = useState<CostRow[]>(INITIAL_OTHER_COST)
-  const [training, setTraining] = useState<TrainingRow[]>(INITIAL_TRAINING)
-  const [averageAC, setAverageAC] = useState(INITIAL_AVERAGE_AC)
-  const [fdDays, setFdDays] = useState(INITIAL_FD_DAYS)
-  const [nfdDays, setNfdDays] = useState(INITIAL_NFD_DAYS)
+  // ── State from Zustand store (all yellow editable cells) ──
+  const payroll = useCrewConfigStore(s => s.payroll)
+  const otherCost = useCrewConfigStore(s => s.otherCost)
+  const training = useCrewConfigStore(s => s.training)
+  const averageAC = useCrewConfigStore(s => s.averageAC)
+  const fdDays = useCrewConfigStore(s => s.fdDays)
+  const nfdDays = useCrewConfigStore(s => s.nfdDays)
+
+  // ── Store actions ──
+  const storeUpdatePayroll = useCrewConfigStore(s => s.updatePayroll)
+  const storeUpdateOtherCost = useCrewConfigStore(s => s.updateOtherCost)
+  const storeUpdateTraining = useCrewConfigStore(s => s.updateTraining)
+  const setAverageAC = useCrewConfigStore(s => s.setAverageAC)
+  const setFdDays = useCrewConfigStore(s => s.setFdDays)
+  const setNfdDays = useCrewConfigStore(s => s.setNfdDays)
 
   // ── MGH from dashboard (green cells: Per BH Perdiem × MGH) ──
   const msnInputs = usePricingStore((s) => s.msnInputs)
@@ -189,10 +137,8 @@ export function CrewConfigTable() {
 
   // ── Payroll update helper ──
   const updatePayroll = useCallback((idx: number, field: keyof PayrollRow, value: number | null) => {
-    setPayroll(prev => prev.map((row, i) =>
-      i === idx ? { ...row, [field]: value ?? 0 } : row
-    ))
-  }, [])
+    storeUpdatePayroll(idx, field, value ?? 0)
+  }, [storeUpdatePayroll])
 
   // ── Computed: Social Security = Gross Salary + Benefits (formula: E = C + D) ──
   const socialSecurity = useMemo(() =>
@@ -361,7 +307,7 @@ export function CrewConfigTable() {
                   <td className={`${tdBase} text-right`}>
                     <EditableCell
                       value={row.amount}
-                      onChange={v => setOtherCost(prev => prev.map((r, j) => j === i ? { ...r, amount: v } : r))}
+                      onChange={v => storeUpdateOtherCost(i, v)}
                       decimals={0}
                       formatFn={v => v !== null ? fmtEur(v, 0) : '-'}
                     />
@@ -395,7 +341,7 @@ export function CrewConfigTable() {
                   <td className={`${tdBase} text-right`}>
                     <EditableCell
                       value={row.amount}
-                      onChange={v => setTraining(prev => prev.map((r, j) => j === i ? { ...r, amount: v } : r))}
+                      onChange={v => storeUpdateTraining(i, v)}
                       decimals={0}
                       formatFn={v => v !== null ? fmtEur(v, 0) : '-'}
                     />
