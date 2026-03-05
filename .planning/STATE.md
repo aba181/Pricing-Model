@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Phase 2 context gathered
-last_updated: "2026-03-05T09:00:45.416Z"
-last_activity: 2026-03-05 — Completed 01-04-PLAN.md (App shell, collapsible sidebar, placeholder pages, cookie fix)
+status: in_progress
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-03-05T09:31:05Z"
+last_activity: 2026-03-05 — Completed 02-01-PLAN.md (Aircraft data layer, seed script, Wave 0 test stubs)
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
-  percent: 100
+  total_plans: 7
+  completed_plans: 5
+  percent: 71
 ---
 
 # Project State
@@ -21,36 +21,37 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-04)
 
 **Core value:** Accurate, repeatable ACMI pricing quotes that the sales team can generate, save, and retrieve — replacing manual spreadsheet-based pricing with a structured tool that produces consistent results.
-**Current focus:** Phase 1 complete — ready for Phase 2 (Aircraft Master Data)
+**Current focus:** Phase 2 in progress — Aircraft Master Data (data layer complete, API router next)
 
 ## Current Position
 
-Phase: 1 of 5 (Foundation and Authentication) -- COMPLETE
-Plan: 4 of 4 in current phase (all done)
-Status: Phase 1 Complete
-Last activity: 2026-03-05 — Completed 01-04-PLAN.md (App shell, collapsible sidebar, placeholder pages, cookie fix)
+Phase: 2 of 5 (Aircraft Master Data)
+Plan: 1 of 3 in current phase (data layer done)
+Status: Phase 2 In Progress
+Last activity: 2026-03-05 — Completed 02-01-PLAN.md (Aircraft data layer, seed script, Wave 0 test stubs)
 
-Progress: [██████████] 100%
+Progress: [███████░░░] 71%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
+- Total plans completed: 5
 - Average duration: 5min
-- Total execution time: 0.32 hours
+- Total execution time: 0.45 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1 - Foundation | 4 | 19min | 5min |
+| 2 - Aircraft Master Data | 1/3 | 7min | 7min |
 
 **Recent Trend:**
-- Last 5 plans: 01-01 (4min), 01-02 (4min), 01-03 (3min), 01-04 (8min)
-- Trend: Consistent (01-04 slightly longer due to checkpoint + cookie fix)
+- Last 5 plans: 01-02 (4min), 01-03 (3min), 01-04 (8min), 02-01 (7min)
+- Trend: Consistent
 
 *Updated after each plan completion*
-| Phase 01 P04 | 8min | 2 tasks | 11 files |
+| Phase 02 P01 | 7min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -76,6 +77,10 @@ Recent decisions affecting current work:
 - [01-04]: logoutAction clears cookie directly via cookies().delete() instead of calling FastAPI -- simpler, avoids cookie propagation issue
 - [01-04]: Sidebar hydration guard: useEffect + mounted state renders expanded on server, reads Zustand after mount
 - [01-04]: Defense-in-depth: dashboard layout checks getSession() in addition to middleware route protection
+- [02-01]: MockConnection _detect_table() routes by FROM/INTO clause, not substring, to handle JOIN queries correctly
+- [02-01]: Seed script uses hardcoded data from Excel audit with optional Excel validation for mismatch detection
+- [02-01]: Using 2026 EPR tables for MSNs 1932, 1960, 1503 (most current available data)
+- [02-01]: NUMERIC(12,2) for dollar amounts, NUMERIC(10,4) for rates, NUMERIC(6,4) for escalation rates
 
 ### Pending Todos
 
@@ -87,6 +92,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-05T09:00:45.407Z
-Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-aircraft-master-data/02-CONTEXT.md
+Last session: 2026-03-05T09:31:05Z
+Stopped at: Completed 02-01-PLAN.md
+Resume file: .planning/phases/02-aircraft-master-data/02-02-PLAN.md

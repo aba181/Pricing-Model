@@ -48,7 +48,7 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — DB schema (aircraft, rates, EPR tables), AircraftRepository, Pydantic schemas, Excel seed script, Wave 0 test stubs
+- [x] 02-01-PLAN.md — DB schema (aircraft, rates, EPR tables), AircraftRepository, Pydantic schemas, Excel seed script, Wave 0 test stubs
 - [ ] 02-02-PLAN.md — Aircraft API router (list, detail, update), EUR conversion service, 9 tests green
 - [ ] 02-03-PLAN.md — Frontend aircraft list with search, detail page with cost sections, admin edit, human verify
 
@@ -96,7 +96,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation and Authentication | 4/4 | Complete | 2026-03-05 |
-| 2. Aircraft Master Data | 0/3 | Planned | - |
+| 2. Aircraft Master Data | 1/3 | In Progress | - |
 | 3. Pricing Engine | 0/? | Not started | - |
 | 4. Quote Persistence and History | 0/? | Not started | - |
 | 5. Polish and Production Readiness | 0/? | Not started | - |
