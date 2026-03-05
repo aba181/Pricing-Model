@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in-progress
-stopped_at: Completed 03-02-PLAN.md
-last_updated: "2026-03-05T12:27:01Z"
-last_activity: "2026-03-05 — Completed 03-02-PLAN.md (TDD pricing engine: 7 ACMI components, EPR interpolation, crew/lease matrix, 53 tests + 2 Excel fixtures)"
+stopped_at: Completed 03-04-PLAN.md
+last_updated: "2026-03-05T12:35:28Z"
+last_activity: "2026-03-05 — Completed 03-04-PLAN.md (Dashboard MSN input grid, Zustand pricing store, 10 Server Actions, sidebar P&L/Crew nav)"
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 12
-  completed_plans: 9
-  percent: 75
+  completed_plans: 11
+  percent: 92
 ---
 
 # Project State
@@ -21,23 +21,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-04)
 
 **Core value:** Accurate, repeatable ACMI pricing quotes that the sales team can generate, save, and retrieve — replacing manual spreadsheet-based pricing with a structured tool that produces consistent results.
-**Current focus:** Phase 3 in progress — Pricing Engine (2/5 plans done). Calculation engine complete, API layer next.
+**Current focus:** Phase 3 in progress — Pricing Engine (4/5 plans done). Dashboard frontend complete, Crew/P&L pages next.
 
 ## Current Position
 
 Phase: 3 of 5 (Pricing Engine)
-Plan: 2 of 5 in current phase
+Plan: 4 of 5 in current phase
 Status: Phase 3 In Progress
-Last activity: 2026-03-05 — Completed 03-02-PLAN.md (TDD pricing engine: 7 ACMI components, EPR interpolation, crew/lease matrix, 53 tests + 2 Excel fixtures)
+Last activity: 2026-03-05 — Completed 03-04-PLAN.md (Dashboard MSN input grid, Zustand pricing store, 10 Server Actions, sidebar P&L/Crew nav)
 
-Progress: [████████░░] 75% (Phases 1-2 complete, Phase 3: 2/5, 9/12 plans)
+Progress: [█████████░] 92% (Phases 1-2 complete, Phase 3: 4/5, 11/12 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
+- Total plans completed: 11
 - Average duration: 6min
-- Total execution time: 0.82 hours
+- Total execution time: 1.02 hours
 
 **By Phase:**
 
@@ -45,10 +45,10 @@ Progress: [████████░░] 75% (Phases 1-2 complete, Phase 3: 2/
 |-------|-------|-------|----------|
 | 1 - Foundation | 4 | 19min | 5min |
 | 2 - Aircraft Master Data | 3/3 | 18min | 6min |
-| 3 - Pricing Engine | 2/5 | 14min | 7min |
+| 3 - Pricing Engine | 4/5 | 26min | 7min |
 
 **Recent Trend:**
-- Last 5 plans: 02-02 (3min), 02-03 (8min), 03-01 (5min), 03-02 (9min)
+- Last 5 plans: 02-03 (8min), 03-01 (5min), 03-02 (9min), 03-03 (8min), 03-04 (4min)
 - Trend: Consistent
 
 *Updated after each plan completion*
@@ -57,6 +57,8 @@ Progress: [████████░░] 75% (Phases 1-2 complete, Phase 3: 2/
 | Phase 02 P03 | 8min | 3 tasks | 7 files |
 | Phase 03 P01 | 5min | 2 tasks | 6 files |
 | Phase 03 P02 | 9min | 2 tasks | 3 files |
+| Phase 03 P03 | 8min | 1 task | 7 files |
+| Phase 03 P04 | 4min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -102,6 +104,12 @@ Recent decisions affecting current work:
 - [03-02]: ComponentBreakdown is a local dataclass (not Pydantic) to keep service.py pure with zero external dependencies
 - [03-02]: EPR matrix must be pre-filtered by environment (benign/hot) before passing to calculate_pricing
 - [03-02]: Margin formula: final_rate = total_cost / (1 - margin_percent/100) -- industry-standard cost-plus margin
+- [03-03]: Router interpolates EPR rate and passes pre-computed epr_rate to AircraftCosts dataclass, keeping service layer pure
+- [03-03]: Project creation auto-attaches current pricing_config, crew_config_a320, and crew_config_a321 FKs via repository
+- [03-04]: Pricing store is session-based (no persist middleware) -- pricing state resets between sessions
+- [03-04]: All decimal values stored as strings in Zustand store to preserve precision from API
+- [03-04]: Debounced calculation with 500ms delay via useEffect + useRef timer cleanup
+- [03-04]: API response mapping from snake_case to camelCase at DashboardSummary boundary
 
 ### Pending Todos
 
@@ -113,6 +121,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-05T12:27:01Z
-Stopped at: Completed 03-02-PLAN.md
-Resume file: .planning/phases/03-pricing-engine/03-03-PLAN.md
+Last session: 2026-03-05T12:35:28Z
+Stopped at: Completed 03-04-PLAN.md
+Resume file: .planning/phases/03-pricing-engine/03-05-PLAN.md

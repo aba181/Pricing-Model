@@ -26,7 +26,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **PRIC-01**: User can enter pricing inputs: MGH, Cycle Ratio, Environment, Period, MSN
 - [x] **PRIC-02**: System calculates per-BH cost for each component: Aircraft, Crew, Maintenance, Insurance, DOC, Other COGS, Overhead
 - [x] **PRIC-03**: User can enter margin percentage and see final EUR/BH rate
-- [ ] **PRIC-04**: Calculation results update in real-time as inputs change
+- [x] **PRIC-04**: Calculation results update in real-time as inputs change
 - [x] **PRIC-05**: Calculation output matches Excel workbook exactly (verified with test fixtures)
 - [x] **PRIC-06**: All monetary calculations use Decimal precision (never floating-point)
 
@@ -113,7 +113,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PRIC-01 | Phase 3 | Complete |
 | PRIC-02 | Phase 3 | Complete |
 | PRIC-03 | Phase 3 | Complete |
-| PRIC-04 | Phase 3 | Pending |
+| PRIC-04 | Phase 3 | Complete |
 | PRIC-05 | Phase 3 | Complete |
 | PRIC-06 | Phase 3 | Complete |
 | CONF-01 | Phase 3 | Complete |
