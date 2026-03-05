@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Plus } from 'lucide-react'
 import { usePricingStore } from '@/stores/pricing-store'
 import type { MsnInput, ComponentBreakdown, MsnPnlResult } from '@/stores/pricing-store'
+import { computePeriodMonths } from '@/stores/pricing-store'
 import { calculatePnlAction } from '@/app/actions/pricing'
 import type { CalculateResponse } from '@/app/actions/pricing'
 import { MsnInputRow } from './MsnInputRow'
@@ -114,7 +115,7 @@ export function DashboardSummary({ aircraftList }: DashboardSummaryProps) {
           mgh: i.mgh,
           cycle_ratio: i.cycleRatio,
           environment: i.environment,
-          period_months: i.periodMonths,
+          period_months: computePeriodMonths(i.periodStart, i.periodEnd),
           lease_type: i.leaseType,
           crew_sets: i.crewSets,
         })),
@@ -150,6 +151,16 @@ export function DashboardSummary({ aircraftList }: DashboardSummaryProps) {
     // Prevent duplicate MSN
     if (msnInputs.some((i) => i.msn === ac.msn)) return
 
+    // Default: current month to 12 months later
+    const now = new Date()
+    const startYear = now.getFullYear()
+    const startMonth = now.getMonth() + 1 // 1-indexed
+    const endDate = new Date(startYear, startMonth - 1 + 11, 1) // 11 months ahead (total 12 inclusive)
+    const endYear = endDate.getFullYear()
+    const endMonth = endDate.getMonth() + 1
+    const defaultStart = `${startYear}-${String(startMonth).padStart(2, '0')}`
+    const defaultEnd = `${endYear}-${String(endMonth).padStart(2, '0')}`
+
     const newInput: MsnInput = {
       aircraftId: ac.id,
       msn: ac.msn,
@@ -158,7 +169,8 @@ export function DashboardSummary({ aircraftList }: DashboardSummaryProps) {
       mgh: '350',
       cycleRatio: '1.0',
       environment: 'benign',
-      periodMonths: 12,
+      periodStart: defaultStart,
+      periodEnd: defaultEnd,
       leaseType: 'wet',
       crewSets: 4,
     }
@@ -279,7 +291,7 @@ export function DashboardSummary({ aircraftList }: DashboardSummaryProps) {
 
         {/* Column headers */}
         {msnInputs.length > 0 && (
-          <div className="grid grid-cols-[80px_70px_90px_100px_90px_80px_90px_100px_80px_40px] gap-2 px-3 mb-1">
+          <div className="grid grid-cols-[80px_70px_90px_100px_90px_80px_120px_120px_100px_80px_40px] gap-2 px-3 mb-1">
             <span className="text-xs font-medium text-gray-500">MSN</span>
             <span className="text-xs font-medium text-gray-500">Type</span>
             <span className="text-xs font-medium text-gray-500">Reg</span>
@@ -288,9 +300,8 @@ export function DashboardSummary({ aircraftList }: DashboardSummaryProps) {
               Cycle Ratio
             </span>
             <span className="text-xs font-medium text-gray-500">Env</span>
-            <span className="text-xs font-medium text-gray-500">
-              Period (mo)
-            </span>
+            <span className="text-xs font-medium text-gray-500">Start</span>
+            <span className="text-xs font-medium text-gray-500">End</span>
             <span className="text-xs font-medium text-gray-500">Lease</span>
             <span className="text-xs font-medium text-gray-500">Crew</span>
             <span />

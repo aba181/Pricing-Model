@@ -11,7 +11,7 @@ interface MsnInputRowProps {
 
 export function MsnInputRow({ input, onUpdate, onRemove }: MsnInputRowProps) {
   return (
-    <div className="grid grid-cols-[80px_70px_90px_100px_90px_80px_90px_100px_80px_40px] gap-2 items-center py-2 px-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
+    <div className="grid grid-cols-[80px_70px_90px_100px_90px_80px_120px_120px_100px_80px_40px] gap-2 items-center py-2 px-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
       {/* Read-only fields */}
       <div className="text-sm text-gray-100 font-medium">{input.msn}</div>
       <div className="text-sm text-gray-400">{input.aircraftType}</div>
@@ -50,16 +50,22 @@ export function MsnInputRow({ input, onUpdate, onRemove }: MsnInputRowProps) {
         <option value="hot">Hot</option>
       </select>
 
-      {/* Period (months) */}
+      {/* Period Start (month-year) */}
       <input
-        type="number"
-        min={1}
-        value={input.periodMonths}
-        onChange={(e) =>
-          onUpdate(input.msn, 'periodMonths', parseInt(e.target.value) || 1)
-        }
+        type="month"
+        value={input.periodStart}
+        onChange={(e) => onUpdate(input.msn, 'periodStart', e.target.value)}
         className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-gray-100 focus:border-indigo-400 focus:outline-none"
-        aria-label={`Period months for MSN ${input.msn}`}
+        aria-label={`Period Start for MSN ${input.msn}`}
+      />
+
+      {/* Period End (month-year) */}
+      <input
+        type="month"
+        value={input.periodEnd}
+        onChange={(e) => onUpdate(input.msn, 'periodEnd', e.target.value)}
+        className="w-full bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-gray-100 focus:border-indigo-400 focus:outline-none"
+        aria-label={`Period End for MSN ${input.msn}`}
       />
 
       {/* Lease Type */}

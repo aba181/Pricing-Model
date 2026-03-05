@@ -5,6 +5,7 @@ import { usePricingStore } from '@/stores/pricing-store'
 import { calculatePnlAction } from '@/app/actions/pricing'
 import type { CalculateResponse } from '@/app/actions/pricing'
 import type { MsnPnlResult, ComponentBreakdown } from '@/stores/pricing-store'
+import { computePeriodMonths } from '@/stores/pricing-store'
 
 function mapBreakdown(api: CalculateResponse['msn_results'][number]['breakdown']): ComponentBreakdown {
   return {
@@ -52,7 +53,7 @@ export function MarginInput() {
           mgh: i.mgh,
           cycle_ratio: i.cycleRatio,
           environment: i.environment,
-          period_months: i.periodMonths,
+          period_months: computePeriodMonths(i.periodStart, i.periodEnd),
           lease_type: i.leaseType,
           crew_sets: i.crewSets,
         })),

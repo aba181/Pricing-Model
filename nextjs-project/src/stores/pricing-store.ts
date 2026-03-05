@@ -11,9 +11,36 @@ export interface MsnInput {
   mgh: string // String to preserve decimal precision
   cycleRatio: string
   environment: 'benign' | 'hot'
-  periodMonths: number
+  periodStart: string // "YYYY-MM" format
+  periodEnd: string // "YYYY-MM" format
   leaseType: 'wet' | 'damp' | 'moist'
   crewSets: number
+}
+
+/** Compute period in months from start/end YYYY-MM strings (inclusive) */
+export function computePeriodMonths(start: string, end: string): number {
+  const [sy, sm] = start.split('-').map(Number)
+  const [ey, em] = end.split('-').map(Number)
+  if (!sy || !sm || !ey || !em) return 1
+  const months = (ey - sy) * 12 + (em - sm) + 1
+  return Math.max(1, months)
+}
+
+/** Generate an array of {year, month} for each month from start to end (inclusive) */
+export function generateMonthRange(start: string, end: string): { year: number; month: number; label: string }[] {
+  const [sy, sm] = start.split('-').map(Number)
+  const [ey, em] = end.split('-').map(Number)
+  if (!sy || !sm || !ey || !em) return []
+  const MONTH_LABELS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+  const result: { year: number; month: number; label: string }[] = []
+  let y = sy
+  let m = sm
+  while (y < ey || (y === ey && m <= em)) {
+    result.push({ year: y, month: m, label: MONTH_LABELS[m - 1] })
+    m++
+    if (m > 12) { m = 1; y++ }
+  }
+  return result
 }
 
 export interface ComponentBreakdown {
