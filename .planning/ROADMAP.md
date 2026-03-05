@@ -66,8 +66,8 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — DB migration (pricing_config, crew_config, projects, MSN inputs), repositories, Pydantic schemas, seed script, mock DB handlers
-- [ ] 03-02-PLAN.md — TDD pricing calculation engine: 7 ACMI components, EPR interpolation, crew/lease type matrix, Excel-verified fixtures
+- [x] 03-01-PLAN.md — DB migration (pricing_config, crew_config, projects, MSN inputs), repositories, Pydantic schemas, seed script, mock DB handlers
+- [x] 03-02-PLAN.md — TDD pricing calculation engine: 7 ACMI components, EPR interpolation, crew/lease type matrix, Excel-verified fixtures
 - [ ] 03-03-PLAN.md — Pricing API router: calculate endpoint, config CRUD (versioned), crew config CRUD, project management
 - [ ] 03-04-PLAN.md — Dashboard Summary page with per-MSN input grid, pricing Zustand store, Server Actions, sidebar updates (P&L + Crew)
 - [ ] 03-05-PLAN.md — P&L financial statement page, MSN switcher, margin input, Crew config page, human verify checkpoint
@@ -104,6 +104,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Foundation and Authentication | 4/4 | Complete | 2026-03-05 |
 | 2. Aircraft Master Data | 3/3 | Complete    | 2026-03-05 |
-| 3. Pricing Engine | 0/5 | Planned | - |
+| 3. Pricing Engine | 2/5 | In Progress | - |
 | 4. Quote Persistence and History | 0/? | Not started | - |
 | 5. Polish and Production Readiness | 0/? | Not started | - |

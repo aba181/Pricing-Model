@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 03-03-PLAN.md
-last_updated: "2026-03-05T12:27:43.138Z"
-last_activity: "2026-03-05 — Completed 03-03-PLAN.md (Pricing API: 12 endpoints, 7-component calculator, config versioning, 18 integration tests)"
+status: in-progress
+stopped_at: Completed 03-02-PLAN.md
+last_updated: "2026-03-05T12:27:01Z"
+last_activity: "2026-03-05 — Completed 03-02-PLAN.md (TDD pricing engine: 7 ACMI components, EPR interpolation, crew/lease matrix, 53 tests + 2 Excel fixtures)"
 progress:
   total_phases: 5
   completed_phases: 2
@@ -21,23 +21,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-04)
 
 **Core value:** Accurate, repeatable ACMI pricing quotes that the sales team can generate, save, and retrieve — replacing manual spreadsheet-based pricing with a structured tool that produces consistent results.
-**Current focus:** Phase 3 in progress — Pricing Engine (3/5 plans done). API layer complete, P&L frontend next.
+**Current focus:** Phase 3 in progress — Pricing Engine (2/5 plans done). Calculation engine complete, API layer next.
 
 ## Current Position
 
 Phase: 3 of 5 (Pricing Engine)
-Plan: 3 of 5 in current phase
+Plan: 2 of 5 in current phase
 Status: Phase 3 In Progress
-Last activity: 2026-03-05 — Completed 03-03-PLAN.md (Pricing API: 12 endpoints, 7-component calculator, config versioning, 18 integration tests)
+Last activity: 2026-03-05 — Completed 03-02-PLAN.md (TDD pricing engine: 7 ACMI components, EPR interpolation, crew/lease matrix, 53 tests + 2 Excel fixtures)
 
-Progress: [████████░░] 75% (Phases 1-2 complete, Phase 3: 3/5, 9/12 plans)
+Progress: [████████░░] 75% (Phases 1-2 complete, Phase 3: 2/5, 9/12 plans)
 
 ## Performance Metrics
 
 **Velocity:**
 - Total plans completed: 9
-- Average duration: 5min
-- Total execution time: 0.78 hours
+- Average duration: 6min
+- Total execution time: 0.82 hours
 
 **By Phase:**
 
@@ -45,10 +45,10 @@ Progress: [████████░░] 75% (Phases 1-2 complete, Phase 3: 3/
 |-------|-------|-------|----------|
 | 1 - Foundation | 4 | 19min | 5min |
 | 2 - Aircraft Master Data | 3/3 | 18min | 6min |
-| 3 - Pricing Engine | 3/5 | 13min | 4min |
+| 3 - Pricing Engine | 2/5 | 14min | 7min |
 
 **Recent Trend:**
-- Last 5 plans: 02-02 (3min), 02-03 (8min), 03-01 (5min), 03-03 (8min)
+- Last 5 plans: 02-02 (3min), 02-03 (8min), 03-01 (5min), 03-02 (9min)
 - Trend: Consistent
 
 *Updated after each plan completion*
@@ -56,7 +56,7 @@ Progress: [████████░░] 75% (Phases 1-2 complete, Phase 3: 3/
 | Phase 02 P02 | 3min | 2 tasks | 6 files |
 | Phase 02 P03 | 8min | 3 tasks | 7 files |
 | Phase 03 P01 | 5min | 2 tasks | 6 files |
-| Phase 03 P03 | 8min | 1 task | 7 files |
+| Phase 03 P02 | 9min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -97,10 +97,11 @@ Recent decisions affecting current work:
 - [03-01]: crew_config per aircraft_type (A320/A321) to handle different cabin crew compositions
 - [03-01]: pricing_projects stores separate crew_config_a320_id and crew_config_a321_id FKs for quote immutability
 - [03-01]: crew_sets modeled as per-MSN input in project_msn_inputs (not global project setting)
-- [03-03]: Router interpolates EPR rate at API layer, passes pre-computed epr_rate to service -- keeps service pure
-- [03-03]: Service layer uses its own ComponentBreakdown dataclass; router converts to Pydantic schema for API response
-- [03-03]: Project creation auto-attaches current config version IDs (pricing_config, crew_config_a320, crew_config_a321)
-- [03-03]: Config versioning enforced at API layer: PUT creates new version via append-only repo, GET retrieves any version by ID
+- [03-02]: AircraftCosts dataclass takes pre-interpolated epr_rate -- caller responsibility to interpolate before constructing
+- [03-02]: CREW_COMPOSITION uses dict values {pilots, senior, regular} instead of tuples for readability
+- [03-02]: ComponentBreakdown is a local dataclass (not Pydantic) to keep service.py pure with zero external dependencies
+- [03-02]: EPR matrix must be pre-filtered by environment (benign/hot) before passing to calculate_pricing
+- [03-02]: Margin formula: final_rate = total_cost / (1 - margin_percent/100) -- industry-standard cost-plus margin
 
 ### Pending Todos
 
@@ -112,6 +113,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-05T12:27:43.135Z
-Stopped at: Completed 03-03-PLAN.md
-Resume file: .planning/phases/03-pricing-engine/03-04-PLAN.md
+Last session: 2026-03-05T12:27:01Z
+Stopped at: Completed 03-02-PLAN.md
+Resume file: .planning/phases/03-pricing-engine/03-03-PLAN.md
