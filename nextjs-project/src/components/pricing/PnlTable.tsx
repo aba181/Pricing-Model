@@ -362,6 +362,7 @@ export function PnlTable() {
   const totalResult = usePricingStore((s) => s.totalResult)
   const isCalculating = usePricingStore((s) => s.isCalculating)
   const msnInputs = usePricingStore((s) => s.msnInputs)
+  const exchangeRate = parseFloat(usePricingStore((s) => s.exchangeRate) || '0.85')
 
   // ── Crew config store ──
   const crewPayroll = useCrewConfigStore((s) => s.payroll)
@@ -401,10 +402,10 @@ export function PnlTable() {
   const trainningVal = findMaintCost('Trainning')
   const cCheckVal = findMaintCost('C-Check')
 
-  // Insurance: build MSN -> amount map
+  // Insurance: build MSN -> amount map (convert USD → EUR using dashboard exchange rate)
   const insuranceByMsn: Record<number, number> = {}
   for (const ins of costsInsurance) {
-    insuranceByMsn[ins.msn] = ins.priceUsd
+    insuranceByMsn[ins.msn] = ins.priceUsd * exchangeRate
   }
 
   // Other COGS: Technical and Other Fixed (per month per AC)
