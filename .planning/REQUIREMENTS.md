@@ -17,9 +17,9 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Aircraft Data
 
 - [x] **ACFT-01**: System stores aircraft records imported from Excel (MSN, type, registration, cost parameters)
-- [ ] **ACFT-02**: User can view list of aircraft with search by MSN or registration
-- [ ] **ACFT-03**: User can view aircraft detail with associated cost data
-- [ ] **ACFT-04**: Admin can update aircraft cost parameters
+- [x] **ACFT-02**: User can view list of aircraft with search by MSN or registration
+- [x] **ACFT-03**: User can view aircraft detail with associated cost data
+- [x] **ACFT-04**: Admin can update aircraft cost parameters
 
 ### Pricing Engine
 
@@ -107,9 +107,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UI-01 | Phase 1 | Complete |
 | UI-05 | Phase 1 | Complete |
 | ACFT-01 | Phase 2 | Complete |
-| ACFT-02 | Phase 2 | Pending |
-| ACFT-03 | Phase 2 | Pending |
-| ACFT-04 | Phase 2 | Pending |
+| ACFT-02 | Phase 2 | Complete |
+| ACFT-03 | Phase 2 | Complete |
+| ACFT-04 | Phase 2 | Complete |
 | PRIC-01 | Phase 3 | Pending |
 | PRIC-02 | Phase 3 | Pending |
 | PRIC-03 | Phase 3 | Pending |

@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-03-05T09:31:05Z"
-last_activity: 2026-03-05 — Completed 02-01-PLAN.md (Aircraft data layer, seed script, Wave 0 test stubs)
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-03-05T09:37:18Z"
+last_activity: 2026-03-05 — Completed 02-02-PLAN.md (Aircraft API router, EUR conversion, 41 green tests)
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 7
-  completed_plans: 5
-  percent: 71
+  completed_plans: 6
+  percent: 86
 ---
 
 # Project State
@@ -21,37 +21,38 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-04)
 
 **Core value:** Accurate, repeatable ACMI pricing quotes that the sales team can generate, save, and retrieve — replacing manual spreadsheet-based pricing with a structured tool that produces consistent results.
-**Current focus:** Phase 2 in progress — Aircraft Master Data (data layer complete, API router next)
+**Current focus:** Phase 2 in progress — Aircraft Master Data (API router complete, frontend next)
 
 ## Current Position
 
 Phase: 2 of 5 (Aircraft Master Data)
-Plan: 1 of 3 in current phase (data layer done)
+Plan: 2 of 3 in current phase (API router done)
 Status: Phase 2 In Progress
-Last activity: 2026-03-05 — Completed 02-01-PLAN.md (Aircraft data layer, seed script, Wave 0 test stubs)
+Last activity: 2026-03-05 — Completed 02-02-PLAN.md (Aircraft API router, EUR conversion, 41 green tests)
 
-Progress: [███████░░░] 71%
+Progress: [████████░░] 86%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
+- Total plans completed: 6
 - Average duration: 5min
-- Total execution time: 0.45 hours
+- Total execution time: 0.50 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1 - Foundation | 4 | 19min | 5min |
-| 2 - Aircraft Master Data | 1/3 | 7min | 7min |
+| 2 - Aircraft Master Data | 2/3 | 10min | 5min |
 
 **Recent Trend:**
-- Last 5 plans: 01-02 (4min), 01-03 (3min), 01-04 (8min), 02-01 (7min)
+- Last 5 plans: 01-03 (3min), 01-04 (8min), 02-01 (7min), 02-02 (3min)
 - Trend: Consistent
 
 *Updated after each plan completion*
 | Phase 02 P01 | 7min | 2 tasks | 9 files |
+| Phase 02 P02 | 3min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,9 @@ Recent decisions affecting current work:
 - [02-01]: Seed script uses hardcoded data from Excel audit with optional Excel validation for mismatch detection
 - [02-01]: Using 2026 EPR tables for MSNs 1932, 1960, 1503 (most current available data)
 - [02-01]: NUMERIC(12,2) for dollar amounts, NUMERIC(10,4) for rates, NUMERIC(6,4) for escalation rates
+- [02-02]: EUR fields added explicitly to Pydantic schemas for type-safe API contract rather than response_model=None
+- [02-02]: apply_eur_conversion returns new dict, never mutates input -- safe for concurrent use
+- [02-02]: Router uses Depends(get_current_user) for read, Depends(require_admin) for write endpoints
 
 ### Pending Todos
 
@@ -92,6 +96,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-05T09:31:05Z
-Stopped at: Completed 02-01-PLAN.md
-Resume file: .planning/phases/02-aircraft-master-data/02-02-PLAN.md
+Last session: 2026-03-05T09:37:18Z
+Stopped at: Completed 02-02-PLAN.md
+Resume file: .planning/phases/02-aircraft-master-data/02-03-PLAN.md
