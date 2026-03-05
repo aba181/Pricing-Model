@@ -1,0 +1,65 @@
+from __future__ import annotations
+
+from decimal import Decimal
+
+from pydantic import BaseModel
+
+
+class AircraftListResponse(BaseModel):
+    """Aircraft summary for list views with fixed monthly rates."""
+
+    id: int
+    msn: int
+    aircraft_type: str
+    registration: str | None = None
+    lease_rent_usd: Decimal | None = None
+    six_year_check_usd: Decimal | None = None
+    twelve_year_check_usd: Decimal | None = None
+    ldg_usd: Decimal | None = None
+
+
+class EprMatrixRow(BaseModel):
+    """Single EPR matrix row: cycle ratio mapped to benign/hot rates."""
+
+    cycle_ratio: Decimal
+    benign_rate: Decimal
+    hot_rate: Decimal
+
+
+class AircraftDetailResponse(BaseModel):
+    """Full aircraft detail with all rates, escalation, and EPR matrix."""
+
+    id: int
+    msn: int
+    aircraft_type: str
+    registration: str | None = None
+    # Fixed monthly rates (USD)
+    lease_rent_usd: Decimal | None = None
+    six_year_check_usd: Decimal | None = None
+    twelve_year_check_usd: Decimal | None = None
+    ldg_usd: Decimal | None = None
+    # Variable rates per engine (USD)
+    apu_rate_usd: Decimal | None = None
+    llp1_rate_usd: Decimal | None = None
+    llp2_rate_usd: Decimal | None = None
+    # Escalation rates
+    epr_escalation: Decimal | None = None
+    llp_escalation: Decimal | None = None
+    af_apu_escalation: Decimal | None = None
+    # EPR matrix
+    epr_matrix: list[EprMatrixRow] = []
+
+
+class UpdateRatesRequest(BaseModel):
+    """Partial update for aircraft cost parameters. All fields optional."""
+
+    lease_rent_usd: Decimal | None = None
+    six_year_check_usd: Decimal | None = None
+    twelve_year_check_usd: Decimal | None = None
+    ldg_usd: Decimal | None = None
+    apu_rate_usd: Decimal | None = None
+    llp1_rate_usd: Decimal | None = None
+    llp2_rate_usd: Decimal | None = None
+    epr_escalation: Decimal | None = None
+    llp_escalation: Decimal | None = None
+    af_apu_escalation: Decimal | None = None
