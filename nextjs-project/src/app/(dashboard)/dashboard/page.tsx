@@ -1,10 +1,44 @@
-import { PlaceholderPage } from '@/components/ui/PlaceholderPage'
+import { cookies } from 'next/headers'
+import { DashboardSummary } from '@/components/pricing/DashboardSummary'
 
-export default function DashboardPage() {
+const API_URL = process.env.API_URL ?? 'http://localhost:8000'
+
+interface AircraftOption {
+  id: number
+  msn: number
+  aircraft_type: string
+  registration: string | null
+}
+
+async function getAircraftList(): Promise<AircraftOption[]> {
+  const cookieStore = await cookies()
+  const token = cookieStore.get('access_token')?.value
+  if (!token) return []
+
+  try {
+    const res = await fetch(`${API_URL}/aircraft`, {
+      headers: { Cookie: `access_token=${token}` },
+      cache: 'no-store',
+    })
+    if (!res.ok) return []
+    return res.json()
+  } catch {
+    return []
+  }
+}
+
+export default async function DashboardPage() {
+  const aircraftList = await getAircraftList()
+
   return (
-    <PlaceholderPage
-      title="Dashboard"
-      description="Summary statistics will appear here in Phase 5."
-    />
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold text-gray-100">Dashboard</h1>
+        <p className="text-gray-400 mt-1">
+          Configure MSN inputs and view pricing summary
+        </p>
+      </div>
+      <DashboardSummary aircraftList={aircraftList} />
+    </div>
   )
 }

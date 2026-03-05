@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
   TrendingUp,
+  Users,
   FileText,
   Plane,
   Settings,
@@ -15,7 +16,8 @@ import { useSidebarStore } from '@/stores/sidebar-store'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/pricing', label: 'Pricing', icon: TrendingUp },
+  { href: '/pnl', label: 'P&L', icon: TrendingUp },
+  { href: '/crew', label: 'Crew', icon: Users },
   { href: '/quotes', label: 'Quotes', icon: FileText },
   { href: '/aircraft', label: 'Aircraft', icon: Plane },
   { href: '/admin', label: 'Admin', icon: Settings },

@@ -1,10 +1,5 @@
-import { PlaceholderPage } from '@/components/ui/PlaceholderPage'
+import { redirect } from 'next/navigation'
 
 export default function PricingPage() {
-  return (
-    <PlaceholderPage
-      title="Pricing Calculator"
-      description="Build pricing quotes for aircraft in Phase 3."
-    />
-  )
+  redirect('/pnl')
 }
