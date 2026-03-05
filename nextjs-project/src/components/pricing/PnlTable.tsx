@@ -180,7 +180,8 @@ function buildMonthlyData(
     finalRatePerBh: string
   } | null,
   mgh: number,
-  acmiRate: number
+  acmiRate: number,
+  cycleRatio: number
 ): Record<string, number[]> {
   const data: Record<string, number[]> = {}
 
@@ -303,8 +304,8 @@ function buildMonthlyData(
     data['bh'][m] = mgh
     data['avgBhPerAc'][m] = mgh
     data['fh'][m] = mgh
-    data['fc'][m] = mgh * 1.5 // placeholder
-    data['fhFcRatio'][m] = mgh > 0 ? data['fh'][m] / data['fc'][m] : 0
+    data['fc'][m] = cycleRatio > 0 ? mgh / cycleRatio : 0
+    data['fhFcRatio'][m] = cycleRatio
   }
 
   return data
@@ -327,6 +328,7 @@ export function PnlTable() {
   let breakdown: typeof totalResult = null
   let mgh = 0
   let acmiRate = 0
+  let cycleRatio = 1
   let periodStart = ''
   let periodEnd = ''
 
@@ -337,6 +339,7 @@ export function PnlTable() {
       breakdown = match.breakdown
       mgh = input ? parseFloat(input.mgh) : 0
       acmiRate = input ? parseFloat(input.acmiRate || '0') : 0
+      cycleRatio = input ? parseFloat(input.cycleRatio || '1') : 1
     }
     if (input) {
       periodStart = input.periodStart
@@ -348,10 +351,13 @@ export function PnlTable() {
       breakdown = totalResult
       mgh = msnInputs.reduce((sum, i) => sum + parseFloat(i.mgh), 0)
       acmiRate = msnInputs.reduce((sum, i) => sum + parseFloat(i.acmiRate || '0') * parseFloat(i.mgh), 0) / (mgh || 1)
+      // Weighted average cycle ratio
+      cycleRatio = msnInputs.reduce((sum, i) => sum + parseFloat(i.cycleRatio || '1') * parseFloat(i.mgh), 0) / (mgh || 1)
     } else if (msnResults.length === 1) {
       breakdown = msnResults[0].breakdown
       mgh = msnInputs.length > 0 ? parseFloat(msnInputs[0].mgh) : 0
       acmiRate = msnInputs.length > 0 ? parseFloat(msnInputs[0].acmiRate || '0') : 0
+      cycleRatio = msnInputs.length > 0 ? parseFloat(msnInputs[0].cycleRatio || '1') : 1
     }
     if (msnInputs.length > 0) {
       periodStart = msnInputs[0].periodStart
@@ -371,7 +377,7 @@ export function PnlTable() {
 
   const months = generateMonthRange(periodStart, periodEnd)
   const periodMonths = computePeriodMonths(periodStart, periodEnd)
-  const monthlyData = buildMonthlyData(periodMonths, breakdown, mgh, acmiRate)
+  const monthlyData = buildMonthlyData(periodMonths, breakdown, mgh, acmiRate, cycleRatio)
 
   // Empty state
   if (!breakdown && msnResults.length === 0) {
