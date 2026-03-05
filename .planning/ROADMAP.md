@@ -45,7 +45,12 @@ Plans:
   2. User can search the aircraft list by MSN or registration and find the correct record
   3. User can click an aircraft record and see all associated cost data on a detail page
   4. Admin can update aircraft cost parameters and the changes are reflected immediately
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — DB schema (aircraft, rates, EPR tables), AircraftRepository, Pydantic schemas, Excel seed script, Wave 0 test stubs
+- [ ] 02-02-PLAN.md — Aircraft API router (list, detail, update), EUR conversion service, 9 tests green
+- [ ] 02-03-PLAN.md — Frontend aircraft list with search, detail page with cost sections, admin edit, human verify
 
 ### Phase 3: Pricing Engine
 **Goal**: Users can enter ACMI pricing inputs and receive an accurate EUR/BH cost breakdown that exactly matches the Excel workbook
@@ -91,7 +96,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation and Authentication | 4/4 | Complete | 2026-03-05 |
-| 2. Aircraft Master Data | 0/? | Not started | - |
+| 2. Aircraft Master Data | 0/3 | Planned | - |
 | 3. Pricing Engine | 0/? | Not started | - |
 | 4. Quote Persistence and History | 0/? | Not started | - |
 | 5. Polish and Production Readiness | 0/? | Not started | - |
