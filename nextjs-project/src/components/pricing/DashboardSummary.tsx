@@ -174,6 +174,7 @@ export function DashboardSummary({ aircraftList }: DashboardSummaryProps) {
       leaseType: 'wet',
       crewSets: 4,
       acmiRate: '0',
+      bhFhRatio: '1.2',
     }
 
     addMsnInput(newInput)
@@ -293,7 +294,7 @@ export function DashboardSummary({ aircraftList }: DashboardSummaryProps) {
 
         {/* Column headers */}
         {msnInputs.length > 0 && (
-          <div className="grid grid-cols-[80px_70px_90px_100px_90px_80px_120px_120px_100px_80px_110px_40px] gap-2 px-3 mb-1">
+          <div className="grid grid-cols-[80px_70px_90px_100px_90px_80px_120px_120px_100px_80px_110px_80px_40px] gap-2 px-3 mb-1">
             <span className="text-xs font-medium text-gray-500">MSN</span>
             <span className="text-xs font-medium text-gray-500">Type</span>
             <span className="text-xs font-medium text-gray-500">Reg</span>
@@ -307,6 +308,7 @@ export function DashboardSummary({ aircraftList }: DashboardSummaryProps) {
             <span className="text-xs font-medium text-gray-500">Lease</span>
             <span className="text-xs font-medium text-gray-500">Crew</span>
             <span className="text-xs font-medium text-gray-500">ACMI Rate</span>
+            <span className="text-xs font-medium text-gray-500">BH:FH</span>
             <span />
           </div>
         )}

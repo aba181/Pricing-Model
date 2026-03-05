@@ -16,6 +16,7 @@ export interface MsnInput {
   leaseType: 'wet' | 'damp' | 'moist'
   crewSets: number
   acmiRate: string // EUR per BH — revenue = acmiRate × MGH
+  bhFhRatio: string // BH:FH ratio — FH = BH / bhFhRatio (default 1.2)
 }
 
 /** Compute period in months from start/end YYYY-MM strings (inclusive) */

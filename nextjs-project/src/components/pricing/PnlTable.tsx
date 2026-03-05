@@ -181,7 +181,8 @@ function buildMonthlyData(
   } | null,
   mgh: number,
   acmiRate: number,
-  cycleRatio: number
+  cycleRatio: number,
+  bhFhRatio: number
 ): Record<string, number[]> {
   const data: Record<string, number[]> = {}
 
@@ -300,11 +301,12 @@ function buildMonthlyData(
     data['netProfitMargin'][m] = revenue > 0 ? data['netProfit'][m] / revenue : 0
 
     // KPIs
+    const fh = bhFhRatio > 0 ? mgh / bhFhRatio : 0
     data['acOperational'][m] = 1
     data['bh'][m] = mgh
     data['avgBhPerAc'][m] = mgh
-    data['fh'][m] = mgh
-    data['fc'][m] = cycleRatio > 0 ? mgh / cycleRatio : 0
+    data['fh'][m] = fh
+    data['fc'][m] = cycleRatio > 0 ? fh / cycleRatio : 0
     data['fhFcRatio'][m] = cycleRatio
   }
 
@@ -329,6 +331,7 @@ export function PnlTable() {
   let mgh = 0
   let acmiRate = 0
   let cycleRatio = 1
+  let bhFhRatio = 1.2
   let periodStart = ''
   let periodEnd = ''
 
@@ -340,6 +343,7 @@ export function PnlTable() {
       mgh = input ? parseFloat(input.mgh) : 0
       acmiRate = input ? parseFloat(input.acmiRate || '0') : 0
       cycleRatio = input ? parseFloat(input.cycleRatio || '1') : 1
+      bhFhRatio = input ? parseFloat(input.bhFhRatio || '1.2') : 1.2
     }
     if (input) {
       periodStart = input.periodStart
@@ -353,11 +357,13 @@ export function PnlTable() {
       acmiRate = msnInputs.reduce((sum, i) => sum + parseFloat(i.acmiRate || '0') * parseFloat(i.mgh), 0) / (mgh || 1)
       // Weighted average cycle ratio
       cycleRatio = msnInputs.reduce((sum, i) => sum + parseFloat(i.cycleRatio || '1') * parseFloat(i.mgh), 0) / (mgh || 1)
+      bhFhRatio = msnInputs.reduce((sum, i) => sum + parseFloat(i.bhFhRatio || '1.2') * parseFloat(i.mgh), 0) / (mgh || 1)
     } else if (msnResults.length === 1) {
       breakdown = msnResults[0].breakdown
       mgh = msnInputs.length > 0 ? parseFloat(msnInputs[0].mgh) : 0
       acmiRate = msnInputs.length > 0 ? parseFloat(msnInputs[0].acmiRate || '0') : 0
       cycleRatio = msnInputs.length > 0 ? parseFloat(msnInputs[0].cycleRatio || '1') : 1
+      bhFhRatio = msnInputs.length > 0 ? parseFloat(msnInputs[0].bhFhRatio || '1.2') : 1.2
     }
     if (msnInputs.length > 0) {
       periodStart = msnInputs[0].periodStart
@@ -377,7 +383,7 @@ export function PnlTable() {
 
   const months = generateMonthRange(periodStart, periodEnd)
   const periodMonths = computePeriodMonths(periodStart, periodEnd)
-  const monthlyData = buildMonthlyData(periodMonths, breakdown, mgh, acmiRate, cycleRatio)
+  const monthlyData = buildMonthlyData(periodMonths, breakdown, mgh, acmiRate, cycleRatio, bhFhRatio)
 
   // Empty state
   if (!breakdown && msnResults.length === 0) {
