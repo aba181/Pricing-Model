@@ -331,7 +331,6 @@ def test_fixture_all_components(inputs, expected):
     """Verify each component matches the Excel-computed expected value exactly."""
     result = calculate_pricing(**inputs)
 
-    # Verify each component with exact Decimal equality
     assert result.aircraft_eur_per_bh == expected["aircraft_eur_per_bh"], (
         f"Aircraft: {result.aircraft_eur_per_bh} != {expected['aircraft_eur_per_bh']}"
     )
@@ -394,7 +393,6 @@ def test_fixture_with_margin():
         margin_percent=Decimal("10"),
         exchange_rate=Decimal("0.85"),
     )
-    # final_rate = total_cost / (1 - 0.10) = total_cost / 0.90
     expected_final = SCENARIO_1_EXPECTED["total_cost_per_bh"] / Decimal("0.90")
     assert result.final_rate_per_bh == expected_final
     assert result.revenue_per_bh == expected_final
@@ -433,13 +431,19 @@ def test_fixture_project_aggregation():
 
     msn_results = [
         {
+            "msn": 3055,
             "mgh": Decimal("350"),
+            "total_cost_per_bh": result1.total_cost_per_bh,
+            "final_rate_per_bh": result1.final_rate_per_bh,
             "monthly_cost": result1.total_cost_per_bh * Decimal("350"),
             "monthly_revenue": result1.final_rate_per_bh * Decimal("350"),
             "monthly_pnl": (result1.final_rate_per_bh - result1.total_cost_per_bh) * Decimal("350"),
         },
         {
+            "msn": 3378,
             "mgh": Decimal("300"),
+            "total_cost_per_bh": result2.total_cost_per_bh,
+            "final_rate_per_bh": result2.final_rate_per_bh,
             "monthly_cost": result2.total_cost_per_bh * Decimal("300"),
             "monthly_revenue": result2.final_rate_per_bh * Decimal("300"),
             "monthly_pnl": (result2.final_rate_per_bh - result2.total_cost_per_bh) * Decimal("300"),
@@ -448,13 +452,10 @@ def test_fixture_project_aggregation():
 
     totals = calculate_project_pnl(msn_results)
 
-    # Verify total monthly cost = sum of individual monthly costs
     expected_cost = msn_results[0]["monthly_cost"] + msn_results[1]["monthly_cost"]
     assert totals["total_monthly_cost"] == expected_cost
 
-    # Verify total monthly revenue = sum of individual monthly revenues
     expected_revenue = msn_results[0]["monthly_revenue"] + msn_results[1]["monthly_revenue"]
     assert totals["total_monthly_revenue"] == expected_revenue
 
-    # Verify P&L = revenue - cost
     assert totals["total_monthly_pnl"] == expected_revenue - expected_cost
