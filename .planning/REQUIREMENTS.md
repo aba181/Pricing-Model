@@ -23,7 +23,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Pricing Engine
 
-- [ ] **PRIC-01**: User can enter pricing inputs: MGH, Cycle Ratio, Environment, Period, MSN
+- [x] **PRIC-01**: User can enter pricing inputs: MGH, Cycle Ratio, Environment, Period, MSN
 - [ ] **PRIC-02**: System calculates per-BH cost for each component: Aircraft, Crew, Maintenance, Insurance, DOC, Other COGS, Overhead
 - [ ] **PRIC-03**: User can enter margin percentage and see final EUR/BH rate
 - [ ] **PRIC-04**: Calculation results update in real-time as inputs change
@@ -32,7 +32,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Pricing Configuration
 
-- [ ] **CONF-01**: Admin can view and update base rates and pricing parameters via admin page
+- [x] **CONF-01**: Admin can view and update base rates and pricing parameters via admin page
 - [x] **CONF-02**: Pricing config changes are versioned (old quotes reference the config version they were created with)
 - [x] **CONF-03**: System prevents config changes from altering previously saved quotes
 
@@ -110,13 +110,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ACFT-02 | Phase 2 | Complete |
 | ACFT-03 | Phase 2 | Complete |
 | ACFT-04 | Phase 2 | Complete |
-| PRIC-01 | Phase 3 | Pending |
+| PRIC-01 | Phase 3 | Complete |
 | PRIC-02 | Phase 3 | Pending |
 | PRIC-03 | Phase 3 | Pending |
 | PRIC-04 | Phase 3 | Pending |
 | PRIC-05 | Phase 3 | Pending |
 | PRIC-06 | Phase 3 | Complete |
-| CONF-01 | Phase 3 | Pending |
+| CONF-01 | Phase 3 | Complete |
 | CONF-02 | Phase 3 | Complete |
 | CONF-03 | Phase 3 | Complete |
 | QUOT-01 | Phase 4 | Pending |

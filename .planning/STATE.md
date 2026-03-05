@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: in-progress
-stopped_at: Completed 03-01-PLAN.md
-last_updated: "2026-03-05T12:14:01Z"
-last_activity: "2026-03-05 — Completed 03-01-PLAN.md (Pricing config data foundation: versioned tables, schemas, repositories, mock DB)"
+status: executing
+stopped_at: Completed 03-03-PLAN.md
+last_updated: "2026-03-05T12:27:43.138Z"
+last_activity: "2026-03-05 — Completed 03-03-PLAN.md (Pricing API: 12 endpoints, 7-component calculator, config versioning, 18 integration tests)"
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 12
-  completed_plans: 8
-  percent: 67
+  completed_plans: 9
+  percent: 75
 ---
 
 # Project State
@@ -21,23 +21,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-04)
 
 **Core value:** Accurate, repeatable ACMI pricing quotes that the sales team can generate, save, and retrieve — replacing manual spreadsheet-based pricing with a structured tool that produces consistent results.
-**Current focus:** Phase 3 in progress — Pricing Engine (1/5 plans done). Data foundation complete, calculation service next.
+**Current focus:** Phase 3 in progress — Pricing Engine (3/5 plans done). API layer complete, P&L frontend next.
 
 ## Current Position
 
 Phase: 3 of 5 (Pricing Engine)
-Plan: 1 of 5 in current phase
+Plan: 3 of 5 in current phase
 Status: Phase 3 In Progress
-Last activity: 2026-03-05 — Completed 03-01-PLAN.md (Pricing config data foundation: versioned tables, schemas, repositories, mock DB)
+Last activity: 2026-03-05 — Completed 03-03-PLAN.md (Pricing API: 12 endpoints, 7-component calculator, config versioning, 18 integration tests)
 
-Progress: [██████░░░░] 67% (Phases 1-2 complete, Phase 3: 1/5, 8/12 plans)
+Progress: [████████░░] 75% (Phases 1-2 complete, Phase 3: 3/5, 9/12 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
+- Total plans completed: 9
 - Average duration: 5min
-- Total execution time: 0.65 hours
+- Total execution time: 0.78 hours
 
 **By Phase:**
 
@@ -45,10 +45,10 @@ Progress: [██████░░░░] 67% (Phases 1-2 complete, Phase 3: 1/
 |-------|-------|-------|----------|
 | 1 - Foundation | 4 | 19min | 5min |
 | 2 - Aircraft Master Data | 3/3 | 18min | 6min |
-| 3 - Pricing Engine | 1/5 | 5min | 5min |
+| 3 - Pricing Engine | 3/5 | 13min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 02-01 (7min), 02-02 (3min), 02-03 (8min), 03-01 (5min)
+- Last 5 plans: 02-02 (3min), 02-03 (8min), 03-01 (5min), 03-03 (8min)
 - Trend: Consistent
 
 *Updated after each plan completion*
@@ -56,6 +56,7 @@ Progress: [██████░░░░] 67% (Phases 1-2 complete, Phase 3: 1/
 | Phase 02 P02 | 3min | 2 tasks | 6 files |
 | Phase 02 P03 | 8min | 3 tasks | 7 files |
 | Phase 03 P01 | 5min | 2 tasks | 6 files |
+| Phase 03 P03 | 8min | 1 task | 7 files |
 
 ## Accumulated Context
 
@@ -96,6 +97,10 @@ Recent decisions affecting current work:
 - [03-01]: crew_config per aircraft_type (A320/A321) to handle different cabin crew compositions
 - [03-01]: pricing_projects stores separate crew_config_a320_id and crew_config_a321_id FKs for quote immutability
 - [03-01]: crew_sets modeled as per-MSN input in project_msn_inputs (not global project setting)
+- [03-03]: Router interpolates EPR rate at API layer, passes pre-computed epr_rate to service -- keeps service pure
+- [03-03]: Service layer uses its own ComponentBreakdown dataclass; router converts to Pydantic schema for API response
+- [03-03]: Project creation auto-attaches current config version IDs (pricing_config, crew_config_a320, crew_config_a321)
+- [03-03]: Config versioning enforced at API layer: PUT creates new version via append-only repo, GET retrieves any version by ID
 
 ### Pending Todos
 
@@ -107,6 +112,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-05T12:14:01Z
-Stopped at: Completed 03-01-PLAN.md
-Resume file: .planning/phases/03-pricing-engine/03-02-PLAN.md
+Last session: 2026-03-05T12:27:43.135Z
+Stopped at: Completed 03-03-PLAN.md
+Resume file: .planning/phases/03-pricing-engine/03-04-PLAN.md
