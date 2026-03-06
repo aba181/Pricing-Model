@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 
 class AircraftListResponse(BaseModel):
-    """Aircraft summary for list views with fixed monthly rates (USD + EUR)."""
+    """Aircraft summary for list views with fixed + variable rates (USD + EUR)."""
 
     id: int
     msn: int
@@ -17,11 +17,20 @@ class AircraftListResponse(BaseModel):
     six_year_check_usd: Decimal | None = None
     twelve_year_check_usd: Decimal | None = None
     ldg_usd: Decimal | None = None
+    # Variable rates per engine (USD)
+    apu_rate_usd: Decimal | None = None
+    llp1_rate_usd: Decimal | None = None
+    llp2_rate_usd: Decimal | None = None
     # EUR conversions (computed on read via apply_eur_conversion)
     lease_rent_eur: Decimal | None = None
     six_year_check_eur: Decimal | None = None
     twelve_year_check_eur: Decimal | None = None
     ldg_eur: Decimal | None = None
+    apu_rate_eur: Decimal | None = None
+    llp1_rate_eur: Decimal | None = None
+    llp2_rate_eur: Decimal | None = None
+    # EPR matrix
+    epr_matrix: list[EprMatrixRow] = []
 
 
 class EprMatrixRow(BaseModel):

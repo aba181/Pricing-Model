@@ -2,6 +2,7 @@
 
 import { usePricingStore } from '@/stores/pricing-store'
 import { generateMonthRange, computePeriodMonths } from '@/stores/pricing-store'
+import type { EprMatrixRow } from '@/stores/pricing-store'
 import { useCrewConfigStore } from '@/stores/crew-config-store'
 import { useCostsConfigStore } from '@/stores/costs-config-store'
 
@@ -28,6 +29,46 @@ function fmtDec(value: number, decimals = 1): string {
 function valColor(value: number): string {
   if (value < 0) return 'text-red-400'
   return ''
+}
+
+// ---- EPR interpolation ----
+
+/**
+ * Interpolate EPR rate from the matrix for a given cycle ratio and environment.
+ *
+ * - Exact match → return that row's rate
+ * - Between two rows → linear interpolation
+ * - Below min → clamp to first row
+ * - Above max → clamp to last row
+ * - Empty matrix → 0
+ */
+function interpolateEpr(
+  matrix: EprMatrixRow[],
+  targetCr: number,
+  environment: 'benign' | 'hot',
+): number {
+  if (matrix.length === 0) return 0
+  const sorted = [...matrix].sort((a, b) => a.cycleRatio - b.cycleRatio)
+  const getRate = (row: EprMatrixRow) =>
+    environment === 'benign' ? row.benignRate : row.hotRate
+
+  // Clamp below/above
+  if (targetCr <= sorted[0].cycleRatio) return getRate(sorted[0])
+  if (targetCr >= sorted[sorted.length - 1].cycleRatio) return getRate(sorted[sorted.length - 1])
+
+  // Find bracketing rows
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const lo = sorted[i]
+    const hi = sorted[i + 1]
+    if (targetCr >= lo.cycleRatio && targetCr <= hi.cycleRatio) {
+      // Exact match
+      if (lo.cycleRatio === hi.cycleRatio) return getRate(lo)
+      // Linear interpolation
+      const t = (targetCr - lo.cycleRatio) / (hi.cycleRatio - lo.cycleRatio)
+      return getRate(lo) + t * (getRate(hi) - getRate(lo))
+    }
+  }
+  return getRate(sorted[sorted.length - 1])
 }
 
 // ---- Row type definitions ----
@@ -169,7 +210,9 @@ const OVERHEAD_KEYS = [
 
 /** All derived config values that feed into P&L line items */
 interface PnlLineConfig {
-  // A component (from Aircraft tab)
+  // A component — variable (from Aircraft tab + KPIs)
+  maintReservesVariable: number // EPR MR + LLP MR + APU MR (monthly, EUR)
+  // A component — fixed (from Aircraft tab)
   leaseRentEur: number
   maintReservesFixedEur: number
   // C component (from Crew tab)
@@ -247,8 +290,8 @@ function buildMonthlyData(
     data['totalRevenue'][m] = revenue
 
     // ── VARIABLE COST ──
-    // A: reserves variable + asset mgmt fee (still from backend breakdown for now)
-    data['maintReservesVariable'][m] = 0
+    // A: reserves variable (EPR MR + LLP MR + APU MR) from Aircraft tab
+    data['maintReservesVariable'][m] = cfg.maintReservesVariable
     data['assetMgmtFee'][m] = 0
 
     // C: per diems (kept as 0 for now — per diem logic can be added later)
@@ -448,10 +491,16 @@ export function PnlTable() {
   let crewSets = 4
   let leaseType: 'wet' | 'damp' | 'moist' = 'wet'
   let aircraftType = 'A320'
+  let environment: 'benign' | 'hot' = 'benign'
   let insuranceMsn = 0
   let periodStart = ''
   let periodEnd = ''
   let hasData = false
+  // Variable rate fields (USD per engine / per cycle)
+  let apuRateUsd = 0
+  let llp1RateUsd = 0
+  let llp2RateUsd = 0
+  let eprMatrix: EprMatrixRow[] = []
 
   /** Sum of 6yr + 12yr + LDG from an MsnInput */
   function calcMaintFixed(i: typeof msnInputs[number]): number {
@@ -477,7 +526,12 @@ export function PnlTable() {
       crewSets = input.crewSets
       leaseType = input.leaseType
       aircraftType = input.aircraftType
+      environment = input.environment
       insuranceMsn = input.msn
+      apuRateUsd = parseFloat(input.apuRateUsd || '0')
+      llp1RateUsd = parseFloat(input.llp1RateUsd || '0')
+      llp2RateUsd = parseFloat(input.llp2RateUsd || '0')
+      eprMatrix = input.eprMatrix ?? []
     }
   } else {
     // Total project view
@@ -494,9 +548,15 @@ export function PnlTable() {
       crewSets = msnInputs[0].crewSets
       leaseType = msnInputs[0].leaseType
       aircraftType = msnInputs[0].aircraftType
+      environment = msnInputs[0].environment
       insuranceMsn = msnInputs[0].msn
       periodStart = msnInputs[0].periodStart
       periodEnd = msnInputs[0].periodEnd
+      // For total project, sum variable rates across MSNs
+      apuRateUsd = msnInputs.reduce((sum, i) => sum + parseFloat(i.apuRateUsd || '0'), 0)
+      llp1RateUsd = msnInputs.reduce((sum, i) => sum + parseFloat(i.llp1RateUsd || '0'), 0)
+      llp2RateUsd = msnInputs.reduce((sum, i) => sum + parseFloat(i.llp2RateUsd || '0'), 0)
+      eprMatrix = msnInputs[0].eprMatrix ?? []
     }
   }
 
@@ -518,8 +578,27 @@ export function PnlTable() {
   // Insurance for selected MSN
   const insuranceFixedVal = insuranceByMsn[insuranceMsn] ?? 0
 
+  // ── Compute maintenance reserves variable (A component - variable) ──
+  // Derived KPIs per month
+  const fh = bhFhRatio > 0 ? mgh / bhFhRatio : 0 // FH = BH / BH:FH
+  const fc = cycleRatio > 0 ? fh / cycleRatio : 0  // FC = FH / cycle ratio
+  const apuFh = fh * apuFhRatio                     // APU FH = FH × APU FH:FH
+
+  // EPR MR = EPR_rate_USD × 2 engines × FH × exchangeRate
+  const eprRateUsd = interpolateEpr(eprMatrix, cycleRatio, environment)
+  const eprMr = eprRateUsd * 2 * fh * exchangeRate
+
+  // LLP MR = LLP1_rate_USD × FC × exchangeRate + LLP2_rate_USD × APU_FH × exchangeRate
+  const llpMr = llp1RateUsd * fc * exchangeRate + llp2RateUsd * apuFh * exchangeRate
+
+  // APU MR = APU_rate_USD × APU_FH × exchangeRate
+  const apuMr = apuRateUsd * apuFh * exchangeRate
+
+  const maintReservesVariableVal = eprMr + llpMr + apuMr
+
   // Build PnlLineConfig
   const cfg: PnlLineConfig = {
+    maintReservesVariable: maintReservesVariableVal,
     leaseRentEur,
     maintReservesFixedEur,
     pilotSalary: pilotSalaryVal,

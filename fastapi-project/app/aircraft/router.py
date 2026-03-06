@@ -29,10 +29,18 @@ async def list_aircraft(
     db: asyncpg.Connection = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    """List all aircraft with rates, optionally filtered by search term."""
+    """List all aircraft with rates and EPR matrices, optionally filtered."""
     repo = AircraftRepository(db)
     rows = await repo.list_aircraft(search)
-    return [apply_eur_conversion(dict(r)) for r in rows]
+    # Build id→epr_matrix map in a single query
+    aircraft_ids = [r["id"] for r in rows]
+    epr_map = await repo.fetch_epr_matrices_for_ids(aircraft_ids) if aircraft_ids else {}
+    result = []
+    for r in rows:
+        data = apply_eur_conversion(dict(r))
+        data["epr_matrix"] = [dict(e) for e in epr_map.get(r["id"], [])]
+        result.append(data)
+    return result
 
 
 @router.get("/{msn}", response_model=AircraftDetailResponse)

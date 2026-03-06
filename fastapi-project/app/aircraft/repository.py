@@ -59,6 +59,30 @@ class AircraftRepository(BaseRepository):
             aircraft_id,
         )
 
+    async def fetch_epr_matrices_for_ids(self, aircraft_ids: list[int]) -> dict[int, list[dict]]:
+        """Fetch EPR matrix rows for multiple aircraft in one query.
+
+        Returns a dict mapping aircraft_id → list of EPR rows (sorted by cycle_ratio).
+        """
+        if not aircraft_ids:
+            return {}
+        rows = await self.fetch_many(
+            """
+            SELECT aircraft_id, cycle_ratio, benign_rate, hot_rate
+            FROM epr_matrix_rows
+            WHERE aircraft_id = ANY($1)
+            ORDER BY aircraft_id, cycle_ratio
+            """,
+            aircraft_ids,
+        )
+        result: dict[int, list[dict]] = {}
+        for r in rows:
+            aid = r["aircraft_id"]
+            if aid not in result:
+                result[aid] = []
+            result[aid].append(r)
+        return result
+
     async def update_rates(self, aircraft_id: int, **fields) -> dict | None:
         """Update cost rate fields for an aircraft. Returns updated row."""
         if not fields:

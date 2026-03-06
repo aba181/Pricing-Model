@@ -9,6 +9,12 @@ import { calculatePnlAction } from '@/app/actions/pricing'
 import type { CalculateResponse } from '@/app/actions/pricing'
 import { MsnInputRow } from './MsnInputRow'
 
+interface EprMatrixRowApi {
+  cycle_ratio: string
+  benign_rate: string
+  hot_rate: string
+}
+
 interface AircraftOption {
   id: number
   msn: number
@@ -18,6 +24,10 @@ interface AircraftOption {
   six_year_check_eur: string | null
   twelve_year_check_eur: string | null
   ldg_eur: string | null
+  apu_rate_usd: string | null
+  llp1_rate_usd: string | null
+  llp2_rate_usd: string | null
+  epr_matrix: EprMatrixRowApi[]
 }
 
 interface DashboardSummaryProps {
@@ -180,11 +190,21 @@ export function DashboardSummary({ aircraftList }: DashboardSummaryProps) {
       acmiRate: '0',
       bhFhRatio: '1.2',
       apuFhRatio: '1.1',
-      // Aircraft rates from Aircraft tab (EUR)
+      // Aircraft rates from Aircraft tab (EUR, fixed)
       leaseRentEur: ac.lease_rent_eur ?? '0',
       sixYearCheckEur: ac.six_year_check_eur ?? '0',
       twelveYearCheckEur: ac.twelve_year_check_eur ?? '0',
       ldgEur: ac.ldg_eur ?? '0',
+      // Aircraft rates from Aircraft tab (USD, variable per engine)
+      apuRateUsd: ac.apu_rate_usd ?? '0',
+      llp1RateUsd: ac.llp1_rate_usd ?? '0',
+      llp2RateUsd: ac.llp2_rate_usd ?? '0',
+      // EPR matrix from Aircraft tab
+      eprMatrix: (ac.epr_matrix ?? []).map((r) => ({
+        cycleRatio: parseFloat(r.cycle_ratio),
+        benignRate: parseFloat(r.benign_rate),
+        hotRate: parseFloat(r.hot_rate),
+      })),
     }
 
     addMsnInput(newInput)

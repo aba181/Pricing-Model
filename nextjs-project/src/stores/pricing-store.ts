@@ -2,6 +2,13 @@ import { create } from 'zustand'
 
 // ---- Types ----
 
+/** EPR matrix row from aircraft tab — rates are USD per engine */
+export interface EprMatrixRow {
+  cycleRatio: number
+  benignRate: number
+  hotRate: number
+}
+
 export interface MsnInput {
   id?: number // DB id (from project_msn_inputs)
   aircraftId: number
@@ -18,11 +25,17 @@ export interface MsnInput {
   acmiRate: string // EUR per BH — revenue = acmiRate × MGH
   bhFhRatio: string // BH:FH ratio — FH = BH / bhFhRatio (default 1.2)
   apuFhRatio: string // APU FH:FH ratio — APU FH = FH * apuFhRatio (default 1.1)
-  // Aircraft rates from Aircraft tab (EUR, monthly)
+  // Aircraft rates from Aircraft tab (EUR, monthly — fixed)
   leaseRentEur: string // Dry lease rent per month
   sixYearCheckEur: string // 6-year check reserve per month
   twelveYearCheckEur: string // 12-year check reserve per month
   ldgEur: string // Landing gear reserve per month
+  // Aircraft rates from Aircraft tab (USD — variable, per engine)
+  apuRateUsd: string  // APU rate per APU FH
+  llp1RateUsd: string // LLP #1 rate per FC
+  llp2RateUsd: string // LLP #2 rate per APU FH
+  // EPR matrix from Aircraft tab (USD per engine)
+  eprMatrix: EprMatrixRow[]
 }
 
 /** Compute period in months from start/end YYYY-MM strings (inclusive) */
