@@ -588,8 +588,8 @@ export function PnlTable() {
   const eprRateUsd = interpolateEpr(eprMatrix, cycleRatio, environment)
   const eprMr = eprRateUsd * 2 * fh * exchangeRate
 
-  // LLP MR = LLP1_rate_USD × FC × exchangeRate + LLP2_rate_USD × APU_FH × exchangeRate
-  const llpMr = llp1RateUsd * fc * exchangeRate + llp2RateUsd * apuFh * exchangeRate
+  // LLP MR = (LLP1_rate_USD + LLP2_rate_USD) × FC × exchangeRate
+  const llpMr = (llp1RateUsd + llp2RateUsd) * fc * exchangeRate
 
   // APU MR = APU_rate_USD × APU_FH × exchangeRate
   const apuMr = apuRateUsd * apuFh * exchangeRate

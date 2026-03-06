@@ -33,7 +33,7 @@ export interface MsnInput {
   // Aircraft rates from Aircraft tab (USD — variable, per engine)
   apuRateUsd: string  // APU rate per APU FH
   llp1RateUsd: string // LLP #1 rate per FC
-  llp2RateUsd: string // LLP #2 rate per APU FH
+  llp2RateUsd: string // LLP #2 rate per FC
   // EPR matrix from Aircraft tab (USD per engine)
   eprMatrix: EprMatrixRow[]
 }
