@@ -38,8 +38,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Sensitivity Analysis
 
-- [ ] **SENS-01**: User can vary a single input parameter and see how the EUR/BH rate changes
-- [ ] **SENS-02**: Sensitivity results display as a comparison table or chart
+- [x] **SENS-01**: User can vary a single input parameter and see how the EUR/BH rate changes
+- [x] **SENS-02**: Sensitivity results display as a comparison table or chart
 
 ### Quote Management
 
@@ -125,8 +125,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | QUOT-04 | Phase 4 | Pending |
 | QUOT-05 | Phase 4 | Pending |
 | QUOT-06 | Phase 4 | Pending |
-| SENS-01 | Phase 4 | Pending |
-| SENS-02 | Phase 4 | Pending |
+| SENS-01 | Phase 4 | Complete |
+| SENS-02 | Phase 4 | Complete |
 | UI-02 | Phase 5 | Pending |
 | UI-03 | Phase 5 | Pending |
 | UI-04 | Phase 5 | Pending |

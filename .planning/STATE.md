@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: in-progress
+status: executing
 stopped_at: Completed 03-04-PLAN.md
-last_updated: "2026-03-05T12:35:28Z"
-last_activity: "2026-03-05 — Completed 03-04-PLAN.md (Dashboard MSN input grid, Zustand pricing store, 10 Server Actions, sidebar P&L/Crew nav)"
+last_updated: "2026-03-09T16:39:10.855Z"
+last_activity: 2026-03-05 — Completed 03-04-PLAN.md (Dashboard MSN input grid, Zustand pricing store, 10 Server Actions, sidebar P&L/Crew nav)
 progress:
   total_phases: 5
   completed_phases: 2
-  total_plans: 12
-  completed_plans: 11
+  total_plans: 16
+  completed_plans: 12
   percent: 92
 ---
 
@@ -21,23 +21,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-04)
 
 **Core value:** Accurate, repeatable ACMI pricing quotes that the sales team can generate, save, and retrieve — replacing manual spreadsheet-based pricing with a structured tool that produces consistent results.
-**Current focus:** Phase 3 in progress — Pricing Engine (4/5 plans done). Dashboard frontend complete, Crew/P&L pages next.
+**Current focus:** Phase 4 in progress — Quote Persistence and History (2/4 plans done). Sensitivity analysis complete.
 
 ## Current Position
 
-Phase: 3 of 5 (Pricing Engine)
-Plan: 4 of 5 in current phase
-Status: Phase 3 In Progress
-Last activity: 2026-03-05 — Completed 03-04-PLAN.md (Dashboard MSN input grid, Zustand pricing store, 10 Server Actions, sidebar P&L/Crew nav)
+Phase: 4 of 5 (Quote Persistence and History)
+Plan: 2 of 4 in current phase
+Status: Phase 4 In Progress
+Last activity: 2026-03-09 — Completed 04-02-PLAN.md (Sensitivity analysis page with Recharts chart, comparison table, parameter picker)
 
-Progress: [█████████░] 92% (Phases 1-2 complete, Phase 3: 4/5, 11/12 plans)
+Progress: [████████░░] 75% (Phases 1-3 complete, Phase 4: 2/4, 12/16 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 11
+- Total plans completed: 12
 - Average duration: 6min
-- Total execution time: 1.02 hours
+- Total execution time: 1.07 hours
 
 **By Phase:**
 
@@ -46,9 +46,10 @@ Progress: [█████████░] 92% (Phases 1-2 complete, Phase 3: 4/
 | 1 - Foundation | 4 | 19min | 5min |
 | 2 - Aircraft Master Data | 3/3 | 18min | 6min |
 | 3 - Pricing Engine | 4/5 | 26min | 7min |
+| 4 - Quote Persistence | 2/4 | 6min | 3min |
 
 **Recent Trend:**
-- Last 5 plans: 02-03 (8min), 03-01 (5min), 03-02 (9min), 03-03 (8min), 03-04 (4min)
+- Last 5 plans: 03-01 (5min), 03-02 (9min), 03-03 (8min), 03-04 (4min), 04-02 (3min)
 - Trend: Consistent
 
 *Updated after each plan completion*
@@ -59,6 +60,7 @@ Progress: [█████████░] 92% (Phases 1-2 complete, Phase 3: 4/
 | Phase 03 P02 | 9min | 2 tasks | 3 files |
 | Phase 03 P03 | 8min | 1 task | 7 files |
 | Phase 03 P04 | 4min | 2 tasks | 9 files |
+| Phase 04 P02 | 3min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -110,6 +112,9 @@ Recent decisions affecting current work:
 - [03-04]: All decimal values stored as strings in Zustand store to preserve precision from API
 - [03-04]: Debounced calculation with 500ms delay via useEffect + useRef timer cleanup
 - [03-04]: API response mapping from snake_case to camelCase at DashboardSummary boundary
+- [04-02]: Excluded bhFhRatio and apuFhRatio from sensitivity parameters -- frontend-only values not in /pricing/calculate API request
+- [04-02]: Sensitivity uses sequential calculatePnlAction calls (5 per run) to avoid API overload
+- [04-02]: Base value for per-MSN parameters (mgh, cycleRatio, crewSets) uses average across all MSNs
 
 ### Pending Todos
 
@@ -121,6 +126,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-05T12:35:28Z
-Stopped at: Completed 03-04-PLAN.md
-Resume file: .planning/phases/03-pricing-engine/03-05-PLAN.md
+Last session: 2026-03-09T16:38:18Z
+Stopped at: Completed 04-02-PLAN.md
+Resume file: .planning/phases/04-quote-persistence-and-history/04-03-PLAN.md
