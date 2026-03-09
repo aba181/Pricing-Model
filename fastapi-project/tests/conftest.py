@@ -928,27 +928,31 @@ class MockConnection:
         if "COUNT" in q_upper:
             # COUNT query -- apply same filters as list
             filtered = list(rows)
-            if "ILIKE" in q_upper and args:
-                search = args[0].strip("%").lower()
+            arg_idx = 0
+            if "ILIKE" in q_upper and arg_idx < len(args):
+                search = args[arg_idx].strip("%").lower()
                 filtered = [
                     r for r in filtered
                     if search in r.get("client_name", "").lower()
                     or search in r.get("quote_number", "").lower()
                 ]
-            if "STATUS =" in q_upper:
-                # Find the status arg (last positional or after search)
-                status_idx = 1 if "ILIKE" in q_upper else 0
-                if status_idx < len(args):
-                    status_val = args[status_idx]
-                    filtered = [r for r in filtered if r.get("status") == status_val]
+                arg_idx += 1
+            if "STATUS =" in q_upper and arg_idx < len(args):
+                status_val = args[arg_idx]
+                filtered = [r for r in filtered if r.get("status") == status_val]
+                arg_idx += 1
+            if "MSN_LIST" in q_upper and arg_idx < len(args):
+                msn_val = args[arg_idx]
+                filtered = [r for r in filtered if msn_val in r.get("msn_list", [])]
+                arg_idx += 1
             return [MockRecord({"count": len(filtered)})]
 
         # List queries with optional filters
         filtered = list(rows)
         arg_idx = 0
 
-        if "ILIKE" in q_upper and args:
-            search = args[0].strip("%").lower()
+        if "ILIKE" in q_upper and arg_idx < len(args):
+            search = args[arg_idx].strip("%").lower()
             filtered = [
                 r for r in filtered
                 if search in r.get("client_name", "").lower()
@@ -959,6 +963,11 @@ class MockConnection:
         if "STATUS =" in q_upper and arg_idx < len(args):
             status_val = args[arg_idx]
             filtered = [r for r in filtered if r.get("status") == status_val]
+            arg_idx += 1
+
+        if "MSN_LIST" in q_upper and arg_idx < len(args):
+            msn_val = args[arg_idx]
+            filtered = [r for r in filtered if msn_val in r.get("msn_list", [])]
             arg_idx += 1
 
         # ORDER BY created_at DESC

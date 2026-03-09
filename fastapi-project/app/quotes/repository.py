@@ -105,12 +105,14 @@ class QuoteRepository(BaseRepository):
         self,
         search: str | None = None,
         status: str | None = None,
+        msn: int | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> list[dict]:
-        """List quotes with optional search and status filters.
+        """List quotes with optional search, status, and MSN filters.
 
         Search matches against client_name (ILIKE) or quote_number (ILIKE).
+        MSN filter uses GIN index on msn_list for array containment.
         Results ordered by created_at DESC with LIMIT/OFFSET pagination.
         """
         conditions: list[str] = []
@@ -127,6 +129,11 @@ class QuoteRepository(BaseRepository):
         if status:
             conditions.append(f"status = ${idx}")
             params.append(status)
+            idx += 1
+
+        if msn is not None:
+            conditions.append(f"msn_list @> ARRAY[${idx}]::INTEGER[]")
+            params.append(msn)
             idx += 1
 
         where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
@@ -147,6 +154,7 @@ class QuoteRepository(BaseRepository):
         self,
         search: str | None = None,
         status: str | None = None,
+        msn: int | None = None,
     ) -> int:
         """Count quotes matching the same filters as list_quotes."""
         conditions: list[str] = []
@@ -163,6 +171,11 @@ class QuoteRepository(BaseRepository):
         if status:
             conditions.append(f"status = ${idx}")
             params.append(status)
+            idx += 1
+
+        if msn is not None:
+            conditions.append(f"msn_list @> ARRAY[${idx}]::INTEGER[]")
+            params.append(msn)
             idx += 1
 
         where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
