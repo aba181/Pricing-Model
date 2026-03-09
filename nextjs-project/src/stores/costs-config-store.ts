@@ -120,6 +120,15 @@ interface CostsConfigStore {
   updateOtherCogs: (idx: number, field: 'perMonth' | 'total', value: number) => void
   updateOverhead: (idx: number, value: number) => void
   setAvgAc: (v: number) => void
+  loadFromSnapshot: (snapshot: {
+    maintPersonnel: MaintPersonnel[]
+    maintCosts: MaintCostItem[]
+    insurance: InsuranceItem[]
+    doc: DocItem[]
+    otherCogs: OtherCogsItem[]
+    overhead: OverheadItem[]
+    avgAc: number
+  }) => void
 }
 
 export const useCostsConfigStore = create<CostsConfigStore>()((set) => ({
@@ -162,4 +171,6 @@ export const useCostsConfigStore = create<CostsConfigStore>()((set) => ({
     })),
 
   setAvgAc: (v) => set({ avgAc: v }),
+
+  loadFromSnapshot: (snapshot) => set({ ...snapshot }),
 }))

@@ -22,7 +22,9 @@ export interface MsnInput {
   periodEnd: string // "YYYY-MM" format
   leaseType: 'wet' | 'damp' | 'moist'
   crewSets: number
-  acmiRate: string // EUR per BH — revenue = acmiRate × MGH
+  acmiRate: string // EUR per BH — revenue = (acmiRate × MGH) + (excessBh × excessHourRate)
+  excessBh: string // Excess BH above MGH (default 0)
+  excessHourRate: string // EUR per excess BH (default 0)
   bhFhRatio: string // BH:FH ratio — FH = BH / bhFhRatio (default 1.2)
   apuFhRatio: string // APU FH:FH ratio — APU FH = FH * apuFhRatio (default 1.1)
   // Aircraft rates from Aircraft tab (EUR, monthly — fixed)
@@ -93,6 +95,8 @@ interface PricingStore {
   projectName: string
   exchangeRate: string // Default "0.85"
   marginPercent: string // Default "0"
+  bhFhRatio: string // Global BH:FH ratio — FH = BH / bhFhRatio (default 1.2)
+  apuFhRatio: string // Global APU FH:FH ratio — APU FH = FH * apuFhRatio (default 1.1)
   msnInputs: MsnInput[]
 
   // P&L results
@@ -107,6 +111,8 @@ interface PricingStore {
   setProjectName: (name: string) => void
   setExchangeRate: (rate: string) => void
   setMarginPercent: (margin: string) => void
+  setBhFhRatio: (ratio: string) => void
+  setApuFhRatio: (ratio: string) => void
   addMsnInput: (input: MsnInput) => void
   removeMsnInput: (msn: number) => void
   updateMsnInput: (msn: number, field: keyof MsnInput, value: string | number | null) => void
@@ -115,6 +121,18 @@ interface PricingStore {
   setIsCalculating: (val: boolean) => void
   setLastError: (err: string | null) => void
   reset: () => void
+  loadFromQuote: (quoteData: {
+    dashboardState: {
+      projectName?: string
+      exchangeRate: string
+      marginPercent: string
+      bhFhRatio?: string
+      apuFhRatio?: string
+    }
+    msnInputs: MsnInput[]
+    msnResults: MsnPnlResult[]
+    totalResult: ComponentBreakdown | null
+  }) => void
 }
 
 const initialState = {
@@ -122,6 +140,8 @@ const initialState = {
   projectName: '',
   exchangeRate: '0.85',
   marginPercent: '0',
+  bhFhRatio: '1.2',
+  apuFhRatio: '1.1',
   msnInputs: [] as MsnInput[],
   selectedMsn: null as number | null,
   msnResults: [] as MsnPnlResult[],
@@ -137,6 +157,8 @@ export const usePricingStore = create<PricingStore>()((set) => ({
   setProjectName: (name) => set({ projectName: name }),
   setExchangeRate: (rate) => set({ exchangeRate: rate }),
   setMarginPercent: (margin) => set({ marginPercent: margin }),
+  setBhFhRatio: (ratio) => set({ bhFhRatio: ratio }),
+  setApuFhRatio: (ratio) => set({ apuFhRatio: ratio }),
 
   addMsnInput: (input) =>
     set((state) => ({
@@ -164,4 +186,20 @@ export const usePricingStore = create<PricingStore>()((set) => ({
   setLastError: (err) => set({ lastError: err }),
 
   reset: () => set({ ...initialState }),
+
+  loadFromQuote: (quoteData) =>
+    set({
+      projectId: null, // Fork: new working copy, not linked to original
+      projectName: quoteData.dashboardState.projectName ?? '',
+      exchangeRate: quoteData.dashboardState.exchangeRate,
+      marginPercent: quoteData.dashboardState.marginPercent,
+      bhFhRatio: quoteData.dashboardState.bhFhRatio ?? '1.2',
+      apuFhRatio: quoteData.dashboardState.apuFhRatio ?? '1.1',
+      msnInputs: quoteData.msnInputs,
+      msnResults: quoteData.msnResults,
+      totalResult: quoteData.totalResult,
+      selectedMsn: null,
+      isCalculating: false,
+      lastError: null,
+    }),
 }))

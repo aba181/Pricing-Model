@@ -69,6 +69,14 @@ interface CrewConfigStore {
   setAverageAC: (v: number) => void
   setFdDays: (v: number) => void
   setNfdDays: (v: number) => void
+  loadFromSnapshot: (snapshot: {
+    payroll: PayrollRow[]
+    otherCost: CostRow[]
+    training: TrainingRow[]
+    averageAC: number
+    fdDays: number
+    nfdDays: number
+  }) => void
 }
 
 export const useCrewConfigStore = create<CrewConfigStore>()((set) => ({
@@ -97,4 +105,6 @@ export const useCrewConfigStore = create<CrewConfigStore>()((set) => ({
   setAverageAC: (v) => set({ averageAC: v }),
   setFdDays: (v) => set({ fdDays: v }),
   setNfdDays: (v) => set({ nfdDays: v }),
+
+  loadFromSnapshot: (snapshot) => set({ ...snapshot }),
 }))
