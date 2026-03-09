@@ -12,6 +12,7 @@ import {
   Settings,
   ChevronLeft,
   DollarSign,
+  BarChart3,
 } from 'lucide-react'
 import { useSidebarStore } from '@/stores/sidebar-store'
 
@@ -21,6 +22,7 @@ const navItems = [
   { href: '/crew', label: 'Crew', icon: Users },
   { href: '/costs', label: 'Costs', icon: DollarSign },
   { href: '/quotes', label: 'Quotes', icon: FileText },
+  { href: '/sensitivity', label: 'Sensitivity', icon: BarChart3 },
   { href: '/aircraft', label: 'Aircraft', icon: Plane },
   { href: '/admin', label: 'Admin', icon: Settings },
 ]
