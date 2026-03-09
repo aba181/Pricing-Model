@@ -43,8 +43,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Quote Management
 
-- [ ] **QUOT-01**: User can save a completed pricing calculation as a named quote with client name
-- [ ] **QUOT-02**: Saved quotes are immutable (original calculation preserved exactly as generated)
+- [x] **QUOT-01**: User can save a completed pricing calculation as a named quote with client name
+- [x] **QUOT-02**: Saved quotes are immutable (original calculation preserved exactly as generated)
 - [ ] **QUOT-03**: User can view list of saved quotes with search and filter (by client, date, MSN)
 - [ ] **QUOT-04**: User can view full detail of a saved quote including all component breakdowns
 - [ ] **QUOT-05**: User can set quote status: Draft, Sent, Accepted, Rejected
@@ -119,8 +119,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CONF-01 | Phase 3 | Complete |
 | CONF-02 | Phase 3 | Complete |
 | CONF-03 | Phase 3 | Complete |
-| QUOT-01 | Phase 4 | Pending |
-| QUOT-02 | Phase 4 | Pending |
+| QUOT-01 | Phase 4 | Complete |
+| QUOT-02 | Phase 4 | Complete |
 | QUOT-03 | Phase 4 | Pending |
 | QUOT-04 | Phase 4 | Pending |
 | QUOT-05 | Phase 4 | Pending |
