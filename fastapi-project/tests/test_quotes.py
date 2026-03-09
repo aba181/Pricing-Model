@@ -1,11 +1,9 @@
 """Integration tests for quote API endpoints (QUOT-01 through QUOT-05).
 
-Wave 0 test stubs: These tests exercise the full HTTP request/response cycle
-through the FastAPI app with a mocked database. They will FAIL (RED) until
-the quote router is registered in Plan 03.
-
-Covers: create quote, immutability check, list with filters, get detail,
-status update, and status update authorization.
+Tests exercise the full HTTP request/response cycle through the FastAPI app
+with a mocked database. Covers: create quote, immutability check, list with
+search/status/MSN filter, quote detail with snapshots, status update with
+permission check.
 """
 from __future__ import annotations
 
@@ -22,18 +20,17 @@ async def _login(client, email: str, password: str) -> dict:
     return dict(resp.cookies)
 
 
-# ---- QUOT-01: Create Quote ----
-
-
-@pytest.mark.asyncio
-async def test_create_quote(async_client, test_admin_user):
-    """POST /quotes with valid payload returns 201 + quote_number."""
-    cookies = await _login(async_client, "admin@test.com", "adminpass123")
-    payload = {
-        "client_name": "easyJet",
-        "client_code": "EZJ",
+def _make_quote_payload(
+    client_name: str = "easyJet",
+    client_code: str = "EZJ",
+    msn: int = 3055,
+) -> dict:
+    """Build a valid SaveQuoteRequest payload for testing."""
+    return {
+        "client_name": client_name,
+        "client_code": client_code,
         "dashboard_state": {
-            "projectName": "EZJ Winter 2026",
+            "projectName": f"{client_code} Winter 2026",
             "exchangeRate": "0.8500",
             "marginPercent": "12.0",
         },
@@ -42,7 +39,7 @@ async def test_create_quote(async_client, test_admin_user):
         "costs_config_snapshot": {"doc_total_budget": "110000.00"},
         "msn_snapshots": [
             {
-                "msn": 3055,
+                "msn": msn,
                 "aircraft_type": "A320",
                 "aircraft_id": 1,
                 "msn_input": {"mgh": 300, "cycleRatio": "1.0", "crewSets": 4},
@@ -58,12 +55,25 @@ async def test_create_quote(async_client, test_admin_user):
             }
         ],
     }
-    response = await async_client.post("/quotes", json=payload, cookies=cookies)
-    assert response.status_code == 201, f"Expected 201, got {response.status_code}: {response.text}"
+
+
+# ---- QUOT-01: Create Quote ----
+
+
+@pytest.mark.asyncio
+async def test_create_quote(async_client, test_admin_user):
+    """POST /quotes with valid payload returns 201 + quote_number."""
+    cookies = await _login(async_client, "admin@test.com", "adminpass123")
+    payload = _make_quote_payload()
+    response = await async_client.post("/quotes/", json=payload, cookies=cookies)
+    assert response.status_code == 201, (
+        f"Expected 201, got {response.status_code}: {response.text}"
+    )
     data = response.json()
     assert "quote_number" in data
     assert data["quote_number"].startswith("EZJ-")
     assert data["client_name"] == "easyJet"
+    assert data["status"] == "draft"
 
 
 # ---- QUOT-02: Immutability ----
@@ -95,13 +105,57 @@ async def test_quote_immutable(async_client, test_admin_user, test_quote):
 async def test_list_quotes_filtered(async_client, test_admin_user, test_quote):
     """GET /quotes?search=EZJ returns filtered results matching client code."""
     cookies = await _login(async_client, "admin@test.com", "adminpass123")
-    response = await async_client.get("/quotes?search=EZJ", cookies=cookies)
-    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+    response = await async_client.get("/quotes/?search=EZJ", cookies=cookies)
+    assert response.status_code == 200, (
+        f"Expected 200, got {response.status_code}: {response.text}"
+    )
     data = response.json()
     assert isinstance(data, dict)
     assert "items" in data
     assert len(data["items"]) >= 1
     assert data["items"][0]["client_code"] == "EZJ"
+
+    # Also test status filter returns it
+    response_draft = await async_client.get(
+        "/quotes/?status=draft", cookies=cookies
+    )
+    assert response_draft.status_code == 200
+    draft_data = response_draft.json()
+    assert len(draft_data["items"]) >= 1
+
+    # Status=sent should return empty (test_quote is draft)
+    response_sent = await async_client.get(
+        "/quotes/?status=sent", cookies=cookies
+    )
+    assert response_sent.status_code == 200
+    sent_data = response_sent.json()
+    assert len(sent_data["items"]) == 0
+
+
+# ---- QUOT-03 (MSN filter): List Quotes by MSN ----
+
+
+@pytest.mark.asyncio
+async def test_list_quotes_by_msn(async_client, test_admin_user, test_quote):
+    """GET /quotes?msn=3055 returns quotes containing that MSN.
+
+    Validates the MSN filter using the GIN index on msn_list.
+    test_quote has msn_list=[3055, 3378].
+    """
+    cookies = await _login(async_client, "admin@test.com", "adminpass123")
+
+    # MSN 3055 is in the quote's msn_list
+    response = await async_client.get("/quotes/?msn=3055", cookies=cookies)
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["items"]) >= 1
+    assert 3055 in data["items"][0]["msn_list"]
+
+    # MSN 9999 is not in any quote
+    response_empty = await async_client.get("/quotes/?msn=9999", cookies=cookies)
+    assert response_empty.status_code == 200
+    empty_data = response_empty.json()
+    assert len(empty_data["items"]) == 0
 
 
 # ---- QUOT-04: Get Quote Detail ----
@@ -114,11 +168,14 @@ async def test_get_quote_detail(
     """GET /quotes/{id} returns full quote with msn_snapshots."""
     cookies = await _login(async_client, "admin@test.com", "adminpass123")
     response = await async_client.get("/quotes/1", cookies=cookies)
-    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+    assert response.status_code == 200, (
+        f"Expected 200, got {response.status_code}: {response.text}"
+    )
     data = response.json()
     assert data["quote_number"] == "EZJ-001"
     assert "pricing_config_snapshot" in data
     assert "crew_config_snapshot" in data
+    assert "costs_config_snapshot" in data
     assert "dashboard_state" in data
     assert "msn_snapshots" in data
     assert len(data["msn_snapshots"]) >= 1
@@ -137,7 +194,9 @@ async def test_update_status(async_client, test_admin_user, test_quote):
         json={"status": "sent"},
         cookies=cookies,
     )
-    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+    assert response.status_code == 200, (
+        f"Expected 200, got {response.status_code}: {response.text}"
+    )
     data = response.json()
     assert data["status"] == "sent"
 
@@ -167,12 +226,37 @@ async def test_update_status_unauthorized(
 
 @pytest.mark.asyncio
 async def test_list_quotes_by_status(async_client, test_admin_user, test_quote):
-    """GET /quotes?status=draft returns only draft quotes."""
+    """GET /quotes?status=draft returns only draft quotes.
+
+    Create a second quote and update it to 'sent', then verify
+    filtering returns correct counts for each status.
+    """
     cookies = await _login(async_client, "admin@test.com", "adminpass123")
-    response = await async_client.get("/quotes?status=draft", cookies=cookies)
-    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
-    data = response.json()
-    assert isinstance(data, dict)
-    assert "items" in data
-    for item in data["items"]:
-        assert item["status"] == "draft"
+
+    # test_quote is already draft. Create a second one and update to sent.
+    payload = _make_quote_payload(client_name="Ryanair", client_code="RYR", msn=3378)
+    create_resp = await async_client.post("/quotes/", json=payload, cookies=cookies)
+    assert create_resp.status_code == 201
+    new_id = create_resp.json()["id"]
+
+    # Update the new quote's status to sent
+    patch_resp = await async_client.patch(
+        f"/quotes/{new_id}/status",
+        json={"status": "sent"},
+        cookies=cookies,
+    )
+    assert patch_resp.status_code == 200
+
+    # Filter by draft -- should return 1 (the original test_quote)
+    draft_resp = await async_client.get("/quotes/?status=draft", cookies=cookies)
+    assert draft_resp.status_code == 200
+    draft_data = draft_resp.json()
+    assert len(draft_data["items"]) == 1
+    assert draft_data["items"][0]["status"] == "draft"
+
+    # Filter by sent -- should return 1 (the newly created quote)
+    sent_resp = await async_client.get("/quotes/?status=sent", cookies=cookies)
+    assert sent_resp.status_code == 200
+    sent_data = sent_resp.json()
+    assert len(sent_data["items"]) == 1
+    assert sent_data["items"][0]["status"] == "sent"

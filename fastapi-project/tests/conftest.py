@@ -941,7 +941,7 @@ class MockConnection:
                 status_val = args[arg_idx]
                 filtered = [r for r in filtered if r.get("status") == status_val]
                 arg_idx += 1
-            if "MSN_LIST" in q_upper and arg_idx < len(args):
+            if "MSN_LIST @>" in q_upper and arg_idx < len(args):
                 msn_val = args[arg_idx]
                 filtered = [r for r in filtered if msn_val in r.get("msn_list", [])]
                 arg_idx += 1
@@ -965,7 +965,7 @@ class MockConnection:
             filtered = [r for r in filtered if r.get("status") == status_val]
             arg_idx += 1
 
-        if "MSN_LIST" in q_upper and arg_idx < len(args):
+        if "MSN_LIST @>" in q_upper and arg_idx < len(args):
             msn_val = args[arg_idx]
             filtered = [r for r in filtered if msn_val in r.get("msn_list", [])]
             arg_idx += 1
