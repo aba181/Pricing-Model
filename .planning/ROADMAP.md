@@ -83,7 +83,13 @@ Plans:
   4. User can change a quote's status (Draft, Sent, Accepted, Rejected) from the quote detail or list view
   5. User can export a quote as a PDF with professional formatting suitable for client delivery
   6. User can vary a single input and see a comparison table showing how the EUR/BH rate changes across that input range
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — Quote backend data layer: migration 004 (quotes, snapshots, sequences), QuoteRepository, Pydantic schemas, DecimalEncoder, mock DB, test stubs
+- [ ] 04-02-PLAN.md — Sensitivity analysis: Recharts install, /sensitivity page with parameter picker, line chart, comparison table, sidebar nav
+- [ ] 04-03-PLAN.md — Quote API router: save, list, detail, status update, PDF skeleton (BLOCKED), integration tests
+- [ ] 04-04-PLAN.md — Frontend quotes: Server Actions, store loadFromQuote/loadFromSnapshot, SaveQuoteDialog, quote list, quote detail with fork behavior, human verify
 
 ### Phase 5: Polish and Production Readiness
 **Goal**: The application is complete, professionally finished, and deployable to a production environment
@@ -105,5 +111,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Foundation and Authentication | 4/4 | Complete | 2026-03-05 |
 | 2. Aircraft Master Data | 3/3 | Complete    | 2026-03-05 |
 | 3. Pricing Engine | 2/5 | In Progress | - |
-| 4. Quote Persistence and History | 0/? | Not started | - |
+| 4. Quote Persistence and History | 0/4 | Not started | - |
 | 5. Polish and Production Readiness | 0/? | Not started | - |
