@@ -6,10 +6,12 @@ database. The mock supports the same interface as BaseRepository expects:
 fetchrow, fetch, and execute.
 
 Supports tables: users, aircraft, aircraft_rates, epr_matrix_rows,
-pricing_config, crew_config, pricing_projects, project_msn_inputs.
+pricing_config, crew_config, pricing_projects, project_msn_inputs,
+quotes, quote_msn_snapshots, quote_sequences.
 """
 from __future__ import annotations
 
+import json
 import re
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -41,6 +43,15 @@ def _detect_table(query: str) -> str:
     For INSERT/UPDATE/DELETE, we check the INTO/UPDATE/FROM target.
     """
     q_upper = query.upper()
+
+    # ---- Quote tables (check before pricing to avoid false matches) ----
+    # quote_msn_snapshots must be checked before quotes
+    if "QUOTE_MSN_SNAPSHOTS" in q_upper:
+        return "quote_msn_snapshots"
+    if "QUOTE_SEQUENCES" in q_upper:
+        return "quote_sequences"
+    if "QUOTES" in q_upper:
+        return "quotes"
 
     # ---- Pricing tables (check before aircraft to avoid false matches) ----
     # project_msn_inputs must be checked before pricing_projects
@@ -122,6 +133,10 @@ class MockConnection:
                 return self._handle_projects_select(query, args)
             elif table == "project_msn_inputs":
                 return self._handle_msn_inputs_select(query, args)
+            elif table == "quotes":
+                return self._handle_quotes_select(query, args)
+            elif table == "quote_msn_snapshots":
+                return self._handle_quote_msn_snapshots_select(query, args)
         elif q.startswith("INSERT"):
             if table == "users":
                 return self._handle_users_insert(query, args)
@@ -139,6 +154,12 @@ class MockConnection:
                 return self._handle_projects_insert(query, args)
             elif table == "project_msn_inputs":
                 return self._handle_msn_inputs_insert(query, args)
+            elif table == "quotes":
+                return self._handle_quotes_insert(query, args)
+            elif table == "quote_msn_snapshots":
+                return self._handle_quote_msn_snapshots_insert(query, args)
+            elif table == "quote_sequences":
+                return self._handle_quote_sequences_insert(query, args)
         elif q.startswith("UPDATE"):
             if table == "users":
                 return self._handle_users_update(query, args)
@@ -152,6 +173,8 @@ class MockConnection:
                 return self._handle_projects_update(query, args)
             elif table == "project_msn_inputs":
                 return self._handle_msn_inputs_update(query, args)
+            elif table == "quotes":
+                return self._handle_quotes_update(query, args)
         elif q.startswith("DELETE"):
             if table == "users":
                 return self._handle_users_delete(query, args)
@@ -891,6 +914,187 @@ class MockConnection:
             self.store["project_msn_inputs"] = [r for r in rows if r["id"] != input_id]
         return []
 
+    # ---- Quote tables handlers ----
+
+    def _handle_quotes_select(self, query: str, args: tuple) -> list[MockRecord]:
+        """Handle SELECT queries on quotes table."""
+        rows = self.store.get("quotes", [])
+        q_upper = query.upper()
+
+        if "WHERE ID" in q_upper and args:
+            quote_id = args[0]
+            return [MockRecord(r) for r in rows if r["id"] == quote_id]
+
+        if "COUNT" in q_upper:
+            # COUNT query -- apply same filters as list
+            filtered = list(rows)
+            if "ILIKE" in q_upper and args:
+                search = args[0].strip("%").lower()
+                filtered = [
+                    r for r in filtered
+                    if search in r.get("client_name", "").lower()
+                    or search in r.get("quote_number", "").lower()
+                ]
+            if "STATUS =" in q_upper:
+                # Find the status arg (last positional or after search)
+                status_idx = 1 if "ILIKE" in q_upper else 0
+                if status_idx < len(args):
+                    status_val = args[status_idx]
+                    filtered = [r for r in filtered if r.get("status") == status_val]
+            return [MockRecord({"count": len(filtered)})]
+
+        # List queries with optional filters
+        filtered = list(rows)
+        arg_idx = 0
+
+        if "ILIKE" in q_upper and args:
+            search = args[0].strip("%").lower()
+            filtered = [
+                r for r in filtered
+                if search in r.get("client_name", "").lower()
+                or search in r.get("quote_number", "").lower()
+            ]
+            arg_idx += 1
+
+        if "STATUS =" in q_upper and arg_idx < len(args):
+            status_val = args[arg_idx]
+            filtered = [r for r in filtered if r.get("status") == status_val]
+            arg_idx += 1
+
+        # ORDER BY created_at DESC
+        filtered.sort(key=lambda r: r.get("created_at", datetime.min), reverse=True)
+
+        # LIMIT/OFFSET
+        if "LIMIT" in q_upper and arg_idx + 1 < len(args):
+            limit = args[arg_idx]
+            offset = args[arg_idx + 1]
+            filtered = filtered[offset:offset + limit]
+
+        return [MockRecord(r) for r in filtered]
+
+    def _handle_quotes_insert(self, query: str, args: tuple) -> list[MockRecord]:
+        """Handle INSERT into quotes table."""
+        rows = self.store.setdefault("quotes", [])
+        now = datetime.now(timezone.utc)
+        q_upper = query.upper()
+
+        # Parse column names from the INSERT statement
+        col_match = re.search(
+            r'INSERT\s+INTO\s+quotes\s*\((.+?)\)\s*VALUES',
+            query, re.IGNORECASE | re.DOTALL,
+        )
+        columns = [c.strip() for c in col_match.group(1).split(",")] if col_match else []
+
+        new_row = {}
+        for i, col in enumerate(columns):
+            if i < len(args):
+                val = args[i]
+                # Parse JSONB string args back to dicts for mock storage
+                if isinstance(val, str) and col.strip().endswith(("_snapshot", "_state")):
+                    try:
+                        val = json.loads(val)
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+                new_row[col.strip()] = val
+
+        max_id = max((r["id"] for r in rows), default=0)
+        new_row["id"] = max_id + 1
+        new_row.setdefault("status", "draft")
+        new_row.setdefault("created_at", now)
+
+        rows.append(new_row)
+
+        if "RETURNING" in q_upper:
+            return [MockRecord(new_row)]
+        return []
+
+    def _handle_quotes_update(self, query: str, args: tuple) -> list[MockRecord]:
+        """Handle UPDATE on quotes table (status updates only)."""
+        rows = self.store.get("quotes", [])
+        q_upper = query.upper()
+
+        if "SET STATUS" in q_upper and len(args) >= 2:
+            status = args[0]
+            quote_id = args[1]
+            for r in rows:
+                if r["id"] == quote_id:
+                    r["status"] = status
+                    if "RETURNING" in q_upper:
+                        return [MockRecord(r)]
+                    return []
+        return []
+
+    def _handle_quote_msn_snapshots_select(self, query: str, args: tuple) -> list[MockRecord]:
+        """Handle SELECT queries on quote_msn_snapshots table."""
+        rows = self.store.get("quote_msn_snapshots", [])
+        q_upper = query.upper()
+
+        if "WHERE QUOTE_ID" in q_upper and args:
+            quote_id = args[0]
+            result = [MockRecord(r) for r in rows if r.get("quote_id") == quote_id]
+            if "ORDER BY" in q_upper:
+                result.sort(key=lambda r: r.get("msn", 0))
+            return result
+        return [MockRecord(r) for r in rows]
+
+    def _handle_quote_msn_snapshots_insert(self, query: str, args: tuple) -> list[MockRecord]:
+        """Handle INSERT into quote_msn_snapshots table."""
+        rows = self.store.setdefault("quote_msn_snapshots", [])
+        now = datetime.now(timezone.utc)
+        q_upper = query.upper()
+
+        # Parse column names from the INSERT statement
+        col_match = re.search(
+            r'INSERT\s+INTO\s+quote_msn_snapshots\s*\((.+?)\)\s*VALUES',
+            query, re.IGNORECASE | re.DOTALL,
+        )
+        columns = [c.strip() for c in col_match.group(1).split(",")] if col_match else []
+
+        new_row = {}
+        for i, col in enumerate(columns):
+            if i < len(args):
+                val = args[i]
+                # Parse JSONB string args back to dicts for mock storage
+                if isinstance(val, str) and col.strip() in ("msn_input", "breakdown", "monthly_pnl"):
+                    try:
+                        val = json.loads(val)
+                    except (json.JSONDecodeError, TypeError):
+                        pass
+                new_row[col.strip()] = val
+
+        max_id = max((r["id"] for r in rows), default=0)
+        new_row["id"] = max_id + 1
+
+        rows.append(new_row)
+
+        if "RETURNING" in q_upper:
+            return [MockRecord(new_row)]
+        return []
+
+    def _handle_quote_sequences_insert(self, query: str, args: tuple) -> list[MockRecord]:
+        """Handle INSERT into quote_sequences (with ON CONFLICT for atomic increment)."""
+        seqs = self.store.setdefault("quote_sequences", [])
+        q_upper = query.upper()
+
+        client_code = args[0] if args else None
+        if not client_code:
+            return []
+
+        # Find existing sequence for this client code
+        for s in seqs:
+            if s["client_code"] == client_code:
+                s["last_seq"] += 1
+                if "RETURNING" in q_upper:
+                    return [MockRecord({"last_seq": s["last_seq"]})]
+                return []
+
+        # New client code
+        new_seq = {"client_code": client_code, "last_seq": 1}
+        seqs.append(new_seq)
+        if "RETURNING" in q_upper:
+            return [MockRecord({"last_seq": 1})]
+        return []
+
 
 # ---- Fixtures ----
 
@@ -906,6 +1110,9 @@ def db_store():
         "crew_config": [],
         "pricing_projects": [],
         "project_msn_inputs": [],
+        "quotes": [],
+        "quote_msn_snapshots": [],
+        "quote_sequences": [],
     }
 
 
@@ -1123,3 +1330,51 @@ def test_crew_config(db_store):
     }
     db_store["crew_config"].extend([a320, a321])
     return {"A320": a320, "A321": a321}
+
+
+@pytest.fixture
+def test_quote(db_store, test_admin_user):
+    """Insert a sample quote into the mock DB store."""
+    now = datetime.now(timezone.utc)
+    quote = {
+        "id": 1,
+        "quote_number": "EZJ-001",
+        "client_name": "easyJet",
+        "client_code": "EZJ",
+        "status": "draft",
+        "exchange_rate": Decimal("0.8500"),
+        "margin_percent": Decimal("12.0000"),
+        "total_eur_per_bh": Decimal("2850.0000"),
+        "msn_list": [3055, 3378],
+        "period_start": "2026-01",
+        "period_end": "2026-12",
+        "pricing_config_snapshot": {"insurance_usd": "45000.00", "exchange_rate": "0.8500"},
+        "crew_config_snapshot": {"A320": {"pilot_salary_monthly": "12500.00"}},
+        "costs_config_snapshot": {"doc_total_budget": "110000.00"},
+        "dashboard_state": {"projectName": "EZJ Winter 2026", "exchangeRate": "0.8500"},
+        "created_by": 1,
+        "created_at": now,
+    }
+    db_store["quotes"].append(quote)
+    # Also add a sequence entry
+    db_store["quote_sequences"].append({"client_code": "EZJ", "last_seq": 1})
+    return quote
+
+
+@pytest.fixture
+def test_quote_msn_snapshot(db_store, test_quote):
+    """Insert a sample MSN snapshot for the test quote."""
+    snapshot = {
+        "id": 1,
+        "quote_id": 1,
+        "msn": 3055,
+        "aircraft_type": "A320",
+        "aircraft_id": 1,
+        "msn_input": {"mgh": 300, "cycleRatio": "1.0", "crewSets": 4},
+        "breakdown": {"aircraft_eur_per_bh": "520.83", "total_cost_per_bh": "2500.00"},
+        "monthly_pnl": {"months": [{"month": 1, "revenue": "855000.00", "cost": "750000.00"}]},
+        "monthly_cost": Decimal("750000.00"),
+        "monthly_revenue": Decimal("855000.00"),
+    }
+    db_store["quote_msn_snapshots"].append(snapshot)
+    return snapshot
