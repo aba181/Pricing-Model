@@ -98,13 +98,17 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. All data tables are sortable and responsive, and detail panes open without full page navigations
   2. User can toggle between dark and light mode from any page, and the preference persists across sessions
-  3. Dashboard displays meaningful summary statistics: total quotes, quotes by status, and recent activity feed
-**Plans**: TBD
+  3. ~~Dashboard displays meaningful summary statistics: total quotes, quotes by status, and recent activity feed~~ (UI-04 DROPPED by user)
+**Plans**: 2 plans
+
+Plans:
+- [ ] 05-01-PLAN.md — Dark/light/system theme: next-themes + Tailwind v4 @custom-variant, ThemeProvider, ThemeToggle, convert all 38 files to theme-aware classes
+- [ ] 05-02-PLAN.md — Sortable/responsive tables (AircraftTable, QuoteList), deployment config (Dockerfile, railway.json, vercel.json), human verify checkpoint
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -112,4 +116,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Aircraft Master Data | 3/3 | Complete    | 2026-03-05 |
 | 3. Pricing Engine | 2/5 | In Progress | - |
 | 4. Quote Persistence and History | 0/4 | Not started | - |
-| 5. Polish and Production Readiness | 0/? | Not started | - |
+| 5. Polish and Production Readiness | 0/2 | Not started | - |
