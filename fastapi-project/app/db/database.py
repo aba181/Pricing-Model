@@ -36,9 +36,9 @@ async def create_pool(database_url: str) -> asyncpg.Pool:
     Returns:
         An asyncpg connection pool instance.
     """
-    # Railway PostgreSQL requires SSL in production
+    # Only use SSL for public Railway URLs, not internal ones
     ssl_context = None
-    if "railway" in database_url or "sslmode" in database_url:
+    if ("proxy.rlwy.net" in database_url or "sslmode" in database_url) and "railway.internal" not in database_url:
         ssl_context = ssl.create_default_context()
         ssl_context.check_hostname = False
         ssl_context.verify_mode = ssl.CERT_NONE
