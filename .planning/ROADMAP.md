@@ -13,7 +13,7 @@ Five phases that follow the dependency chain of the product itself. Authenticati
 - [x] **Phase 1: Foundation and Authentication** - Secure access, project scaffold, and database schema foundation
 - [x] **Phase 2: Aircraft Master Data** - Aircraft records with cost parameters that feed the pricing engine
 - [ ] **Phase 3: Pricing Engine** - Formula-accurate EUR/BH calculation across all seven ACMI cost components
-- [ ] **Phase 4: Quote Persistence and History** - Save, retrieve, and manage pricing quotes as auditable records
+- [x] **Phase 4: Quote Persistence and History** - Save, retrieve, and manage pricing quotes as auditable records (completed 2026-03-10)
 - [ ] **Phase 5: Polish and Production Readiness** - Admin controls, UI completeness, and deployment configuration
 
 ## Phase Details
@@ -102,7 +102,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — Dark/light/system theme: next-themes + Tailwind v4 @custom-variant, ThemeProvider, ThemeToggle, convert all 38 files to theme-aware classes
+- [x] 05-01-PLAN.md — Dark/light/system theme: next-themes + Tailwind v4 @custom-variant, ThemeProvider, ThemeToggle, convert all 38 files to theme-aware classes
 - [ ] 05-02-PLAN.md — Sortable/responsive tables (AircraftTable, QuoteList), deployment config (Dockerfile, railway.json, vercel.json), human verify checkpoint
 
 ## Progress
@@ -114,6 +114,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 |-------|----------------|--------|-----------|
 | 1. Foundation and Authentication | 4/4 | Complete | 2026-03-05 |
 | 2. Aircraft Master Data | 3/3 | Complete    | 2026-03-05 |
-| 3. Pricing Engine | 2/5 | In Progress | - |
-| 4. Quote Persistence and History | 0/4 | Not started | - |
-| 5. Polish and Production Readiness | 0/2 | Not started | - |
+| 3. Pricing Engine | 4/5 | In Progress|  |
+| 4. Quote Persistence and History | 4/4 | Complete   | 2026-03-10 |
+| 5. Polish and Production Readiness | 1/2 | In Progress|  |

@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 5 context gathered
-last_updated: "2026-03-10T10:15:35.922Z"
-last_activity: 2026-03-09 — Completed 04-04-PLAN.md Tasks 1-3 (Quote frontend management UI with save dialog, quote list, detail page with fork behavior)
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-03-10T10:49:37.963Z"
+last_activity: 2026-03-10 — Completed 05-01-PLAN.md (Dark/light/system theme toggle with next-themes, 42 files converted)
 progress:
   total_phases: 5
-  completed_phases: 3
-  total_plans: 16
-  completed_plans: 15
-  percent: 94
+  completed_phases: 4
+  total_plans: 18
+  completed_plans: 16
+  percent: 89
 ---
 
 # Project State
@@ -21,35 +21,36 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-04)
 
 **Core value:** Accurate, repeatable ACMI pricing quotes that the sales team can generate, save, and retrieve — replacing manual spreadsheet-based pricing with a structured tool that produces consistent results.
-**Current focus:** Phase 4 in progress — Quote Persistence and History (4/4 plans done, checkpoint pending). Quote frontend management UI complete, awaiting human verification.
+**Current focus:** Phase 5 in progress — Polish and Production Readiness (1/2 plans done). Theme toggle complete, table sorting and deployment next.
 
 ## Current Position
 
-Phase: 4 of 5 (Quote Persistence and History)
-Plan: 4 of 4 in current phase (checkpoint pending)
-Status: Phase 4 In Progress
-Last activity: 2026-03-09 — Completed 04-04-PLAN.md Tasks 1-3 (Quote frontend management UI with save dialog, quote list, detail page with fork behavior)
+Phase: 5 of 5 (Polish and Production Readiness)
+Plan: 1 of 2 in current phase
+Status: Phase 5 In Progress
+Last activity: 2026-03-10 — Completed 05-01-PLAN.md (Dark/light/system theme toggle with next-themes, 42 files converted)
 
-Progress: [█████████░] 94% (Phases 1-3 complete, Phase 4: 4/4 (checkpoint pending), 15/16 plans)
+Progress: [█████████░] 89% (Phases 1-4 complete, Phase 5: 1/2, 16/18 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 12
+- Total plans completed: 16
 - Average duration: 6min
-- Total execution time: 1.07 hours
+- Total execution time: 1.20 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1 - Foundation | 4 | 19min | 5min |
+| 1 - Foundation | 4/4 | 19min | 5min |
 | 2 - Aircraft Master Data | 3/3 | 18min | 6min |
-| 3 - Pricing Engine | 4/5 | 26min | 7min |
-| 4 - Quote Persistence | 2/4 | 6min | 3min |
+| 3 - Pricing Engine | 5/5 | 26min | 5min |
+| 4 - Quote Persistence | 4/4 | 17min | 4min |
+| 5 - Polish | 1/2 | 8min | 8min |
 
 **Recent Trend:**
-- Last 5 plans: 03-01 (5min), 03-02 (9min), 03-03 (8min), 03-04 (4min), 04-02 (3min)
+- Last 5 plans: 04-01 (5min), 04-02 (3min), 04-03 (4min), 04-04 (5min), 05-01 (8min)
 - Trend: Consistent
 
 *Updated after each plan completion*
@@ -64,6 +65,7 @@ Progress: [█████████░] 94% (Phases 1-3 complete, Phase 4: 4/
 | Phase 04 P01 | 5min | 2 tasks | 7 files |
 | Phase 04 P03 | 4min | 2 tasks | 5 files |
 | Phase 04 P04 | 5min | 3 tasks | 11 files |
+| Phase 05 P01 | 8min | 2 tasks | 42 files |
 
 ## Accumulated Context
 
@@ -126,6 +128,9 @@ Recent decisions affecting current work:
 - [Phase 04]: Status update permission: creator-or-admin check (current_user.id == quote.created_by OR role == admin)
 - [Phase 04]: SaveQuoteDialog reads from all 3 stores synchronously via getState() -- Zustand stores are synchronous
 - [Phase 04]: Fork behavior: loadFromQuote sets projectId=null so saving creates a new quote, preserving original immutability
+- [Phase 05]: Light mode is DEFAULT (no prefix), dark mode uses dark: prefix -- Tailwind convention
+- [Phase 05]: next-themes handles all theme persistence and system preference -- no Zustand store for theme
+- [Phase 05]: ThemeToggle in sidebar footer -- always visible, follows user-preference-controls pattern
 
 ### Pending Todos
 
@@ -137,6 +142,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-10T10:15:35.911Z
-Stopped at: Phase 5 context gathered
-Resume file: .planning/phases/05-polish-and-production-readiness/05-CONTEXT.md
+Last session: 2026-03-10T10:49:37.961Z
+Stopped at: Completed 05-01-PLAN.md
+Resume file: None
