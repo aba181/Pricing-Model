@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 05-01-PLAN.md
-last_updated: "2026-03-10T10:49:37.963Z"
-last_activity: 2026-03-10 — Completed 05-01-PLAN.md (Dark/light/system theme toggle with next-themes, 42 files converted)
+status: completed
+stopped_at: Completed 05-02-PLAN.md
+last_updated: "2026-03-10T11:09:30.590Z"
+last_activity: 2026-03-10 — Completed 05-02-PLAN.md (Table sorting, mobile responsiveness, deployment configs)
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 18
-  completed_plans: 16
-  percent: 89
+  completed_plans: 17
+  percent: 94
 ---
 
 # Project State
@@ -21,23 +21,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-04)
 
 **Core value:** Accurate, repeatable ACMI pricing quotes that the sales team can generate, save, and retrieve — replacing manual spreadsheet-based pricing with a structured tool that produces consistent results.
-**Current focus:** Phase 5 in progress — Polish and Production Readiness (1/2 plans done). Theme toggle complete, table sorting and deployment next.
+**Current focus:** Phase 5 complete — Polish and Production Readiness (2/2 plans done). All 18 plans across 5 phases executed.
 
 ## Current Position
 
 Phase: 5 of 5 (Polish and Production Readiness)
-Plan: 1 of 2 in current phase
-Status: Phase 5 In Progress
-Last activity: 2026-03-10 — Completed 05-01-PLAN.md (Dark/light/system theme toggle with next-themes, 42 files converted)
+Plan: 2 of 2 in current phase
+Status: Phase 5 Complete — All Phases Done
+Last activity: 2026-03-10 — Completed 05-02-PLAN.md (Table sorting, mobile responsiveness, deployment configs)
 
-Progress: [█████████░] 89% (Phases 1-4 complete, Phase 5: 1/2, 16/18 plans)
+Progress: [█████████░] 94% (Phases 1-5 complete, 17/18 plans)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 16
+- Total plans completed: 17
 - Average duration: 6min
-- Total execution time: 1.20 hours
+- Total execution time: 1.25 hours
 
 **By Phase:**
 
@@ -47,10 +47,10 @@ Progress: [█████████░] 89% (Phases 1-4 complete, Phase 5: 1/
 | 2 - Aircraft Master Data | 3/3 | 18min | 6min |
 | 3 - Pricing Engine | 5/5 | 26min | 5min |
 | 4 - Quote Persistence | 4/4 | 17min | 4min |
-| 5 - Polish | 1/2 | 8min | 8min |
+| 5 - Polish | 2/2 | 13min | 7min |
 
 **Recent Trend:**
-- Last 5 plans: 04-01 (5min), 04-02 (3min), 04-03 (4min), 04-04 (5min), 05-01 (8min)
+- Last 5 plans: 04-02 (3min), 04-03 (4min), 04-04 (5min), 05-01 (8min), 05-02 (5min)
 - Trend: Consistent
 
 *Updated after each plan completion*
@@ -66,6 +66,8 @@ Progress: [█████████░] 89% (Phases 1-4 complete, Phase 5: 1/
 | Phase 04 P03 | 4min | 2 tasks | 5 files |
 | Phase 04 P04 | 5min | 3 tasks | 11 files |
 | Phase 05 P01 | 8min | 2 tasks | 42 files |
+| Phase 05 P02 | 5min | 3 tasks | 7 files |
+| Phase 05 P02 | 5min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -131,6 +133,11 @@ Recent decisions affecting current work:
 - [Phase 05]: Light mode is DEFAULT (no prefix), dark mode uses dark: prefix -- Tailwind convention
 - [Phase 05]: next-themes handles all theme persistence and system preference -- no Zustand store for theme
 - [Phase 05]: ThemeToggle in sidebar footer -- always visible, follows user-preference-controls pattern
+- [Phase 05-02]: Only MSN and Type sortable in AircraftTable -- rate columns excluded per user decision
+- [Phase 05-02]: QuoteList sorts by Quote #, Client, Status, Created -- Rate and MSNs excluded
+- [Phase 05-02]: Gunicorn with UvicornWorker for Railway production deployment (2 workers, 120s timeout)
+- [Phase 05-02]: UI-04 (dashboard stats) explicitly dropped by user -- no implementation
+- [Phase 05-02]: Only MSN and Type sortable in AircraftTable -- rate columns excluded per user decision
 
 ### Pending Todos
 
@@ -142,6 +149,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-10T10:49:37.961Z
-Stopped at: Completed 05-01-PLAN.md
+Last session: 2026-03-10T11:07:20.937Z
+Stopped at: Completed 05-02-PLAN.md
 Resume file: None

@@ -53,9 +53,9 @@ Requirements for initial release. Each maps to roadmap phases.
 ### UI / UX
 
 - [x] **UI-01**: Application has sidebar navigation with pages: Dashboard, Pricing, Quotes, Aircraft, Admin
-- [ ] **UI-02**: Data displayed in responsive, sortable tables with detail panes
+- [x] **UI-02**: Data displayed in responsive, sortable tables with detail panes
 - [x] **UI-03**: Dark/light mode toggle persisted per user
-- [ ] **UI-04**: Dashboard shows summary stats: total quotes, quotes by status, recent activity
+- [x] **UI-04**: Dashboard shows summary stats: total quotes, quotes by status, recent activity
 - [x] **UI-05**: Application matches AeroVista visual style (Tailwind, Zustand, component patterns)
 
 ## v2 Requirements
@@ -127,9 +127,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | QUOT-06 | Phase 4 | Pending |
 | SENS-01 | Phase 4 | Complete |
 | SENS-02 | Phase 4 | Complete |
-| UI-02 | Phase 5 | Pending |
+| UI-02 | Phase 5 | Complete |
 | UI-03 | Phase 5 | Complete |
-| UI-04 | Phase 5 | Pending |
+| UI-04 | Phase 5 | Complete |
 
 **Coverage:**
 - v1 requirements: 30 total
