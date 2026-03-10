@@ -1,10 +1,72 @@
-import { PlaceholderPage } from '@/components/ui/PlaceholderPage'
+import { cookies } from 'next/headers'
+import { Users } from 'lucide-react'
+import { listUsersAction } from '@/app/actions/admin'
+import { UserTable } from '@/components/admin/UserTable'
 
-export default function AdminPage() {
+const API_URL = process.env.API_URL ?? 'http://localhost:8000'
+
+async function getIsAdmin(token: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_URL}/auth/me`, {
+      headers: { Cookie: `access_token=${token}` },
+      cache: 'no-store',
+    })
+    if (!res.ok) return false
+    const user = await res.json()
+    return user.role === 'admin'
+  } catch {
+    return false
+  }
+}
+
+export default async function AdminPage() {
+  const cookieStore = await cookies()
+  const token = cookieStore.get('access_token')?.value
+
+  if (!token) {
+    return (
+      <div className="p-6 text-gray-500 dark:text-gray-400">
+        Not authenticated
+      </div>
+    )
+  }
+
+  const isAdmin = await getIsAdmin(token)
+
+  if (!isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+        <Users size={48} className="mb-4 opacity-40" />
+        <p className="text-lg font-medium">Access Denied</p>
+        <p className="text-sm mt-1">Admin privileges required to view this page.</p>
+      </div>
+    )
+  }
+
+  const result = await listUsersAction()
+
   return (
-    <PlaceholderPage
-      title="Admin"
-      description="User management and pricing configuration will be available here."
-    />
+    <div className="p-6 max-w-5xl mx-auto">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            User Management
+          </h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Manage user accounts and reset passwords
+          </p>
+        </div>
+      </div>
+
+      {result.error ? (
+        <div className="px-4 py-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm">
+          {result.error}
+        </div>
+      ) : (
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+          <UserTable users={result.users ?? []} />
+        </div>
+      )}
+    </div>
   )
 }

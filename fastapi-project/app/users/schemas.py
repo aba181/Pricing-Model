@@ -16,3 +16,7 @@ class UpdateUserRequest(BaseModel):
     full_name: str | None = None
     role: Literal["admin", "user"] | None = None
     is_active: bool | None = None
+
+
+class ResetPasswordRequest(BaseModel):
+    new_password: str

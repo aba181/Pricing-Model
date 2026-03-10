@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     jwt_secret: str = "change-me-to-a-32-char-random-string"
     environment: str = "development"
     frontend_url: str = "http://localhost:3000"
+    allowed_origins: str = ""  # comma-separated additional origins
 
     @property
     def cookie_secure(self) -> bool:

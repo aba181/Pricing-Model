@@ -8,7 +8,7 @@ from app.auth.schemas import UserResponse
 from app.auth.service import hash_password
 from app.auth.dependencies import require_admin
 from app.users.repository import UserRepository
-from app.users.schemas import CreateUserRequest, UpdateUserRequest
+from app.users.schemas import CreateUserRequest, UpdateUserRequest, ResetPasswordRequest
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -80,6 +80,26 @@ async def update_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+
+
+@router.put("/users/{user_id}/password", status_code=204)
+async def reset_password(
+    user_id: int,
+    body: ResetPasswordRequest,
+    db: asyncpg.Connection = Depends(get_db),
+    current_user: dict = Depends(require_admin),
+):
+    """Reset a user's password (admin only)."""
+    user_repo = UserRepository(db)
+    user = await user_repo.fetch_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if len(body.new_password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+
+    hashed = hash_password(body.new_password)
+    await user_repo.update_user(user_id, hashed_password=hashed)
 
 
 @router.delete("/users/{user_id}", status_code=204)
