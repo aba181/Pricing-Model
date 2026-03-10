@@ -13,13 +13,45 @@ interface QuoteListProps {
 
 const STATUSES = ['draft', 'sent', 'accepted', 'rejected']
 
+type QuoteSortKey = 'quote_number' | 'client_name' | 'status' | 'created_at'
+
 export function QuoteList({ initialQuotes }: QuoteListProps) {
   const [quotes, setQuotes] = useState(initialQuotes.items)
   const [total, setTotal] = useState(initialQuotes.total)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [statusError, setStatusError] = useState<string | null>(null)
+  const [sortKey, setSortKey] = useState<QuoteSortKey>('created_at')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleSort = (key: QuoteSortKey) => {
+    if (key === sortKey) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortKey(key)
+      setSortDir('asc')
+    }
+  }
+
+  const sortedQuotes = [...quotes].sort((a, b) => {
+    const dir = sortDir === 'asc' ? 1 : -1
+    switch (sortKey) {
+      case 'quote_number':
+        return a.quote_number.localeCompare(b.quote_number) * dir
+      case 'client_name':
+        return a.client_name.toLowerCase().localeCompare(b.client_name.toLowerCase()) * dir
+      case 'status':
+        return a.status.localeCompare(b.status) * dir
+      case 'created_at':
+        return (new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) * dir
+      default:
+        return 0
+    }
+  })
+
+  const sortIndicator = (key: QuoteSortKey) =>
+    sortKey === key ? (sortDir === 'asc' ? ' \u25B2' : ' \u25BC') : ''
 
   const fetchQuotes = useCallback(async (searchVal: string, statusVal: string) => {
     const params: { search?: string; status?: string; limit?: number } = { limit: 50 }
@@ -118,21 +150,21 @@ export function QuoteList({ initialQuotes }: QuoteListProps) {
           </p>
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-x-auto">
+          <table className="min-w-[500px] w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400">
-                <th className="text-left px-4 py-3 font-medium">Quote #</th>
-                <th className="text-left px-4 py-3 font-medium">Client</th>
-                <th className="text-left px-4 py-3 font-medium">Status</th>
-                <th className="text-left px-4 py-3 font-medium">Rate</th>
-                <th className="text-left px-4 py-3 font-medium">MSNs</th>
-                <th className="text-left px-4 py-3 font-medium">Created</th>
-                <th className="text-left px-4 py-3 font-medium">Actions</th>
+                <th onClick={() => handleSort('quote_number')} className="text-left px-4 py-3 font-medium cursor-pointer select-none">Quote #{sortIndicator('quote_number')}</th>
+                <th onClick={() => handleSort('client_name')} className="text-left px-4 py-3 font-medium cursor-pointer select-none">Client{sortIndicator('client_name')}</th>
+                <th onClick={() => handleSort('status')} className="text-left px-4 py-3 font-medium cursor-pointer select-none">Status{sortIndicator('status')}</th>
+                <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">Rate</th>
+                <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">MSNs</th>
+                <th onClick={() => handleSort('created_at')} className="text-left px-4 py-3 font-medium cursor-pointer select-none">Created{sortIndicator('created_at')}</th>
+                <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {quotes.map((q) => (
+              {sortedQuotes.map((q) => (
                 <tr
                   key={q.id}
                   className="border-b border-gray-200 dark:border-gray-800 last:border-b-0 hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors"
@@ -149,10 +181,10 @@ export function QuoteList({ initialQuotes }: QuoteListProps) {
                   <td className="px-4 py-3">
                     <StatusBadge status={q.status} />
                   </td>
-                  <td className="px-4 py-3 text-gray-800 dark:text-gray-200 font-mono">
+                  <td className="px-4 py-3 text-gray-800 dark:text-gray-200 font-mono hidden sm:table-cell">
                     {q.exchange_rate ? `${parseFloat(q.exchange_rate).toFixed(4)}` : '-'}
                   </td>
-                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
+                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300 hidden sm:table-cell">
                     {q.msn_list?.length
                       ? q.msn_list.join(', ')
                       : '-'}
@@ -160,7 +192,7 @@ export function QuoteList({ initialQuotes }: QuoteListProps) {
                   <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                     {formatDate(q.created_at)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 hidden sm:table-cell">
                     <select
                       value={q.status}
                       onChange={(e) => handleStatusUpdate(q.id, e.target.value)}

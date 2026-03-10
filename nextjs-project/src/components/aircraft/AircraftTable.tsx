@@ -28,8 +28,21 @@ function formatRate(value: string | number | null): string {
   })
 }
 
+type SortKey = 'msn' | 'aircraft_type'
+
 export function AircraftTable({ aircraft }: { aircraft: Aircraft[] }) {
   const [searchQuery, setSearchQuery] = useState('')
+  const [sortKey, setSortKey] = useState<SortKey>('msn')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+
+  const handleSort = (key: SortKey) => {
+    if (key === sortKey) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortKey(key)
+      setSortDir('asc')
+    }
+  }
 
   const filtered = aircraft.filter((a) => {
     if (!searchQuery) return true
@@ -38,6 +51,15 @@ export function AircraftTable({ aircraft }: { aircraft: Aircraft[] }) {
     const regMatch = a.registration?.toLowerCase().includes(q) ?? false
     return msnMatch || regMatch
   })
+
+  const sorted = [...filtered].sort((a, b) => {
+    const dir = sortDir === 'asc' ? 1 : -1
+    if (sortKey === 'msn') return (a.msn - b.msn) * dir
+    return a.aircraft_type.localeCompare(b.aircraft_type) * dir
+  })
+
+  const sortIndicator = (key: SortKey) =>
+    sortKey === key ? (sortDir === 'asc' ? ' \u25B2' : ' \u25BC') : ''
 
   return (
     <div className="space-y-4">
@@ -54,31 +76,31 @@ export function AircraftTable({ aircraft }: { aircraft: Aircraft[] }) {
 
       {/* Table */}
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="min-w-[400px] w-full text-sm">
           <thead>
             <tr className="border-b border-gray-200 dark:border-gray-800">
-              <th className="text-left px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold">MSN</th>
-              <th className="text-left px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold">Type</th>
+              <th onClick={() => handleSort('msn')} className="text-left px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold cursor-pointer select-none">MSN{sortIndicator('msn')}</th>
+              <th onClick={() => handleSort('aircraft_type')} className="text-left px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold cursor-pointer select-none">Type{sortIndicator('aircraft_type')}</th>
               <th className="text-left px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold">Registration</th>
-              <th className="text-right px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold">Lease Rent (USD)</th>
-              <th className="text-right px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold">Lease Rent (EUR)</th>
-              <th className="text-right px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold">6Y Check (USD)</th>
-              <th className="text-right px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold">6Y Check (EUR)</th>
-              <th className="text-right px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold">12Y Check (USD)</th>
-              <th className="text-right px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold">12Y Check (EUR)</th>
-              <th className="text-right px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold">LDG (USD)</th>
-              <th className="text-right px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold">LDG (EUR)</th>
+              <th className="text-right px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold hidden md:table-cell">Lease Rent (USD)</th>
+              <th className="text-right px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold hidden md:table-cell">Lease Rent (EUR)</th>
+              <th className="text-right px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold hidden md:table-cell">6Y Check (USD)</th>
+              <th className="text-right px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold hidden md:table-cell">6Y Check (EUR)</th>
+              <th className="text-right px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold hidden md:table-cell">12Y Check (USD)</th>
+              <th className="text-right px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold hidden md:table-cell">12Y Check (EUR)</th>
+              <th className="text-right px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold hidden md:table-cell">LDG (USD)</th>
+              <th className="text-right px-4 py-3 text-gray-900 dark:text-gray-100 font-semibold hidden md:table-cell">LDG (EUR)</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 ? (
+            {sorted.length === 0 ? (
               <tr>
                 <td colSpan={11} className="px-4 py-8 text-center text-gray-400 dark:text-gray-500">
                   No aircraft found
                 </td>
               </tr>
             ) : (
-              filtered.map((a) => (
+              sorted.map((a) => (
                 <tr key={a.id} className="border-b border-gray-200 dark:border-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors">
                   <td className="px-4 py-3">
                     <Link
@@ -90,14 +112,14 @@ export function AircraftTable({ aircraft }: { aircraft: Aircraft[] }) {
                   </td>
                   <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{a.aircraft_type}</td>
                   <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{a.registration ?? '-'}</td>
-                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300 text-right">{formatRate(a.lease_rent_usd)}</td>
-                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300 text-right">{formatRate(a.lease_rent_eur)}</td>
-                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300 text-right">{formatRate(a.six_year_check_usd)}</td>
-                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300 text-right">{formatRate(a.six_year_check_eur)}</td>
-                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300 text-right">{formatRate(a.twelve_year_check_usd)}</td>
-                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300 text-right">{formatRate(a.twelve_year_check_eur)}</td>
-                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300 text-right">{formatRate(a.ldg_usd)}</td>
-                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300 text-right">{formatRate(a.ldg_eur)}</td>
+                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300 text-right hidden md:table-cell">{formatRate(a.lease_rent_usd)}</td>
+                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300 text-right hidden md:table-cell">{formatRate(a.lease_rent_eur)}</td>
+                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300 text-right hidden md:table-cell">{formatRate(a.six_year_check_usd)}</td>
+                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300 text-right hidden md:table-cell">{formatRate(a.six_year_check_eur)}</td>
+                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300 text-right hidden md:table-cell">{formatRate(a.twelve_year_check_usd)}</td>
+                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300 text-right hidden md:table-cell">{formatRate(a.twelve_year_check_eur)}</td>
+                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300 text-right hidden md:table-cell">{formatRate(a.ldg_usd)}</td>
+                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300 text-right hidden md:table-cell">{formatRate(a.ldg_eur)}</td>
                 </tr>
               ))
             )}
