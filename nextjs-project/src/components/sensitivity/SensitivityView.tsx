@@ -1,11 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { usePricingStore, computePeriodMonths } from '@/stores/pricing-store'
+import { usePricingStore } from '@/stores/pricing-store'
+import { useCrewConfigStore } from '@/stores/crew-config-store'
+import { useCostsConfigStore } from '@/stores/costs-config-store'
+import { computeMsnPnlSummary } from '@/lib/pnl-engine'
 import { ParameterPicker, SENSITIVITY_PARAMS } from './ParameterPicker'
 import { SensitivityChart, type DataPoint } from './SensitivityChart'
 import { SensitivityTable } from './SensitivityTable'
-import { runSensitivityAction } from '@/app/actions/sensitivity'
+
+const STEPS = [-0.20, -0.10, 0, 0.10, 0.20]
+const STEP_LABELS = ['-20%', '-10%', 'Base', '+10%', '+20%']
 
 export function SensitivityView() {
   const { exchangeRate, marginPercent, msnInputs } = usePricingStore()
@@ -25,21 +30,18 @@ export function SensitivityView() {
       case 'marginPercent':
         return parseFloat(marginPercent) || 0
       case 'mgh':
-        // Average MGH across all MSNs
         if (msnInputs.length === 0) return 0
         return (
           msnInputs.reduce((sum, m) => sum + (parseFloat(m.mgh) || 0), 0) /
           msnInputs.length
         )
       case 'cycleRatio':
-        // Average cycle ratio across all MSNs
         if (msnInputs.length === 0) return 0
         return (
           msnInputs.reduce((sum, m) => sum + (parseFloat(m.cycleRatio) || 0), 0) /
           msnInputs.length
         )
       case 'crewSets':
-        // Average crew sets across all MSNs
         if (msnInputs.length === 0) return 0
         return (
           msnInputs.reduce((sum, m) => sum + m.crewSets, 0) / msnInputs.length
@@ -49,7 +51,7 @@ export function SensitivityView() {
     }
   }
 
-  async function handleRunAnalysis() {
+  function handleRunAnalysis() {
     if (!hasMsns) return
 
     setIsLoading(true)
@@ -67,31 +69,61 @@ export function SensitivityView() {
         return
       }
 
-      const baseInputs = {
-        exchange_rate: exchangeRate,
-        margin_percent: marginPercent,
-        msn_inputs: msnInputs.map((m) => ({
-          msn: m.msn,
-          mgh: m.mgh,
-          cycle_ratio: m.cycleRatio,
-          environment: m.environment,
-          period_months: computePeriodMonths(m.periodStart, m.periodEnd),
-          lease_type: m.leaseType,
-          crew_sets: m.crewSets,
-        })),
+      // Read full store data for P&L engine
+      const crewData = useCrewConfigStore.getState()
+      const costsData = useCostsConfigStore.getState()
+      const baseExRate = parseFloat(exchangeRate) || 0.85
+
+      const dataPoints: DataPoint[] = []
+
+      for (let i = 0; i < STEPS.length; i++) {
+        const step = STEPS[i]
+        const paramValue = baseValue * (1 + step)
+
+        // Clone MSN inputs and apply parameter variation
+        let stepExRate = baseExRate
+        const stepInputs = msnInputs.map((m) => {
+          const clone = { ...m }
+          switch (selectedParam) {
+            case 'exchangeRate':
+              stepExRate = paramValue
+              break
+            case 'mgh':
+              clone.mgh = paramValue.toString()
+              break
+            case 'cycleRatio':
+              clone.cycleRatio = paramValue.toString()
+              break
+            case 'crewSets':
+              clone.crewSets = Math.max(1, Math.round(paramValue))
+              break
+          }
+          return clone
+        })
+
+        // Compute P&L for each MSN and aggregate
+        let totalCost = 0
+        let totalBh = 0
+        let totalNetProfit = 0
+
+        for (const input of stepInputs) {
+          const summary = computeMsnPnlSummary(input, crewData, costsData, stepExRate)
+          totalCost += summary.totalCost
+          totalBh += summary.totalBh
+          totalNetProfit += summary.netProfit
+        }
+
+        const costPerBh = totalBh > 0 ? totalCost / totalBh : 0
+
+        dataPoints.push({
+          label: STEP_LABELS[i],
+          paramValue,
+          eurPerBh: costPerBh,
+          netProfit: totalNetProfit,
+        })
       }
 
-      const result = await runSensitivityAction({
-        baseInputs,
-        paramKey: selectedParam,
-        baseValue,
-      })
-
-      if ('error' in result) {
-        setError(result.error)
-      } else {
-        setResults(result)
-      }
+      setResults(dataPoints)
     } catch {
       setError('An unexpected error occurred')
     } finally {
@@ -102,7 +134,7 @@ export function SensitivityView() {
   return (
     <div className="space-y-6">
       {/* Controls */}
-      <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
         <div className="flex flex-wrap items-center gap-4">
           <ParameterPicker selected={selectedParam} onChange={setSelectedParam} />
           <button
@@ -117,8 +149,8 @@ export function SensitivityView() {
 
       {/* Empty state: no MSNs */}
       {!hasMsns && (
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-8 text-center">
-          <p className="text-gray-400 text-sm">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-8 text-center">
+          <p className="text-gray-500 dark:text-gray-400 text-sm">
             Add aircraft on the Dashboard page first to run sensitivity analysis.
           </p>
         </div>
@@ -126,8 +158,8 @@ export function SensitivityView() {
 
       {/* Error */}
       {error && (
-        <div className="bg-red-900/30 border border-red-800 rounded-lg p-4">
-          <p className="text-red-300 text-sm">{error}</p>
+        <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <p className="text-red-700 dark:text-red-300 text-sm">{error}</p>
         </div>
       )}
 

@@ -48,7 +48,7 @@ function EditableCell({
           }
           if (e.key === 'Escape') setEditing(false)
         }}
-        className={`w-full bg-yellow-900/40 border border-yellow-600 rounded px-2 py-0.5 text-right text-sm text-gray-100 focus:outline-none ${className}`}
+        className={`w-full bg-yellow-900/40 border border-yellow-600 rounded px-2 py-0.5 text-right text-sm text-gray-900 dark:text-gray-100 focus:outline-none ${className}`}
       />
     )
   }
@@ -59,7 +59,7 @@ function EditableCell({
         setDraft(String(value))
         setEditing(true)
       }}
-      className={`block w-full cursor-pointer rounded px-2 py-0.5 text-right text-sm text-gray-100 bg-yellow-900/20 border border-yellow-700/40 hover:border-yellow-500 transition-colors ${className}`}
+      className={`block w-full cursor-pointer rounded px-2 py-0.5 text-right text-sm text-gray-900 dark:text-gray-100 bg-yellow-900/20 border border-yellow-700/40 hover:border-yellow-500 transition-colors ${className}`}
       title="Click to edit"
     >
       {display}
@@ -81,7 +81,7 @@ function FormulaCell({
     maximumFractionDigits: decimals,
   })
   return (
-    <span className={`block text-right text-sm text-gray-300 px-2 py-0.5 ${className}`}>
+    <span className={`block text-right text-sm text-gray-700 dark:text-gray-300 px-2 py-0.5 ${className}`}>
       {display}
     </span>
   )
@@ -92,7 +92,7 @@ function FormulaCell({
 function SectionHeader({ title }: { title: string }) {
   return (
     <div className="mt-6 mb-2">
-      <h3 className="text-sm font-semibold text-indigo-400 uppercase tracking-wider">
+      <h3 className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
         {title}
       </h3>
     </div>
@@ -103,7 +103,7 @@ function SectionHeader({ title }: { title: string }) {
 
 function TableCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-xs">{children}</table>
       </div>
@@ -181,17 +181,17 @@ export function CostsConfigTable() {
 
   // ---- Render ----
 
-  const thClass = 'text-left px-3 py-2 text-gray-400 font-medium text-[10px] uppercase tracking-wider'
-  const tdClass = 'px-3 py-1.5 text-sm text-gray-300'
-  const tdLabelClass = 'px-3 py-1.5 text-sm text-gray-300 pl-4'
-  const trHover = 'hover:bg-gray-800/20'
-  const totalRowClass = 'border-t border-gray-600 font-semibold'
+  const thClass = 'text-left px-3 py-2 text-gray-500 dark:text-gray-400 font-medium text-[10px] uppercase tracking-wider'
+  const tdClass = 'px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300'
+  const tdLabelClass = 'px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 pl-4'
+  const trHover = 'hover:bg-gray-100/20 dark:bg-gray-800/20'
+  const totalRowClass = 'border-t border-gray-300 dark:border-gray-600 font-semibold'
 
   return (
     <div className="space-y-6">
       {/* Average AC - global input */}
-      <div className="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 flex items-center gap-4">
-        <label className="text-sm text-gray-400 whitespace-nowrap">Average A/C:</label>
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg px-4 py-3 flex items-center gap-4">
+        <label className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">Average A/C:</label>
         <EditableCell value={avgAc} onChange={setAvgAc} decimals={2} className="w-28" />
       </div>
 
@@ -199,7 +199,7 @@ export function CostsConfigTable() {
       <SectionHeader title="Maintenance Personnel Cost" />
       <TableCard>
         <thead>
-          <tr className="border-b border-gray-700">
+          <tr className="border-b border-gray-300 dark:border-gray-700">
             <th className={`${thClass} w-[260px]`}>Name</th>
             <th className={`${thClass} w-[120px] text-right`}>No. Engineers per A/C</th>
             <th className={`${thClass} w-[140px] text-right`}>Per Diem, EUR/day</th>
@@ -226,9 +226,9 @@ export function CostsConfigTable() {
             </tr>
           ))}
           <tr className={totalRowClass}>
-            <td className={`${tdClass} text-gray-100`} colSpan={4}>Total</td>
+            <td className={`${tdClass} text-gray-900 dark:text-gray-100`} colSpan={4}>Total</td>
             <td className={tdClass}>
-              <span className="block text-right text-sm text-gray-100 font-semibold px-2 py-0.5">
+              <span className="block text-right text-sm text-gray-900 dark:text-gray-100 font-semibold px-2 py-0.5">
                 {maintPersonnelGrandTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </td>
@@ -240,7 +240,7 @@ export function CostsConfigTable() {
       <SectionHeader title="Maintenance Cost Assumptions" />
       <TableCard>
         <thead>
-          <tr className="border-b border-gray-700">
+          <tr className="border-b border-gray-300 dark:border-gray-700">
             <th className={`${thClass} w-[360px]`}>Name</th>
             <th className={`${thClass} w-[160px] text-right`}>Per Month / Per A/C</th>
             <th className={`${thClass} w-[220px]`}>P&L Mapping</th>
@@ -253,7 +253,7 @@ export function CostsConfigTable() {
               <td className={tdClass}>
                 <EditableCell value={item.perMonthPerAc} onChange={(v) => updateMaintCost(i, v)} decimals={2} />
               </td>
-              <td className={`${tdClass} text-gray-500 text-xs`}>{item.mapping}</td>
+              <td className={`${tdClass} text-gray-400 dark:text-gray-500 text-xs`}>{item.mapping}</td>
             </tr>
           ))}
         </tbody>
@@ -263,7 +263,7 @@ export function CostsConfigTable() {
       <SectionHeader title="Insurance" />
       <TableCard>
         <thead>
-          <tr className="border-b border-gray-700">
+          <tr className="border-b border-gray-300 dark:border-gray-700">
             <th className={`${thClass} w-[200px]`}>MSN</th>
             <th className={`${thClass} w-[160px] text-right`}>Price, USD</th>
           </tr>
@@ -282,9 +282,9 @@ export function CostsConfigTable() {
             </tr>
           ))}
           <tr className={totalRowClass}>
-            <td className={`${tdClass} text-gray-100`}>Total</td>
+            <td className={`${tdClass} text-gray-900 dark:text-gray-100`}>Total</td>
             <td className={tdClass}>
-              <span className="block text-right text-sm text-gray-100 font-semibold px-2 py-0.5">
+              <span className="block text-right text-sm text-gray-900 dark:text-gray-100 font-semibold px-2 py-0.5">
                 {insuranceTotal.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
               </span>
             </td>
@@ -296,7 +296,7 @@ export function CostsConfigTable() {
       <SectionHeader title="DOC (Direct Operating Cost)" />
       <TableCard>
         <thead>
-          <tr className="border-b border-gray-700">
+          <tr className="border-b border-gray-300 dark:border-gray-700">
             <th className={`${thClass} w-[260px]`}>Name</th>
             <th className={`${thClass} w-[160px] text-right`}>Total</th>
             <th className={`${thClass} w-[160px] text-right`}>Per Month / Per A/C</th>
@@ -313,7 +313,7 @@ export function CostsConfigTable() {
               <td className={tdClass}>
                 <FormulaCell value={docPerMonth[i]} decimals={2} />
               </td>
-              <td className={`${tdClass} text-gray-500 text-xs`}>{item.mapping}</td>
+              <td className={`${tdClass} text-gray-400 dark:text-gray-500 text-xs`}>{item.mapping}</td>
             </tr>
           ))}
         </tbody>
@@ -323,7 +323,7 @@ export function CostsConfigTable() {
       <SectionHeader title="Other COGS" />
       <TableCard>
         <thead>
-          <tr className="border-b border-gray-700">
+          <tr className="border-b border-gray-300 dark:border-gray-700">
             <th className={`${thClass} w-[260px]`}>Name</th>
             <th className={`${thClass} w-[160px] text-right`}>Total</th>
             <th className={`${thClass} w-[160px] text-right`}>Per Month / Per A/C</th>
@@ -342,7 +342,7 @@ export function CostsConfigTable() {
                     decimals={2}
                   />
                 ) : (
-                  <span className="block text-right text-sm text-gray-500 px-2 py-0.5">—</span>
+                  <span className="block text-right text-sm text-gray-400 dark:text-gray-500 px-2 py-0.5">—</span>
                 )}
               </td>
               <td className={tdClass}>
@@ -356,7 +356,7 @@ export function CostsConfigTable() {
                   />
                 )}
               </td>
-              <td className={`${tdClass} text-gray-500 text-xs`}>{item.mapping}</td>
+              <td className={`${tdClass} text-gray-400 dark:text-gray-500 text-xs`}>{item.mapping}</td>
             </tr>
           ))}
         </tbody>
@@ -366,7 +366,7 @@ export function CostsConfigTable() {
       <SectionHeader title="Overhead" />
       <TableCard>
         <thead>
-          <tr className="border-b border-gray-700">
+          <tr className="border-b border-gray-300 dark:border-gray-700">
             <th className={`${thClass} w-[300px]`}>Name</th>
             <th className={`${thClass} w-[160px] text-right`}>Total</th>
             <th className={`${thClass} w-[160px] text-right`}>Per Month</th>
@@ -383,13 +383,13 @@ export function CostsConfigTable() {
               <td className={tdClass}>
                 <FormulaCell value={overheadPerMonth[i]} decimals={2} />
               </td>
-              <td className={`${tdClass} text-gray-500 text-xs`}>{item.mapping}</td>
+              <td className={`${tdClass} text-gray-400 dark:text-gray-500 text-xs`}>{item.mapping}</td>
             </tr>
           ))}
           <tr className={totalRowClass}>
-            <td className={`${tdClass} text-gray-100`} colSpan={2}>Total Overhead</td>
+            <td className={`${tdClass} text-gray-900 dark:text-gray-100`} colSpan={2}>Total Overhead</td>
             <td className={tdClass}>
-              <span className="block text-right text-sm text-gray-100 font-semibold px-2 py-0.5">
+              <span className="block text-right text-sm text-gray-900 dark:text-gray-100 font-semibold px-2 py-0.5">
                 {overheadTotalPerMonth.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </td>

@@ -1,7 +1,7 @@
 'use client'
 
 import { usePricingStore } from '@/stores/pricing-store'
-import { generateMonthRange, computePeriodMonths } from '@/stores/pricing-store'
+import { generateMonthRange } from '@/stores/pricing-store'
 import type { EprMatrixRow } from '@/stores/pricing-store'
 import { useCrewConfigStore } from '@/stores/crew-config-store'
 import { useCostsConfigStore } from '@/stores/costs-config-store'
@@ -215,12 +215,19 @@ interface PnlLineConfig {
   // A component — fixed (from Aircraft tab)
   leaseRentEur: number
   maintReservesFixedEur: number
-  // C component (from Crew tab)
+  // C component — variable (from Crew tab)
+  pilotPerDiem: number      // (pilot per diem per set × crewSets) + BH bonus
+  cabinCrewPerDiem: number  // depends on leaseType + aircraftType × crewSets
+  accomTravelC: number      // (travel costs + accommodation) / avgAC / 12
+  // C component — fixed (from Crew tab)
   pilotSalary: number       // (pilot SS + copilot SS) × crewSets
   cabinCrewSalary: number   // depends on leaseType + aircraftType
   staffUniformF: number     // uniform per month (per AC)
   trainingC: number         // training total per month (per AC)
-  // M component (from Costs tab)
+  // M component — variable (from Costs tab + KPIs)
+  spareParts: number        // BH × spare parts rate + tires/wheels fixed
+  maintPersonnelPerDiem: number // sum of (engineers × perDiem × days) from maint personnel
+  // M component — fixed (from Costs tab)
   lineMaintenance: number   // internal + 3rd party
   baseMaintenance: number   // capital maintenance
   maintPersonnelSalary: number
@@ -246,19 +253,23 @@ interface PnlLineConfig {
   handling: number
   navigation: number
   airportCharges: number
-  // Other COGS (from Costs tab)
-  commissions: number
+  // Other COGS (from Costs tab) — commission rates per BH
+  commissionSummerRate: number // Nov–Apr: rate × BH
+  commissionWinterRate: number // May–Oct: rate × BH
 }
 
 function buildMonthlyData(
-  monthCount: number,
+  months: { year: number; month: number; label: string }[],
   mgh: number,
   acmiRate: number,
+  excessBh: number,
+  excessHourRate: number,
   cycleRatio: number,
   bhFhRatio: number,
   apuFhRatio: number,
   cfg: PnlLineConfig,
 ): Record<string, number[]> {
+  const monthCount = months.length
   const data: Record<string, number[]> = {}
 
   // Initialize all keys with zeros for all months
@@ -279,8 +290,10 @@ function buildMonthlyData(
 
   if (mgh === 0) return data
 
-  // Revenue = ACMI Rate × MGH
-  const revenue = acmiRate * mgh
+  // Revenue = (ACMI Rate × MGH) + (Excess BH × Excess Hour Rate)
+  const revenue = acmiRate * mgh + excessBh * excessHourRate
+
+  const totalBh = mgh + excessBh
 
   for (let m = 0; m < monthCount; m++) {
     // Revenue
@@ -294,14 +307,14 @@ function buildMonthlyData(
     data['maintReservesVariable'][m] = cfg.maintReservesVariable
     data['assetMgmtFee'][m] = 0
 
-    // C: per diems (kept as 0 for now — per diem logic can be added later)
-    data['pilotPerDiem'][m] = 0
-    data['cabinCrewPerDiem'][m] = 0
-    data['accomTravelC'][m] = 0
+    // C: per diems (from Crew tab)
+    data['pilotPerDiem'][m] = cfg.pilotPerDiem
+    data['cabinCrewPerDiem'][m] = cfg.cabinCrewPerDiem
+    data['accomTravelC'][m] = cfg.accomTravelC
 
-    // M: variable maintenance
-    data['spareParts'][m] = 0
-    data['maintPersonnelPerDiem'][m] = 0
+    // M: variable maintenance (from Costs tab)
+    data['spareParts'][m] = cfg.spareParts
+    data['maintPersonnelPerDiem'][m] = cfg.maintPersonnelPerDiem
     data['accomTravelM'][m] = 0
     data['otherMaintV'][m] = 0
 
@@ -311,8 +324,11 @@ function buildMonthlyData(
     data['navigation'][m] = cfg.navigation
     data['airportCharges'][m] = cfg.airportCharges
 
-    // Other COGS: from Costs tab
-    data['commissions'][m] = cfg.commissions
+    // Other COGS: commissions = rate × totalBH, rate depends on calendar month
+    // May–Oct → winter rate, Nov–Apr → summer rate
+    const calMonth = months[m].month
+    const isSummer = calMonth >= 5 && calMonth <= 10 // May(5) – Oct(10)
+    data['commissions'][m] = (isSummer ? cfg.commissionWinterRate : cfg.commissionSummerRate) * totalBh
     data['delaysCancellations'][m] = 0
 
     // Total variable cost
@@ -379,11 +395,11 @@ function buildMonthlyData(
     data['netProfit'][m] = data['ebit'][m] - data['interestNet'][m] - data['fxNet'][m] - data['tax'][m]
     data['netProfitMargin'][m] = revenue > 0 ? data['netProfit'][m] / revenue : 0
 
-    // KPIs
-    const fh = bhFhRatio > 0 ? mgh / bhFhRatio : 0
+    // KPIs — total BH = MGH + Excess BH
+    const fh = bhFhRatio > 0 ? totalBh / bhFhRatio : 0
     data['acOperational'][m] = 1
-    data['bh'][m] = mgh
-    data['avgBhPerAc'][m] = mgh
+    data['bh'][m] = totalBh
+    data['avgBhPerAc'][m] = totalBh
     data['fh'][m] = fh
     data['fc'][m] = cycleRatio > 0 ? fh / cycleRatio : 0
     data['fhFcRatio'][m] = cycleRatio
@@ -412,8 +428,11 @@ export function PnlTable() {
   const crewOtherCost = useCrewConfigStore((s) => s.otherCost)
   const crewTraining = useCrewConfigStore((s) => s.training)
   const crewAvgAC = useCrewConfigStore((s) => s.averageAC)
+  const crewFdDays = useCrewConfigStore((s) => s.fdDays)
+  const crewNfdDays = useCrewConfigStore((s) => s.nfdDays)
 
   // ── Costs config store ──
+  const costsMaintPersonnel = useCostsConfigStore((s) => s.maintPersonnel)
   const costsMaintCosts = useCostsConfigStore((s) => s.maintCosts)
   const costsInsurance = useCostsConfigStore((s) => s.insurance)
   const costsDoc = useCostsConfigStore((s) => s.doc)
@@ -435,6 +454,24 @@ export function PnlTable() {
   // Training total per month (per AC) = sum of all training amounts / avgAC / 12
   const trainingTotal = crewTraining.reduce((s, r) => s + (r.amount ?? 0), 0)
   const trainingPerMonth = crewAvgAC > 0 ? trainingTotal / crewAvgAC / 12 : 0
+  // Accommodation & Travel C = (travel costs + accommodation) / avgAC / 12
+  const travelCostsRow = crewOtherCost.find((r) => r.item === 'Travel costs')
+  const accomRow = crewOtherCost.find((r) => r.item === 'Accomodation')
+  const accomTravelCPerMonth = crewAvgAC > 0
+    ? ((travelCostsRow?.amount ?? 0) + (accomRow?.amount ?? 0)) / crewAvgAC / 12
+    : 0
+
+  // Per diem per person = (perDiemFD × fdDays) + (perDiemNFD × nfdDays)
+  const perDiemForRow = (row: typeof crewPayroll[number]) =>
+    row.perDiemFD * crewFdDays + row.perDiemNFD * crewNfdDays
+  // Pilot per diem per crew set = pilot perDiem + copilot perDiem
+  const pilotPerDiemPerSet = perDiemForRow(crewPayroll[0]) + perDiemForRow(crewPayroll[1])
+  // BH bonus for pilot = (pilot perBhPerdiem + copilot perBhPerdiem) × BH
+  const bhBonusPerBh = crewPayroll[0].perBhPerdiem + crewPayroll[1].perBhPerdiem
+  // Cabin attendant per diem (any of rows 2-5)
+  const cabinAttPerDiem = perDiemForRow(crewPayroll[2])
+  // Senior attendant per diem (row 6)
+  const seniorAttPerDiem = perDiemForRow(crewPayroll[6])
 
   // ── Derive costs tab values for P&L ──
   // M component: look up by name in maintCosts
@@ -444,6 +481,16 @@ export function PnlTable() {
   const maintPersonnelSalaryVal = findMaintCost('Maintenance Personnel Salary')
   const trainningVal = findMaintCost('Trainning')
   const cCheckVal = findMaintCost('C-Check')
+
+  // Maintenance personnel per diems: sum of (engineers × perDiem × days) for each role
+  const maintPerDiemVal = costsMaintPersonnel.reduce(
+    (sum, p) => sum + p.engineers * p.perDiem * p.days,
+    0,
+  )
+
+  // Spare parts: rate per BH and tires/wheels fixed cost
+  const sparePartsRatePerBh = findMaintCost('Spare Parts KPI (Per BH)')
+  const tiresWheelsCost = findMaintCost('Tires/Wheels')
 
   // Insurance: build MSN -> amount map (convert USD → EUR using dashboard exchange rate)
   const insuranceByMsn: Record<number, number> = {}
@@ -461,10 +508,11 @@ export function PnlTable() {
   })
   const technicalVal = otherCogsComputed.find((c) => c.name === 'Technical')?.perMonth ?? 0
   const otherFixedVal = otherCogsComputed.find((c) => c.name === 'Other Fixed')?.perMonth ?? 0
-  // Commissions = sum of all commission items
-  const commissionsVal = otherCogsComputed
-    .filter((c) => c.mapping === 'Commissions')
-    .reduce((s, c) => s + c.perMonth, 0)
+  // Commission rates per BH (seasonal)
+  const commissionSummerRate = otherCogsComputed.find((c) => c.name === 'Commission - Third Party Summer')?.perMonth ?? 0
+  const commissionWinterRate = otherCogsComputed.find((c) => c.name === 'Commission - Third Party Winter')?.perMonth ?? 0
+  // MXC commission rate per BH (added to Personnel Cost overhead)
+  const commissionMxcRate = otherCogsComputed.find((c) => c.name === 'Commission - MXC')?.perMonth ?? 0
 
   // DOC: per month per AC = total / avgAc / 12
   const docPerMonth = costsDoc.map((d) => (costsAvgAc > 0 ? d.total / costsAvgAc / 12 : 0))
@@ -480,27 +528,10 @@ export function PnlTable() {
   // License & Registration Cost, Admin Cost, IT and Communications,
   // Admin and General Expenses, Selling & Marketing Cost
 
-  // ── Determine which MSN data to display ──
-  let mgh = 0
-  let acmiRate = 0
-  let cycleRatio = 1
-  let bhFhRatio = 1.2
-  let apuFhRatio = 1.1
-  let leaseRentEur = 0
-  let maintReservesFixedEur = 0
-  let crewSets = 4
-  let leaseType: 'wet' | 'damp' | 'moist' = 'wet'
-  let aircraftType = 'A320'
-  let environment: 'benign' | 'hot' = 'benign'
-  let insuranceMsn = 0
+  // ── Determine which data to display ──
   let periodStart = ''
   let periodEnd = ''
   let hasData = false
-  // Variable rate fields (USD per engine / per cycle)
-  let apuRateUsd = 0
-  let llp1RateUsd = 0
-  let llp2RateUsd = 0
-  let eprMatrix: EprMatrixRow[] = []
 
   /** Sum of 6yr + 12yr + LDG from an MsnInput */
   function calcMaintFixed(i: typeof msnInputs[number]): number {
@@ -514,119 +545,17 @@ export function PnlTable() {
     const input = msnInputs.find((i) => i.msn === selectedMsn)
     if (match || input) hasData = true
     if (input) {
-      mgh = parseFloat(input.mgh) || 0
-      acmiRate = parseFloat(input.acmiRate || '0')
-      cycleRatio = parseFloat(input.cycleRatio || '1')
-      bhFhRatio = parseFloat(input.bhFhRatio || '1.2')
-      apuFhRatio = parseFloat(input.apuFhRatio || '1.1')
       periodStart = input.periodStart
       periodEnd = input.periodEnd
-      leaseRentEur = parseFloat(input.leaseRentEur || '0')
-      maintReservesFixedEur = calcMaintFixed(input)
-      crewSets = input.crewSets
-      leaseType = input.leaseType
-      aircraftType = input.aircraftType
-      environment = input.environment
-      insuranceMsn = input.msn
-      apuRateUsd = parseFloat(input.apuRateUsd || '0')
-      llp1RateUsd = parseFloat(input.llp1RateUsd || '0')
-      llp2RateUsd = parseFloat(input.llp2RateUsd || '0')
-      eprMatrix = input.eprMatrix ?? []
     }
   } else {
     // Total project view
     if (msnInputs.length > 0) {
       hasData = true
-      mgh = msnInputs.reduce((sum, i) => sum + parseFloat(i.mgh), 0)
-      acmiRate = msnInputs.reduce((sum, i) => sum + parseFloat(i.acmiRate || '0') * parseFloat(i.mgh), 0) / (mgh || 1)
-      cycleRatio = msnInputs.reduce((sum, i) => sum + parseFloat(i.cycleRatio || '1') * parseFloat(i.mgh), 0) / (mgh || 1)
-      bhFhRatio = msnInputs.reduce((sum, i) => sum + parseFloat(i.bhFhRatio || '1.2') * parseFloat(i.mgh), 0) / (mgh || 1)
-      apuFhRatio = msnInputs.reduce((sum, i) => sum + parseFloat(i.apuFhRatio || '1.1') * parseFloat(i.mgh), 0) / (mgh || 1)
-      leaseRentEur = msnInputs.reduce((sum, i) => sum + parseFloat(i.leaseRentEur || '0'), 0)
-      maintReservesFixedEur = msnInputs.reduce((sum, i) => sum + calcMaintFixed(i), 0)
-      // Use first MSN's crew/lease settings
-      crewSets = msnInputs[0].crewSets
-      leaseType = msnInputs[0].leaseType
-      aircraftType = msnInputs[0].aircraftType
-      environment = msnInputs[0].environment
-      insuranceMsn = msnInputs[0].msn
-      periodStart = msnInputs[0].periodStart
-      periodEnd = msnInputs[0].periodEnd
-      // For total project, sum variable rates across MSNs
-      apuRateUsd = msnInputs.reduce((sum, i) => sum + parseFloat(i.apuRateUsd || '0'), 0)
-      llp1RateUsd = msnInputs.reduce((sum, i) => sum + parseFloat(i.llp1RateUsd || '0'), 0)
-      llp2RateUsd = msnInputs.reduce((sum, i) => sum + parseFloat(i.llp2RateUsd || '0'), 0)
-      eprMatrix = msnInputs[0].eprMatrix ?? []
+      // Period: earliest start to latest end across all MSNs
+      periodStart = msnInputs.reduce((min, i) => (i.periodStart < min ? i.periodStart : min), msnInputs[0].periodStart)
+      periodEnd = msnInputs.reduce((max, i) => (i.periodEnd > max ? i.periodEnd : max), msnInputs[0].periodEnd)
     }
-  }
-
-  // Compute C component values
-  const pilotSalaryVal = pilotSalaryPerSet * crewSets
-  let cabinCrewSalaryVal = 0
-  if (leaseType === 'wet') {
-    if (aircraftType === 'A321') {
-      cabinCrewSalaryVal = (4 * cabinAttendantSS + seniorAttendantSS) * crewSets
-    } else {
-      // A320 default
-      cabinCrewSalaryVal = (3 * cabinAttendantSS + seniorAttendantSS) * crewSets
-    }
-  } else if (leaseType === 'moist') {
-    cabinCrewSalaryVal = seniorAttendantSS * crewSets
-  }
-  // damp lease: cabin crew salary = 0
-
-  // Insurance for selected MSN
-  const insuranceFixedVal = insuranceByMsn[insuranceMsn] ?? 0
-
-  // ── Compute maintenance reserves variable (A component - variable) ──
-  // Derived KPIs per month
-  const fh = bhFhRatio > 0 ? mgh / bhFhRatio : 0 // FH = BH / BH:FH
-  const fc = cycleRatio > 0 ? fh / cycleRatio : 0  // FC = FH / cycle ratio
-  const apuFh = fh * apuFhRatio                     // APU FH = FH × APU FH:FH
-
-  // EPR MR = EPR_rate_USD × 2 engines × FH × exchangeRate
-  const eprRateUsd = interpolateEpr(eprMatrix, cycleRatio, environment)
-  const eprMr = eprRateUsd * 2 * fh * exchangeRate
-
-  // LLP MR = (LLP1_rate_USD + LLP2_rate_USD) × FC × exchangeRate
-  const llpMr = (llp1RateUsd + llp2RateUsd) * fc * exchangeRate
-
-  // APU MR = APU_rate_USD × APU_FH × exchangeRate
-  const apuMr = apuRateUsd * apuFh * exchangeRate
-
-  const maintReservesVariableVal = eprMr + llpMr + apuMr
-
-  // Build PnlLineConfig
-  const cfg: PnlLineConfig = {
-    maintReservesVariable: maintReservesVariableVal,
-    leaseRentEur,
-    maintReservesFixedEur,
-    pilotSalary: pilotSalaryVal,
-    cabinCrewSalary: cabinCrewSalaryVal,
-    staffUniformF: uniformPerMonth,
-    trainingC: trainingPerMonth,
-    lineMaintenance: lineMaintenanceVal,
-    baseMaintenance: baseMaintenanceVal,
-    maintPersonnelSalary: maintPersonnelSalaryVal,
-    trainningM: trainningVal,
-    maintCCheck: cCheckVal,
-    insuranceFixed: insuranceFixedVal,
-    technical: technicalVal,
-    otherFixed: otherFixedVal,
-    personnelCostSS: overheadPerMonth[0] ?? 0,
-    personnelCost: overheadPerMonth[1] ?? 0,
-    travelExpenses: overheadPerMonth[2] ?? 0,
-    legalExpenses: overheadPerMonth[3] ?? 0,
-    licenseRegCost: overheadPerMonth[4] ?? 0,
-    adminCost: overheadPerMonth[5] ?? 0,
-    itComms: overheadPerMonth[6] ?? 0,
-    adminGeneralExp: overheadPerMonth[7] ?? 0,
-    sellingMarketingCost: overheadPerMonth[8] ?? 0,
-    fuel: fuelVal,
-    handling: handlingVal,
-    navigation: navigationVal,
-    airportCharges: airportChargesVal,
-    commissions: commissionsVal,
   }
 
   // Fallback: if no period set, default to 12 months from now
@@ -640,14 +569,190 @@ export function PnlTable() {
   }
 
   const months = generateMonthRange(periodStart, periodEnd)
-  const periodMonths = computePeriodMonths(periodStart, periodEnd)
-  const monthlyData = buildMonthlyData(periodMonths, mgh, acmiRate, cycleRatio, bhFhRatio, apuFhRatio, cfg)
+
+  /** Compute PnlLineConfig + buildMonthlyData params for a single MSN input */
+  function computeForMsn(input: typeof msnInputs[number]) {
+    const msnMgh = parseFloat(input.mgh) || 0
+    const msnAcmiRate = parseFloat(input.acmiRate || '0')
+    const msnExcessBh = parseFloat(input.excessBh || '0')
+    const msnExcessHourRate = parseFloat(input.excessHourRate || '0')
+    const msnCycleRatio = parseFloat(input.cycleRatio || '1')
+    const msnBhFhRatio = parseFloat(input.bhFhRatio || '1.2')
+    const msnApuFhRatio = parseFloat(input.apuFhRatio || '1.1')
+    const msnCrewSets = input.crewSets
+    const msnLeaseType = input.leaseType
+    const msnAircraftType = input.aircraftType
+    const msnEnvironment = input.environment
+    const msnTotalBh = msnMgh + msnExcessBh
+
+    // C component — salary
+    const msnPilotSalary = pilotSalaryPerSet * msnCrewSets
+    let msnCabinCrewSalary = 0
+    if (msnLeaseType === 'wet') {
+      if (msnAircraftType === 'A321') {
+        msnCabinCrewSalary = (4 * cabinAttendantSS + seniorAttendantSS) * msnCrewSets
+      } else {
+        msnCabinCrewSalary = (3 * cabinAttendantSS + seniorAttendantSS) * msnCrewSets
+      }
+    } else if (msnLeaseType === 'moist') {
+      msnCabinCrewSalary = seniorAttendantSS * msnCrewSets
+    }
+
+    // C component — per diems
+    const msnPilotPerDiem = pilotPerDiemPerSet * msnCrewSets + bhBonusPerBh * msnTotalBh
+    let msnCabinCrewPerDiem = 0
+    if (msnLeaseType === 'wet') {
+      if (msnAircraftType === 'A321') {
+        msnCabinCrewPerDiem = (4 * cabinAttPerDiem + seniorAttPerDiem) * msnCrewSets
+      } else {
+        msnCabinCrewPerDiem = (3 * cabinAttPerDiem + seniorAttPerDiem) * msnCrewSets
+      }
+    } else if (msnLeaseType === 'moist') {
+      msnCabinCrewPerDiem = seniorAttPerDiem * msnCrewSets
+    }
+
+    // Insurance for this MSN
+    const msnInsurance = insuranceByMsn[input.msn] ?? 0
+
+    // Maintenance reserves variable
+    const msnFh = msnBhFhRatio > 0 ? msnTotalBh / msnBhFhRatio : 0
+    const msnFc = msnCycleRatio > 0 ? msnFh / msnCycleRatio : 0
+    const msnApuFh = msnFh * msnApuFhRatio
+    const msnEprRate = interpolateEpr(input.eprMatrix ?? [], msnCycleRatio, msnEnvironment)
+    const msnEprMr = msnEprRate * 2 * msnFh * exchangeRate
+    const msnLlpMr = (parseFloat(input.llp1RateUsd || '0') + parseFloat(input.llp2RateUsd || '0')) * msnFc * exchangeRate
+    const msnApuMr = parseFloat(input.apuRateUsd || '0') * msnApuFh * exchangeRate
+    const msnMaintReservesVariable = msnEprMr + msnLlpMr + msnApuMr
+
+    // Spare parts = totalBH × spare parts rate + tires/wheels fixed
+    const msnSpareParts = msnTotalBh * sparePartsRatePerBh + tiresWheelsCost
+
+    const msnCfg: PnlLineConfig = {
+      maintReservesVariable: msnMaintReservesVariable,
+      leaseRentEur: parseFloat(input.leaseRentEur || '0'),
+      maintReservesFixedEur: calcMaintFixed(input),
+      pilotPerDiem: msnPilotPerDiem,
+      cabinCrewPerDiem: msnCabinCrewPerDiem,
+      accomTravelC: accomTravelCPerMonth,
+      pilotSalary: msnPilotSalary,
+      cabinCrewSalary: msnCabinCrewSalary,
+      staffUniformF: uniformPerMonth,
+      trainingC: trainingPerMonth,
+      spareParts: msnSpareParts,
+      maintPersonnelPerDiem: maintPerDiemVal,
+      lineMaintenance: lineMaintenanceVal,
+      baseMaintenance: baseMaintenanceVal,
+      maintPersonnelSalary: maintPersonnelSalaryVal,
+      trainningM: trainningVal,
+      maintCCheck: cCheckVal,
+      insuranceFixed: msnInsurance,
+      technical: technicalVal,
+      otherFixed: otherFixedVal,
+      personnelCostSS: overheadPerMonth[0] ?? 0,
+      personnelCost: (overheadPerMonth[1] ?? 0) + commissionMxcRate * msnTotalBh,
+      travelExpenses: overheadPerMonth[2] ?? 0,
+      legalExpenses: overheadPerMonth[3] ?? 0,
+      licenseRegCost: overheadPerMonth[4] ?? 0,
+      adminCost: overheadPerMonth[5] ?? 0,
+      itComms: overheadPerMonth[6] ?? 0,
+      adminGeneralExp: overheadPerMonth[7] ?? 0,
+      sellingMarketingCost: overheadPerMonth[8] ?? 0,
+      fuel: fuelVal,
+      handling: handlingVal,
+      navigation: navigationVal,
+      airportCharges: airportChargesVal,
+      commissionSummerRate,
+      commissionWinterRate,
+    }
+
+    return {
+      mgh: msnMgh, acmiRate: msnAcmiRate, excessBh: msnExcessBh,
+      excessHourRate: msnExcessHourRate, cycleRatio: msnCycleRatio,
+      bhFhRatio: msnBhFhRatio, apuFhRatio: msnApuFhRatio, cfg: msnCfg,
+    }
+  }
+
+  // All data keys for initialization
+  const ALL_DATA_KEYS = [
+    ...VARIABLE_COST_KEYS, ...FIXED_COST_KEYS, ...OVERHEAD_KEYS,
+    'wetLease', 'otherRevenue', 'financeIncome',
+    'totalRevenue', 'totalVariableCost', 'contributionI',
+    'totalFixedCost', 'contributionII', 'totalOverhead',
+    'ebitda', 'ebitdaMargin', 'depAmort', 'ebit', 'ebitMargin',
+    'interestNet', 'fxNet', 'tax', 'netProfit', 'netProfitMargin',
+    'acOperational', 'bh', 'avgBhPerAc', 'fh', 'fc', 'fhFcRatio', 'apuFh',
+  ]
+
+  let monthlyData: Record<string, number[]>
+
+  if (selectedMsn !== null) {
+    // ── Single MSN view ──
+    const input = msnInputs.find((i) => i.msn === selectedMsn)
+    if (input) {
+      const r = computeForMsn(input)
+      monthlyData = buildMonthlyData(
+        months, r.mgh, r.acmiRate, r.excessBh, r.excessHourRate,
+        r.cycleRatio, r.bhFhRatio, r.apuFhRatio, r.cfg,
+      )
+    } else {
+      // No input data — produce zeros
+      monthlyData = {}
+      for (const k of ALL_DATA_KEYS) {
+        monthlyData[k] = new Array(months.length).fill(0)
+      }
+    }
+  } else {
+    // ── Total project — compute each MSN independently and sum per month ──
+    monthlyData = {}
+    for (const k of ALL_DATA_KEYS) {
+      monthlyData[k] = new Array(months.length).fill(0)
+    }
+
+    for (const input of msnInputs) {
+      const r = computeForMsn(input)
+      const msnData = buildMonthlyData(
+        months, r.mgh, r.acmiRate, r.excessBh, r.excessHourRate,
+        r.cycleRatio, r.bhFhRatio, r.apuFhRatio, r.cfg,
+      )
+
+      // Zero out months outside this MSN's active period
+      for (let m = 0; m < months.length; m++) {
+        const monthStr = `${months[m].year}-${String(months[m].month).padStart(2, '0')}`
+        if (monthStr < input.periodStart || monthStr > input.periodEnd) {
+          for (const k of ALL_DATA_KEYS) {
+            msnData[k][m] = 0
+          }
+        }
+      }
+
+      // Accumulate into total
+      for (const k of ALL_DATA_KEYS) {
+        for (let m = 0; m < months.length; m++) {
+          monthlyData[k][m] += msnData[k][m]
+        }
+      }
+    }
+
+    // Recompute margins and KPI ratios from summed absolutes
+    for (let m = 0; m < months.length; m++) {
+      const rev = monthlyData['totalRevenue'][m]
+      monthlyData['ebitdaMargin'][m] = rev > 0 ? monthlyData['ebitda'][m] / rev : 0
+      monthlyData['ebitMargin'][m] = rev > 0 ? monthlyData['ebit'][m] / rev : 0
+      monthlyData['netProfitMargin'][m] = rev > 0 ? monthlyData['netProfit'][m] / rev : 0
+      // KPI ratios
+      const ac = monthlyData['acOperational'][m]
+      monthlyData['avgBhPerAc'][m] = ac > 0 ? monthlyData['bh'][m] / ac : 0
+      const fhVal = monthlyData['fh'][m]
+      const fcVal = monthlyData['fc'][m]
+      monthlyData['fhFcRatio'][m] = fcVal > 0 ? fhVal / fcVal : 0
+    }
+  }
 
   // Empty state
   if (!hasData && msnInputs.length === 0) {
     return (
-      <div className="bg-gray-900 border border-gray-800 rounded-lg p-8 text-center">
-        <p className="text-gray-500 text-sm">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-8 text-center">
+        <p className="text-gray-400 dark:text-gray-500 text-sm">
           Configure MSNs on the Dashboard to see P&L calculations
         </p>
       </div>
@@ -656,8 +761,8 @@ export function PnlTable() {
 
   if (!hasData) {
     return (
-      <div className="bg-gray-900 border border-gray-800 rounded-lg p-8 text-center">
-        <p className="text-gray-500 text-sm">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-8 text-center">
+        <p className="text-gray-400 dark:text-gray-500 text-sm">
           Select an MSN or Total Project to view P&L
         </p>
       </div>
@@ -681,10 +786,10 @@ export function PnlTable() {
   const dataColWidth = 'min-w-[100px]'
 
   return (
-    <div className={`bg-gray-900 border border-gray-800 rounded-lg overflow-hidden transition-opacity ${isCalculating ? 'opacity-60' : ''}`}>
+    <div className={`bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden transition-opacity ${isCalculating ? 'opacity-60' : ''}`}>
       {/* MSN header */}
-      <div className="px-4 py-3 border-b border-gray-800">
-        <h2 className="text-sm font-semibold text-gray-100">{headerLabel}</h2>
+      <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{headerLabel}</h2>
       </div>
 
       {/* Scrollable table container */}
@@ -692,19 +797,19 @@ export function PnlTable() {
         <table className="w-max min-w-full text-xs">
           {/* Month header row */}
           <thead>
-            <tr className="border-b border-gray-700">
-              <th className={`sticky left-0 z-10 bg-gray-900 text-left px-4 py-2 text-gray-400 font-medium ${labelColWidth}`}>
+            <tr className="border-b border-gray-300 dark:border-gray-700">
+              <th className={`sticky left-0 z-10 bg-white dark:bg-gray-900 text-left px-4 py-2 text-gray-500 dark:text-gray-400 font-medium ${labelColWidth}`}>
                 &nbsp;
               </th>
               {months.map((m, i) => (
                 <th
                   key={i}
-                  className={`text-right px-3 py-2 text-gray-400 font-medium ${dataColWidth}`}
+                  className={`text-right px-3 py-2 text-gray-500 dark:text-gray-400 font-medium ${dataColWidth}`}
                 >
                   {m.label}
                 </th>
               ))}
-              <th className={`text-right px-3 py-2 text-gray-100 font-semibold ${dataColWidth} border-l border-gray-700`}>
+              <th className={`text-right px-3 py-2 text-gray-900 dark:text-gray-100 font-semibold ${dataColWidth} border-l border-gray-300 dark:border-gray-700`}>
                 TOTAL
               </th>
             </tr>
@@ -721,10 +826,10 @@ export function PnlTable() {
               // Section header
               if (row.kind === 'section') {
                 return (
-                  <tr key={idx} className="border-t border-gray-700">
+                  <tr key={idx} className="border-t border-gray-300 dark:border-gray-700">
                     <td
                       colSpan={months.length + 2}
-                      className="sticky left-0 z-10 bg-gray-900 px-4 pt-4 pb-1 text-xs text-indigo-400 uppercase tracking-wider font-semibold"
+                      className="sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 pt-4 pb-1 text-xs text-indigo-600 dark:text-indigo-400 uppercase tracking-wider font-semibold"
                     >
                       {row.label}
                     </td>
@@ -738,7 +843,7 @@ export function PnlTable() {
                   <tr key={idx}>
                     <td
                       colSpan={months.length + 2}
-                      className="sticky left-0 z-10 bg-gray-900 px-4 py-1 text-[10px] text-gray-500 uppercase tracking-widest font-medium pl-6"
+                      className="sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 py-1 text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-widest font-medium pl-6"
                     >
                       {row.label}
                     </td>
@@ -749,10 +854,10 @@ export function PnlTable() {
               // KPI header
               if (row.kind === 'kpi-header') {
                 return (
-                  <tr key={idx} className="border-t-2 border-gray-600">
+                  <tr key={idx} className="border-t-2 border-gray-300 dark:border-gray-600">
                     <td
                       colSpan={months.length + 2}
-                      className="sticky left-0 z-10 bg-gray-900 px-4 pt-4 pb-1 text-xs text-indigo-400 uppercase tracking-wider font-semibold"
+                      className="sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 pt-4 pb-1 text-xs text-indigo-600 dark:text-indigo-400 uppercase tracking-wider font-semibold"
                     >
                       {row.label}
                     </td>
@@ -763,16 +868,16 @@ export function PnlTable() {
               // Total / subtotal rows
               if (row.kind === 'total') {
                 return (
-                  <tr key={idx} className="border-t border-gray-600">
-                    <td className={`sticky left-0 z-10 bg-gray-900 px-4 py-1.5 text-gray-100 font-semibold ${labelColWidth}`}>
+                  <tr key={idx} className="border-t border-gray-300 dark:border-gray-600">
+                    <td className={`sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 py-1.5 text-gray-900 dark:text-gray-100 font-semibold ${labelColWidth}`}>
                       {row.label}
                     </td>
                     {(vals ?? []).map((v, mi) => (
-                      <td key={mi} className={`text-right px-3 py-1.5 font-mono font-semibold text-gray-100 ${dataColWidth} ${valColor(v)}`}>
+                      <td key={mi} className={`text-right px-3 py-1.5 font-mono font-semibold text-gray-900 dark:text-gray-100 ${dataColWidth} ${valColor(v)}`}>
                         {fmt(v)}
                       </td>
                     ))}
-                    <td className={`text-right px-3 py-1.5 font-mono font-semibold text-gray-100 ${dataColWidth} border-l border-gray-700 ${valColor(total)}`}>
+                    <td className={`text-right px-3 py-1.5 font-mono font-semibold text-gray-900 dark:text-gray-100 ${dataColWidth} border-l border-gray-300 dark:border-gray-700 ${valColor(total)}`}>
                       {fmt(total)}
                     </td>
                   </tr>
@@ -782,8 +887,8 @@ export function PnlTable() {
               // Result rows (Contribution I/II/III, EBIT, Net Profit)
               if (row.kind === 'result') {
                 return (
-                  <tr key={idx} className="border-t border-gray-600 bg-gray-800/30">
-                    <td className={`sticky left-0 z-10 bg-gray-800/30 px-4 py-2 text-gray-100 font-bold ${labelColWidth}`}>
+                  <tr key={idx} className="border-t border-gray-300 dark:border-gray-600 bg-gray-100/30 dark:bg-gray-800/30">
+                    <td className={`sticky left-0 z-10 bg-gray-100/30 dark:bg-gray-800/30 px-4 py-2 text-gray-900 dark:text-gray-100 font-bold ${labelColWidth}`}>
                       {row.label}
                     </td>
                     {(vals ?? []).map((v, mi) => (
@@ -791,7 +896,7 @@ export function PnlTable() {
                         {fmt(v)}
                       </td>
                     ))}
-                    <td className={`text-right px-3 py-2 font-mono font-bold ${dataColWidth} border-l border-gray-700 ${total < 0 ? 'text-red-400' : 'text-green-400'}`}>
+                    <td className={`text-right px-3 py-2 font-mono font-bold ${dataColWidth} border-l border-gray-300 dark:border-gray-700 ${total < 0 ? 'text-red-400' : 'text-green-400'}`}>
                       {fmt(total)}
                     </td>
                   </tr>
@@ -805,15 +910,15 @@ export function PnlTable() {
                   : 0
                 return (
                   <tr key={idx}>
-                    <td className={`sticky left-0 z-10 bg-gray-900 px-4 py-1 text-gray-400 italic ${labelColWidth}`}>
+                    <td className={`sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 py-1 text-gray-500 dark:text-gray-400 italic ${labelColWidth}`}>
                       {row.label}
                     </td>
                     {(vals ?? []).map((v, mi) => (
-                      <td key={mi} className={`text-right px-3 py-1 font-mono text-gray-400 italic ${dataColWidth}`}>
+                      <td key={mi} className={`text-right px-3 py-1 font-mono text-gray-500 dark:text-gray-400 italic ${dataColWidth}`}>
                         {fmtPct(v)}
                       </td>
                     ))}
-                    <td className={`text-right px-3 py-1 font-mono text-gray-400 italic ${dataColWidth} border-l border-gray-700`}>
+                    <td className={`text-right px-3 py-1 font-mono text-gray-500 dark:text-gray-400 italic ${dataColWidth} border-l border-gray-300 dark:border-gray-700`}>
                       {fmtPct(avgMargin)}
                     </td>
                   </tr>
@@ -825,15 +930,15 @@ export function PnlTable() {
                 const kpiTotal = key ? getTotal(key) : 0
                 return (
                   <tr key={idx}>
-                    <td className={`sticky left-0 z-10 bg-gray-900 px-4 py-1 text-gray-300 ${labelColWidth}`}>
+                    <td className={`sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 py-1 text-gray-700 dark:text-gray-300 ${labelColWidth}`}>
                       {row.label}
                     </td>
                     {(vals ?? []).map((v, mi) => (
-                      <td key={mi} className={`text-right px-3 py-1 font-mono text-gray-300 ${dataColWidth}`}>
+                      <td key={mi} className={`text-right px-3 py-1 font-mono text-gray-700 dark:text-gray-300 ${dataColWidth}`}>
                         {isKpiDec ? fmtDec(v, 2) : fmt(v)}
                       </td>
                     ))}
-                    <td className={`text-right px-3 py-1 font-mono text-gray-300 ${dataColWidth} border-l border-gray-700`}>
+                    <td className={`text-right px-3 py-1 font-mono text-gray-700 dark:text-gray-300 ${dataColWidth} border-l border-gray-300 dark:border-gray-700`}>
                       {isKpiDec ? fmtDec(kpiTotal / Math.max(months.length, 1), 2) : fmt(kpiTotal)}
                     </td>
                   </tr>
@@ -842,16 +947,16 @@ export function PnlTable() {
 
               // Regular item rows
               return (
-                <tr key={idx} className="hover:bg-gray-800/20">
-                  <td className={`sticky left-0 z-10 bg-gray-900 px-4 py-1 text-gray-300 pl-8 ${labelColWidth}`}>
+                <tr key={idx} className="hover:bg-gray-100/20 dark:bg-gray-800/20">
+                  <td className={`sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 py-1 text-gray-700 dark:text-gray-300 pl-8 ${labelColWidth}`}>
                     {row.label}
                   </td>
                   {(vals ?? []).map((v, mi) => (
-                    <td key={mi} className={`text-right px-3 py-1 font-mono text-gray-300 ${dataColWidth} ${valColor(v)}`}>
+                    <td key={mi} className={`text-right px-3 py-1 font-mono text-gray-700 dark:text-gray-300 ${dataColWidth} ${valColor(v)}`}>
                       {fmt(v)}
                     </td>
                   ))}
-                  <td className={`text-right px-3 py-1 font-mono text-gray-300 ${dataColWidth} border-l border-gray-700 ${valColor(total)}`}>
+                  <td className={`text-right px-3 py-1 font-mono text-gray-700 dark:text-gray-300 ${dataColWidth} border-l border-gray-300 dark:border-gray-700 ${valColor(total)}`}>
                     {fmt(total)}
                   </td>
                 </tr>

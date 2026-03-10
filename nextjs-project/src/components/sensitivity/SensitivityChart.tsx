@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+import { useTheme } from 'next-themes'
 import {
   LineChart,
   Line,
@@ -15,6 +17,7 @@ export interface DataPoint {
   label: string
   paramValue: number
   eurPerBh: number
+  netProfit: number
 }
 
 interface SensitivityChartProps {
@@ -23,33 +26,46 @@ interface SensitivityChartProps {
 }
 
 export function SensitivityChart({ data, paramLabel }: SensitivityChartProps) {
+  const { resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+
+  const isDark = !mounted || resolvedTheme === 'dark'
+
+  const gridStroke = isDark ? '#374151' : '#e5e7eb'
+  const axisStroke = isDark ? '#9CA3AF' : '#6B7280'
+  const tickFill = isDark ? '#9CA3AF' : '#6B7280'
+  const tooltipBg = isDark ? '#1F2937' : '#ffffff'
+  const tooltipBorder = isDark ? '#374151' : '#e5e7eb'
+  const tooltipColor = isDark ? '#F3F4F6' : '#111827'
+
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-      <h3 className="text-sm font-medium text-gray-300 mb-4">
-        EUR/BH Rate vs {paramLabel}
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
+      <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
+        Cost/BH vs {paramLabel}
       </h3>
       <ResponsiveContainer width="100%" height={350}>
         <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+          <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
           <XAxis
             dataKey="label"
-            stroke="#9CA3AF"
-            tick={{ fill: '#9CA3AF', fontSize: 12 }}
+            stroke={axisStroke}
+            tick={{ fill: tickFill, fontSize: 12 }}
           />
           <YAxis
-            stroke="#9CA3AF"
-            tick={{ fill: '#9CA3AF', fontSize: 12 }}
+            stroke={axisStroke}
+            tick={{ fill: tickFill, fontSize: 12 }}
             tickFormatter={(value: number) => `\u20AC${value.toFixed(2)}`}
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: '#1F2937',
-              border: '1px solid #374151',
+              backgroundColor: tooltipBg,
+              border: `1px solid ${tooltipBorder}`,
               borderRadius: '8px',
-              color: '#F3F4F6',
+              color: tooltipColor,
             }}
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            formatter={(value: any) => [`\u20AC${Number(value).toFixed(2)}`, 'EUR/BH']}
+            formatter={(value: any) => [`\u20AC${Number(value).toFixed(2)}`, 'Cost/BH']}
             labelFormatter={(label) => `Step: ${String(label)}`}
           />
           <ReferenceLine x="Base" stroke="#6366F1" strokeDasharray="3 3" />

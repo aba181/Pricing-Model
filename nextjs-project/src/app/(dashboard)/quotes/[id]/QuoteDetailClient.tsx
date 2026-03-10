@@ -8,6 +8,8 @@ import { usePricingStore } from '@/stores/pricing-store'
 import { useCrewConfigStore } from '@/stores/crew-config-store'
 import { useCostsConfigStore } from '@/stores/costs-config-store'
 import { StatusBadge } from '@/components/quotes/StatusBadge'
+import { computeMsnPnlSummary } from '@/lib/pnl-engine'
+import type { MsnPnlSummary } from '@/lib/pnl-engine'
 import type { QuoteDetailResponse } from '@/app/actions/quotes'
 import type { MsnInput, MsnPnlResult, ComponentBreakdown } from '@/stores/pricing-store'
 
@@ -18,13 +20,14 @@ interface QuoteDetailClientProps {
 export function QuoteDetailClient({ quote }: QuoteDetailClientProps) {
   const router = useRouter()
   const [loaded, setLoaded] = useState(false)
+  const [msnSummaries, setMsnSummaries] = useState<MsnPnlSummary[]>([])
 
   useEffect(() => {
     // Populate all 3 stores from the quote snapshot data
     const dashboardState = (quote.dashboard_state ?? {}) as Record<string, string>
 
-    // Reconstruct msnInputs from quote_msn_snapshots
-    const msnInputs: MsnInput[] = (quote.quote_msn_snapshots ?? []).map((snap) => {
+    // Reconstruct msnInputs from msn_snapshots
+    const msnInputs: MsnInput[] = (quote.msn_snapshots ?? []).map((snap) => {
       const input = snap.msn_input as Record<string, unknown>
       return {
         id: input.id as number | undefined,
@@ -55,8 +58,8 @@ export function QuoteDetailClient({ quote }: QuoteDetailClientProps) {
       }
     })
 
-    // Reconstruct msnResults from quote_msn_snapshots
-    const msnResults: MsnPnlResult[] = (quote.quote_msn_snapshots ?? []).map((snap) => {
+    // Reconstruct msnResults from msn_snapshots
+    const msnResults: MsnPnlResult[] = (quote.msn_snapshots ?? []).map((snap) => {
       const bd = snap.breakdown as Record<string, string>
       const mp = snap.monthly_pnl as Record<string, string>
       return {
@@ -150,6 +153,16 @@ export function QuoteDetailClient({ quote }: QuoteDetailClientProps) {
       })
     }
 
+    // Compute P&L summaries using the full engine (matches PnlTable logic)
+    const crewData = useCrewConfigStore.getState()
+    const costsData = useCostsConfigStore.getState()
+    const exRate = parseFloat(dashboardState.exchangeRate ?? quote.exchange_rate ?? '0.85')
+
+    const summaries = msnInputs.map((input) =>
+      computeMsnPnlSummary(input, crewData, costsData, exRate),
+    )
+    setMsnSummaries(summaries)
+
     setLoaded(true)
   }, [quote])
 
@@ -172,24 +185,24 @@ export function QuoteDetailClient({ quote }: QuoteDetailClientProps) {
   return (
     <div className="space-y-6">
       {/* Quote header */}
-      <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-xl font-semibold text-gray-100">
+              <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                 {quote.quote_number}
               </h1>
               <StatusBadge status={quote.status} />
             </div>
-            <p className="text-gray-300">{quote.client_name}</p>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-gray-700 dark:text-gray-300">{quote.client_name}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
               Created {formatDate(quote.created_at)}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => router.push('/quotes')}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-300 bg-gray-800 border border-gray-700 rounded-md hover:bg-gray-700 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
             >
               <ArrowLeft size={14} />
               Back to Quotes
@@ -206,7 +219,7 @@ export function QuoteDetailClient({ quote }: QuoteDetailClientProps) {
       </div>
 
       {/* Fork info banner */}
-      <div className="bg-indigo-900/50 border border-indigo-700 rounded-lg p-3 text-sm text-indigo-200">
+      <div className="bg-indigo-50 dark:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-700 rounded-lg p-3 text-sm text-indigo-700 dark:text-indigo-200">
         You are viewing a saved quote. Any changes will create a new quote when
         saved (fork behavior). Click &quot;Fork and Edit on Dashboard&quot; to modify
         this quote as a new working copy.
@@ -214,96 +227,145 @@ export function QuoteDetailClient({ quote }: QuoteDetailClientProps) {
 
       {/* Key metrics summary */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-          <p className="text-xs text-gray-400 mb-1">Exchange Rate (USD/EUR)</p>
-          <p className="text-lg font-semibold text-gray-100 font-mono">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Exchange Rate (USD/EUR)</p>
+          <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 font-mono">
             {dashState?.exchangeRate ?? quote.exchange_rate}
           </p>
         </div>
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-          <p className="text-xs text-gray-400 mb-1">Margin</p>
-          <p className="text-lg font-semibold text-gray-100 font-mono">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Margin</p>
+          <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 font-mono">
             {dashState?.marginPercent ?? quote.margin_percent}%
           </p>
         </div>
-        <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
-          <p className="text-xs text-gray-400 mb-1">Aircraft (MSNs)</p>
-          <p className="text-lg font-semibold text-gray-100">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Aircraft (MSNs)</p>
+          <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             {quote.msn_list?.length ?? 0}
           </p>
         </div>
       </div>
 
       {/* MSN breakdown */}
-      {loaded && quote.quote_msn_snapshots && quote.quote_msn_snapshots.length > 0 && (
-        <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-800">
-            <h2 className="text-sm font-semibold text-gray-100">
-              MSN Breakdown
-            </h2>
-          </div>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-800 text-gray-400">
-                <th className="text-left px-4 py-2 font-medium">MSN</th>
-                <th className="text-left px-4 py-2 font-medium">Type</th>
-                <th className="text-right px-4 py-2 font-medium">Cost/BH</th>
-                <th className="text-right px-4 py-2 font-medium">Final Rate/BH</th>
-                <th className="text-right px-4 py-2 font-medium">Monthly P&amp;L</th>
-              </tr>
-            </thead>
-            <tbody>
-              {quote.quote_msn_snapshots.map((snap) => {
-                const bd = snap.breakdown as Record<string, string>
-                const mp = snap.monthly_pnl as Record<string, string>
-                return (
-                  <tr
-                    key={snap.id}
-                    className="border-b border-gray-800 last:border-b-0 hover:bg-gray-800/50"
-                  >
-                    <td className="px-4 py-2 text-gray-200 font-medium">
-                      {snap.msn}
+      {loaded && quote.msn_snapshots && quote.msn_snapshots.length > 0 && (() => {
+        const fmtNum = (v: number) =>
+          v.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+        const fmtDec = (v: number) =>
+          v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+        // Compute totals across all MSNs
+        const totals = msnSummaries.reduce(
+          (acc, s) => ({
+            totalRevenue: acc.totalRevenue + s.totalRevenue,
+            totalCost: acc.totalCost + s.totalCost,
+            netProfit: acc.netProfit + s.netProfit,
+            totalBh: acc.totalBh + s.totalBh,
+          }),
+          { totalRevenue: 0, totalCost: 0, netProfit: 0, totalBh: 0 },
+        )
+        const totalAcmiCostPerBh = totals.totalBh > 0 ? totals.totalCost / totals.totalBh : 0
+        const totalAcmiRatePerBh = totals.totalBh > 0 ? totals.totalRevenue / totals.totalBh : 0
+
+        return (
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                MSN Breakdown
+              </h2>
+            </div>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400">
+                  <th className="text-left px-4 py-2 font-medium">MSN</th>
+                  <th className="text-left px-4 py-2 font-medium">Type</th>
+                  <th className="text-right px-4 py-2 font-medium">ACMI Rate/BH</th>
+                  <th className="text-right px-4 py-2 font-medium">ACMI Cost/BH</th>
+                  <th className="text-right px-4 py-2 font-medium">Net Profit</th>
+                </tr>
+              </thead>
+              <tbody>
+                {quote.msn_snapshots.map((snap, idx) => {
+                  const summary = msnSummaries[idx]
+                  if (!summary) return null
+
+                  return (
+                    <tr
+                      key={snap.id}
+                      className="border-b border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800/50"
+                    >
+                      <td className="px-4 py-2 text-gray-800 dark:text-gray-200 font-medium">
+                        {snap.msn}
+                      </td>
+                      <td className="px-4 py-2 text-gray-700 dark:text-gray-300">
+                        {snap.aircraft_type}
+                      </td>
+                      <td className="px-4 py-2 text-right text-indigo-600 dark:text-indigo-300 font-mono font-medium">
+                        {fmtDec(summary.acmiRatePerBh)}
+                      </td>
+                      <td className="px-4 py-2 text-right text-gray-800 dark:text-gray-200 font-mono">
+                        {fmtNum(summary.acmiCostPerBh)}
+                      </td>
+                      <td className="px-4 py-2 text-right font-mono">
+                        <span
+                          className={
+                            summary.netProfit >= 0
+                              ? 'text-green-400'
+                              : 'text-red-400'
+                          }
+                        >
+                          {fmtNum(summary.netProfit)}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
+                {/* Total row when more than 1 aircraft */}
+                {msnSummaries.length > 1 && (
+                  <tr className="border-t-2 border-gray-300 dark:border-gray-600 bg-gray-100/40 dark:bg-gray-800/40">
+                    <td className="px-4 py-2 text-gray-900 dark:text-gray-100 font-semibold">
+                      Total
                     </td>
-                    <td className="px-4 py-2 text-gray-300">
-                      {snap.aircraft_type}
+                    <td className="px-4 py-2 text-gray-500 dark:text-gray-400">
+                      {msnSummaries.length} A/C
                     </td>
-                    <td className="px-4 py-2 text-right text-gray-200 font-mono">
-                      {parseFloat(bd.totalCostPerBh ?? '0').toFixed(2)}
+                    <td className="px-4 py-2 text-right text-indigo-600 dark:text-indigo-300 font-mono font-semibold">
+                      {fmtDec(totalAcmiRatePerBh)}
                     </td>
-                    <td className="px-4 py-2 text-right text-indigo-300 font-mono font-medium">
-                      {parseFloat(bd.finalRatePerBh ?? '0').toFixed(2)}
+                    <td className="px-4 py-2 text-right text-gray-900 dark:text-gray-100 font-mono font-semibold">
+                      {fmtNum(totalAcmiCostPerBh)}
                     </td>
-                    <td className="px-4 py-2 text-right font-mono">
+                    <td className="px-4 py-2 text-right font-mono font-semibold">
                       <span
                         className={
-                          parseFloat(mp.monthlyPnl ?? '0') >= 0
+                          totals.netProfit >= 0
                             ? 'text-green-400'
                             : 'text-red-400'
                         }
                       >
-                        {parseFloat(mp.monthlyPnl ?? '0').toFixed(2)}
+                        {fmtNum(totals.netProfit)}
                       </span>
                     </td>
                   </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+                )}
+              </tbody>
+            </table>
+          </div>
+        )
+      })()}
 
       {/* Navigation hint */}
-      <div className="text-xs text-gray-500">
+      <div className="text-xs text-gray-400 dark:text-gray-500">
         Stores are loaded with this quote&apos;s data. Navigate to{' '}
-        <Link href="/pnl" className="text-indigo-400 hover:text-indigo-300">
+        <Link href="/pnl" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-600 dark:text-indigo-300">
           P&amp;L
         </Link>
         ,{' '}
-        <Link href="/crew" className="text-indigo-400 hover:text-indigo-300">
+        <Link href="/crew" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-600 dark:text-indigo-300">
           Crew
         </Link>
         , or{' '}
-        <Link href="/costs" className="text-indigo-400 hover:text-indigo-300">
+        <Link href="/costs" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-600 dark:text-indigo-300">
           Costs
         </Link>{' '}
         to see full details from this quote.

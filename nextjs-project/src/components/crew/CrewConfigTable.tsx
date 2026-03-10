@@ -76,7 +76,7 @@ function EditableCell({
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
         onKeyDown={(e) => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') setEditing(false) }}
-        className="w-full bg-yellow-900/30 border border-yellow-600/50 rounded px-2 py-0.5 text-sm text-gray-100 text-right font-mono focus:border-yellow-400 focus:outline-none"
+        className="w-full bg-yellow-900/30 border border-yellow-600/50 rounded px-2 py-0.5 text-sm text-gray-900 dark:text-gray-100 text-right font-mono focus:border-yellow-400 focus:outline-none"
       />
     )
   }
@@ -84,7 +84,7 @@ function EditableCell({
   return (
     <span
       onClick={startEdit}
-      className="cursor-pointer px-2 py-0.5 rounded bg-yellow-900/20 border border-yellow-700/30 hover:border-yellow-500/50 hover:bg-yellow-900/30 transition-colors font-mono text-gray-100 inline-block min-w-[60px] text-right"
+      className="cursor-pointer px-2 py-0.5 rounded bg-yellow-900/20 border border-yellow-700/30 hover:border-yellow-500/50 hover:bg-yellow-900/30 transition-colors font-mono text-gray-900 dark:text-gray-100 inline-block min-w-[60px] text-right"
       title="Click to edit"
     >
       {displayValue}
@@ -96,12 +96,12 @@ function EditableCell({
 // Shared table styles
 // ──────────────────────────────────────────────────────
 
-const thBase = 'px-3 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider'
+const thBase = 'px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider'
 const tdBase = 'px-3 py-1.5 text-sm'
-const tdNum = `${tdBase} text-right font-mono text-gray-100`
-const tdLabel = `${tdBase} text-gray-300`
-const tdComputed = `${tdBase} text-right font-mono text-gray-400`
-const borderRow = 'border-b border-gray-800/60'
+const tdNum = `${tdBase} text-right font-mono text-gray-900 dark:text-gray-100`
+const tdLabel = `${tdBase} text-gray-700 dark:text-gray-300`
+const tdComputed = `${tdBase} text-right font-mono text-gray-500 dark:text-gray-400`
+const borderRow = 'border-b border-gray-200/60 dark:border-gray-800/60'
 
 // ──────────────────────────────────────────────────────
 // Main component
@@ -215,7 +215,7 @@ export function CrewConfigTable() {
   return (
     <div className="space-y-6">
       {/* MGH indicator */}
-      <div className="flex items-center gap-3 text-xs text-gray-500">
+      <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
         <span className="flex items-center gap-1.5">
           <span className="inline-block w-3 h-3 rounded-sm bg-yellow-900/40 border border-yellow-700/40" />
           Editable (click to edit)
@@ -225,21 +225,21 @@ export function CrewConfigTable() {
           BH rate &times; MGH ({mgh}h {msnInputs.length > 0 ? 'from Dashboard' : '— add MSN in Dashboard'})
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="inline-block w-3 h-3 rounded-sm bg-gray-800 border border-gray-700" />
+          <span className="inline-block w-3 h-3 rounded-sm bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700" />
           Calculated
         </span>
       </div>
 
       {/* ── TABLE 1: Payroll ── */}
-      <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-800">
-          <h3 className="text-sm font-semibold text-gray-100">Payroll data June 2025</h3>
-          <p className="text-xs text-gray-500 mt-0.5">F2S</p>
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Payroll data June 2025</h3>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">F2S</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-700 bg-gray-800/40">
+              <tr className="border-b border-gray-300 dark:border-gray-700 bg-gray-100/40 dark:bg-gray-800/40">
                 <th className={`${thBase} text-left`}>Position</th>
                 <th className={`${thBase} text-right`}>Gross Salary, EUR</th>
                 <th className={`${thBase} text-right`}>Benefits, EUR</th>
@@ -271,7 +271,7 @@ export function CrewConfigTable() {
                     {i <= 1 ? (
                       <EditableCell value={row.perBhPerdiem} onChange={v => updatePayroll(i, 'perBhPerdiem', v)} decimals={0} formatFn={v => fmtInt(v)} />
                     ) : (
-                      <span className="font-mono text-gray-500">{fmtInt(row.perBhPerdiem)}</span>
+                      <span className="font-mono text-gray-400 dark:text-gray-500">{fmtInt(row.perBhPerdiem)}</span>
                     )}
                   </td>
                 </tr>
@@ -279,8 +279,8 @@ export function CrewConfigTable() {
             </tbody>
           </table>
         </div>
-        <div className="px-4 py-2 border-t border-gray-700 bg-gray-800/30 flex items-center gap-2">
-          <span className="text-xs font-medium text-gray-400">Average AC:</span>
+        <div className="px-4 py-2 border-t border-gray-300 dark:border-gray-700 bg-gray-100/30 dark:bg-gray-800/30 flex items-center gap-2">
+          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Average AC:</span>
           <EditableCell value={averageAC} onChange={v => setAverageAC(v ?? 1)} />
         </div>
       </div>
@@ -288,13 +288,13 @@ export function CrewConfigTable() {
       {/* ── TABLES 2 & 3: Other Cost + Training side by side ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Other Cost */}
-        <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-800">
-            <h3 className="text-sm font-semibold text-gray-100">OTHER COST</h3>
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">OTHER COST</h3>
           </div>
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-700 bg-gray-800/40">
+              <tr className="border-b border-gray-300 dark:border-gray-700 bg-gray-100/40 dark:bg-gray-800/40">
                 <th className={`${thBase} text-left`}>Item</th>
                 <th className={`${thBase} text-right`}>Amount</th>
                 <th className={`${thBase} text-right`}>Per Month</th>
@@ -322,13 +322,13 @@ export function CrewConfigTable() {
         </div>
 
         {/* Training */}
-        <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-800">
-            <h3 className="text-sm font-semibold text-gray-100">Training</h3>
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Training</h3>
           </div>
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-700 bg-gray-800/40">
+              <tr className="border-b border-gray-300 dark:border-gray-700 bg-gray-100/40 dark:bg-gray-800/40">
                 <th className={`${thBase} text-left`}>Item</th>
                 <th className={`${thBase} text-right`}>Amount</th>
                 <th className={`${thBase} text-right`}>Per Month</th>
@@ -357,36 +357,36 @@ export function CrewConfigTable() {
       </div>
 
       {/* ── TABLE 4: Per Diem Summary ── */}
-      <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-800">
-          <h3 className="text-sm font-semibold text-gray-100">Per Diem Summary</h3>
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Per Diem Summary</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               {/* Lease type header row */}
-              <tr className="border-b border-gray-800 bg-gray-800/20">
+              <tr className="border-b border-gray-200 dark:border-gray-800 bg-gray-100/20 dark:bg-gray-800/20">
                 <th className={`${thBase} text-left`}></th>
                 <th className={`${thBase} text-right`}></th>
-                <th colSpan={2} className={`${thBase} text-center border-l border-gray-700`}>
+                <th colSpan={2} className={`${thBase} text-center border-l border-gray-300 dark:border-gray-700`}>
                   Wet / Moist / Damp Lease
                 </th>
-                <th colSpan={2} className={`${thBase} text-center border-l border-gray-700`}>
+                <th colSpan={2} className={`${thBase} text-center border-l border-gray-300 dark:border-gray-700`}>
                   Wet Lease
                 </th>
-                <th className={`${thBase} text-center border-l border-gray-700`}>
+                <th className={`${thBase} text-center border-l border-gray-300 dark:border-gray-700`}>
                   Moist Lease
                 </th>
               </tr>
               {/* Column headers */}
-              <tr className="border-b border-gray-700 bg-gray-800/40">
+              <tr className="border-b border-gray-300 dark:border-gray-700 bg-gray-100/40 dark:bg-gray-800/40">
                 <th className={`${thBase} text-left`}></th>
                 <th className={`${thBase} text-right`}>Days</th>
-                <th className={`${thBase} text-right border-l border-gray-700`}>PILOT A321/A320</th>
+                <th className={`${thBase} text-right border-l border-gray-300 dark:border-gray-700`}>PILOT A321/A320</th>
                 <th className={`${thBase} text-right`}>BH Bonus for Pilot</th>
-                <th className={`${thBase} text-right border-l border-gray-700`}>A321</th>
+                <th className={`${thBase} text-right border-l border-gray-300 dark:border-gray-700`}>A321</th>
                 <th className={`${thBase} text-right`}>A320</th>
-                <th className={`${thBase} text-right border-l border-gray-700`}>A321/A320</th>
+                <th className={`${thBase} text-right border-l border-gray-300 dark:border-gray-700`}>A321/A320</th>
               </tr>
             </thead>
             <tbody>
@@ -396,15 +396,15 @@ export function CrewConfigTable() {
                 <td className={`${tdBase} text-right`}>
                   <EditableCell value={fdDays} onChange={v => setFdDays(v ?? 0)} decimals={0} formatFn={v => fmtInt(v)} />
                 </td>
-                <td className={`${tdComputed} border-l border-gray-800/60`}>{fmtInt(perDiem.pilotFD)}</td>
+                <td className={`${tdComputed} border-l border-gray-200/60 dark:border-gray-800/60`}>{fmtInt(perDiem.pilotFD)}</td>
                 <td className={`${tdBase} text-right font-mono`}>
                   <span className="px-2 py-0.5 rounded bg-emerald-900/25 border border-emerald-700/30 text-emerald-300">
                     {fmtInt(perDiem.bhBonusFD)}
                   </span>
                 </td>
-                <td className={`${tdComputed} border-l border-gray-800/60`}>{fmtInt(perDiem.a321FD)}</td>
+                <td className={`${tdComputed} border-l border-gray-200/60 dark:border-gray-800/60`}>{fmtInt(perDiem.a321FD)}</td>
                 <td className={tdComputed}>{fmtInt(perDiem.a320FD)}</td>
-                <td className={`${tdComputed} border-l border-gray-800/60`}>{fmtInt(perDiem.moistFD)}</td>
+                <td className={`${tdComputed} border-l border-gray-200/60 dark:border-gray-800/60`}>{fmtInt(perDiem.moistFD)}</td>
               </tr>
               {/* Non-FD row */}
               <tr className={borderRow}>
@@ -412,25 +412,25 @@ export function CrewConfigTable() {
                 <td className={`${tdBase} text-right`}>
                   <EditableCell value={nfdDays} onChange={v => setNfdDays(v ?? 0)} decimals={0} formatFn={v => fmtInt(v)} />
                 </td>
-                <td className={`${tdComputed} border-l border-gray-800/60`}>{fmtInt(perDiem.pilotNFD)}</td>
+                <td className={`${tdComputed} border-l border-gray-200/60 dark:border-gray-800/60`}>{fmtInt(perDiem.pilotNFD)}</td>
                 <td className={`${tdBase} text-right font-mono`}>
                   <span className="px-2 py-0.5 rounded bg-emerald-900/25 border border-emerald-700/30 text-emerald-300">
                     {fmtInt(perDiem.bhBonusNFD)}
                   </span>
                 </td>
-                <td className={`${tdComputed} border-l border-gray-800/60`}>{fmtInt(perDiem.a321NFD)}</td>
+                <td className={`${tdComputed} border-l border-gray-200/60 dark:border-gray-800/60`}>{fmtInt(perDiem.a321NFD)}</td>
                 <td className={tdComputed}>{fmtInt(perDiem.a320NFD)}</td>
-                <td className={`${tdComputed} border-l border-gray-800/60`}>{fmtInt(perDiem.moistNFD)}</td>
+                <td className={`${tdComputed} border-l border-gray-200/60 dark:border-gray-800/60`}>{fmtInt(perDiem.moistNFD)}</td>
               </tr>
               {/* Totals row */}
-              <tr className="border-t border-gray-600 bg-gray-800/30 font-medium">
+              <tr className="border-t border-gray-300 dark:border-gray-600 bg-gray-100/30 dark:bg-gray-800/30 font-medium">
                 <td className={tdLabel}></td>
-                <td className={`${tdBase} text-right text-xs text-gray-400`}>Per Diem per Crew Set</td>
-                <td className={`${tdNum} border-l border-gray-800/60 text-indigo-300`}>{fmtInt(perDiem.pilotTotal)}</td>
-                <td className={`${tdNum} text-indigo-300`}>{fmtInt(perDiem.bhBonusTotal)}</td>
-                <td className={`${tdNum} border-l border-gray-800/60 text-indigo-300`}>{fmtInt(perDiem.a321Total)}</td>
-                <td className={`${tdNum} text-indigo-300`}>{fmtInt(perDiem.a320Total)}</td>
-                <td className={`${tdNum} border-l border-gray-800/60 text-indigo-300`}>{fmtInt(perDiem.moistTotal)}</td>
+                <td className={`${tdBase} text-right text-xs text-gray-500 dark:text-gray-400`}>Per Diem per Crew Set</td>
+                <td className={`${tdNum} border-l border-gray-200/60 dark:border-gray-800/60 text-indigo-600 dark:text-indigo-300`}>{fmtInt(perDiem.pilotTotal)}</td>
+                <td className={`${tdNum} text-indigo-600 dark:text-indigo-300`}>{fmtInt(perDiem.bhBonusTotal)}</td>
+                <td className={`${tdNum} border-l border-gray-200/60 dark:border-gray-800/60 text-indigo-600 dark:text-indigo-300`}>{fmtInt(perDiem.a321Total)}</td>
+                <td className={`${tdNum} text-indigo-600 dark:text-indigo-300`}>{fmtInt(perDiem.a320Total)}</td>
+                <td className={`${tdNum} border-l border-gray-200/60 dark:border-gray-800/60 text-indigo-600 dark:text-indigo-300`}>{fmtInt(perDiem.moistTotal)}</td>
               </tr>
             </tbody>
           </table>

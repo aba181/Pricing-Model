@@ -220,16 +220,16 @@ export function DashboardSummary({ aircraftList }: DashboardSummaryProps) {
     <div className="space-y-4">
       {/* Error banner */}
       {lastError && (
-        <div className="bg-red-900/50 border border-red-700 rounded-lg p-3 text-red-200 text-sm">
+        <div className="bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-700 rounded-lg p-3 text-red-700 dark:text-red-200 text-sm">
           {lastError}
         </div>
       )}
 
       {/* Project header and global inputs */}
-      <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3">
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex-1 min-w-[160px]">
-            <label className="block text-[11px] font-medium text-gray-400 mb-1">
+            <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
               Project Name
             </label>
             <input
@@ -237,11 +237,11 @@ export function DashboardSummary({ aircraftList }: DashboardSummaryProps) {
               value={projectName}
               onChange={(e) => setProjectName(e.target.value)}
               placeholder="Untitled Project"
-              className="w-full bg-gray-800 border border-gray-700 rounded-md px-2 py-1.5 text-sm text-gray-100 focus:border-indigo-400 focus:outline-none"
+              className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:border-indigo-400 focus:outline-none"
             />
           </div>
           <div className="w-[120px]">
-            <label className="block text-[11px] font-medium text-gray-400 mb-1">
+            <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
               USD/EUR Rate
             </label>
             <input
@@ -249,11 +249,11 @@ export function DashboardSummary({ aircraftList }: DashboardSummaryProps) {
               step="0.0001"
               value={exchangeRate}
               onChange={(e) => setExchangeRate(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-md px-2 py-1.5 text-sm text-gray-100 focus:border-indigo-400 focus:outline-none"
+              className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:border-indigo-400 focus:outline-none"
             />
           </div>
           <div className="w-[100px]">
-            <label className="block text-[11px] font-medium text-gray-400 mb-1">
+            <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
               BH:FH
             </label>
             <input
@@ -261,11 +261,11 @@ export function DashboardSummary({ aircraftList }: DashboardSummaryProps) {
               step="0.01"
               value={bhFhRatio}
               onChange={(e) => setBhFhRatio(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-md px-2 py-1.5 text-sm text-gray-100 focus:border-indigo-400 focus:outline-none"
+              className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:border-indigo-400 focus:outline-none"
             />
           </div>
           <div className="w-[100px]">
-            <label className="block text-[11px] font-medium text-gray-400 mb-1">
+            <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
               APU FH:FH
             </label>
             <input
@@ -273,11 +273,11 @@ export function DashboardSummary({ aircraftList }: DashboardSummaryProps) {
               step="0.01"
               value={apuFhRatio}
               onChange={(e) => setApuFhRatio(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-md px-2 py-1.5 text-sm text-gray-100 focus:border-indigo-400 focus:outline-none"
+              className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:border-indigo-400 focus:outline-none"
             />
           </div>
           {isCalculating && (
-            <div className="text-xs text-indigo-400 pb-2">Calculating...</div>
+            <div className="text-xs text-indigo-600 dark:text-indigo-400 pb-2">Calculating...</div>
           )}
           <button
             onClick={() => setShowSaveDialog(true)}
@@ -304,17 +304,17 @@ export function DashboardSummary({ aircraftList }: DashboardSummaryProps) {
 
         {/* Right: MSN Inputs */}
         <div className="flex-1 min-w-0">
-          <div className="bg-gray-900 border border-gray-800 rounded-lg p-3">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3">
             {/* Header + Add Aircraft */}
             <div className="flex items-center justify-between mb-2">
-              <h2 className="text-xs font-semibold text-gray-100">
+              <h2 className="text-xs font-semibold text-gray-900 dark:text-gray-100">
                 MSN Inputs ({msnInputs.length})
               </h2>
               <div className="flex items-center gap-2">
                 <select
                   value={selectedAircraft}
                   onChange={(e) => setSelectedAircraft(e.target.value)}
-                  className="bg-gray-800 border border-gray-700 rounded-md px-2 py-1 text-xs text-gray-100 focus:border-indigo-400 focus:outline-none"
+                  className="bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-2 py-1 text-xs text-gray-900 dark:text-gray-100 focus:border-indigo-400 focus:outline-none"
                 >
                   <option value="">Select aircraft...</option>
                   {availableAircraft.map((ac) => (
@@ -348,7 +348,7 @@ export function DashboardSummary({ aircraftList }: DashboardSummaryProps) {
             </div>
 
             {msnInputs.length === 0 && (
-              <p className="text-xs text-gray-500 text-center py-6">
+              <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-6">
                 No aircraft added yet. Select an aircraft above to begin pricing.
               </p>
             )}

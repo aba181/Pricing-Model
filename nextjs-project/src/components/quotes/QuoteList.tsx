@@ -78,20 +78,20 @@ export function QuoteList({ initialQuotes }: QuoteListProps) {
         <div className="relative flex-1 max-w-sm">
           <Search
             size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"
           />
           <input
             type="text"
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
             placeholder="Search quotes..."
-            className="w-full bg-gray-800 border border-gray-700 rounded-md pl-9 pr-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-indigo-400 focus:outline-none"
+            className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md pl-9 pr-3 py-2 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:border-indigo-400 focus:outline-none"
           />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => handleStatusFilterChange(e.target.value)}
-          className="bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-sm text-gray-100 focus:border-indigo-400 focus:outline-none"
+          className="bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:border-indigo-400 focus:outline-none"
         >
           <option value="">All Statuses</option>
           {STATUSES.map((s) => (
@@ -104,24 +104,24 @@ export function QuoteList({ initialQuotes }: QuoteListProps) {
 
       {/* Status error toast */}
       {statusError && (
-        <div className="bg-red-900/50 border border-red-700 rounded-md p-2 text-sm text-red-200">
+        <div className="bg-red-50 dark:bg-red-900/50 border border-red-200 dark:border-red-700 rounded-md p-2 text-sm text-red-700 dark:text-red-200">
           {statusError}
         </div>
       )}
 
       {/* Table */}
       {quotes.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
+        <div className="text-center py-12 text-gray-400 dark:text-gray-500">
           <p className="text-sm">
             No quotes found. Create a pricing calculation on the Dashboard and
             save it as a quote.
           </p>
         </div>
       ) : (
-        <div className="bg-gray-900 border border-gray-800 rounded-lg overflow-hidden">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-800 text-gray-400">
+              <tr className="border-b border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400">
                 <th className="text-left px-4 py-3 font-medium">Quote #</th>
                 <th className="text-left px-4 py-3 font-medium">Client</th>
                 <th className="text-left px-4 py-3 font-medium">Status</th>
@@ -135,36 +135,36 @@ export function QuoteList({ initialQuotes }: QuoteListProps) {
               {quotes.map((q) => (
                 <tr
                   key={q.id}
-                  className="border-b border-gray-800 last:border-b-0 hover:bg-gray-800/50 transition-colors"
+                  className="border-b border-gray-200 dark:border-gray-800 last:border-b-0 hover:bg-gray-100 dark:hover:bg-gray-800/50 transition-colors"
                 >
                   <td className="px-4 py-3">
                     <Link
                       href={`/quotes/${q.id}`}
-                      className="text-indigo-400 hover:text-indigo-300 font-medium"
+                      className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-600 dark:text-indigo-300 font-medium"
                     >
                       {q.quote_number}
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-gray-200">{q.client_name}</td>
+                  <td className="px-4 py-3 text-gray-800 dark:text-gray-200">{q.client_name}</td>
                   <td className="px-4 py-3">
                     <StatusBadge status={q.status} />
                   </td>
-                  <td className="px-4 py-3 text-gray-200 font-mono">
+                  <td className="px-4 py-3 text-gray-800 dark:text-gray-200 font-mono">
                     {q.exchange_rate ? `${parseFloat(q.exchange_rate).toFixed(4)}` : '-'}
                   </td>
-                  <td className="px-4 py-3 text-gray-300">
+                  <td className="px-4 py-3 text-gray-700 dark:text-gray-300">
                     {q.msn_list?.length
                       ? q.msn_list.join(', ')
                       : '-'}
                   </td>
-                  <td className="px-4 py-3 text-gray-400">
+                  <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                     {formatDate(q.created_at)}
                   </td>
                   <td className="px-4 py-3">
                     <select
                       value={q.status}
                       onChange={(e) => handleStatusUpdate(q.id, e.target.value)}
-                      className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-gray-200 focus:border-indigo-400 focus:outline-none"
+                      className="bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-2 py-1 text-xs text-gray-800 dark:text-gray-200 focus:border-indigo-400 focus:outline-none"
                     >
                       {STATUSES.map((s) => (
                         <option key={s} value={s}>
@@ -179,7 +179,7 @@ export function QuoteList({ initialQuotes }: QuoteListProps) {
           </table>
 
           {/* Footer with total */}
-          <div className="px-4 py-2 border-t border-gray-800 text-xs text-gray-500">
+          <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-800 text-xs text-gray-400 dark:text-gray-500">
             Showing {quotes.length} of {total} quotes
           </div>
         </div>

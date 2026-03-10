@@ -30,8 +30,8 @@ export default async function QuotesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-100">Quotes</h1>
-        <p className="text-gray-400 mt-1">
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Quotes</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">
           {initialQuotes.total > 0
             ? `${initialQuotes.total} saved quote${initialQuotes.total === 1 ? '' : 's'}`
             : 'No quotes yet'}
