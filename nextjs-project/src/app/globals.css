@@ -1,12 +1,40 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
+/* Light mode (default) */
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;     /* gray-50 */
+  --bg-tertiary: #f3f4f6;      /* gray-100 */
+  --border-primary: #e5e7eb;   /* gray-200 */
+  --border-secondary: #d1d5db; /* gray-300 */
+  --text-primary: #111827;     /* gray-900 */
+  --text-secondary: #374151;   /* gray-700 */
+  --text-tertiary: #6b7280;    /* gray-500 */
+  --text-muted: #9ca3af;       /* gray-400 */
+}
+
+/* Dark mode */
+.dark {
+  --bg-primary: #030712;       /* gray-950 */
+  --bg-secondary: #111827;     /* gray-900 */
+  --bg-tertiary: #1f2937;      /* gray-800 */
+  --border-primary: #1f2937;   /* gray-800 */
+  --border-secondary: #374151; /* gray-700 */
+  --text-primary: #f3f4f6;    /* gray-100 */
+  --text-secondary: #d1d5db;   /* gray-300 */
+  --text-tertiary: #9ca3af;    /* gray-400 */
+  --text-muted: #6b7280;       /* gray-500 */
+}
+
 body {
-  background: #030712;   /* gray-950 -- dark background per AeroVista style */
-  color: #e5e7eb;        /* gray-200 */
+  background: var(--bg-primary);
+  color: var(--text-primary);
   font-family: var(--font-sans);
 }

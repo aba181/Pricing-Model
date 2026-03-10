@@ -15,17 +15,19 @@ import {
   BarChart3,
 } from 'lucide-react'
 import { useSidebarStore } from '@/stores/sidebar-store'
+import { ThemeToggle } from '@/components/ui/ThemeToggle'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/pnl', label: 'P&L', icon: TrendingUp },
+  { href: '/aircraft', label: 'Aircraft', icon: Plane },
   { href: '/crew', label: 'Crew', icon: Users },
   { href: '/costs', label: 'Costs', icon: DollarSign },
-  { href: '/quotes', label: 'Quotes', icon: FileText },
   { href: '/sensitivity', label: 'Sensitivity', icon: BarChart3 },
-  { href: '/aircraft', label: 'Aircraft', icon: Plane },
+  { href: '/quotes', label: 'Quotes', icon: FileText },
   { href: '/admin', label: 'Admin', icon: Settings },
 ]
+
 
 export function Sidebar() {
   const { isCollapsed, toggle } = useSidebarStore()
@@ -41,18 +43,18 @@ export function Sidebar() {
     <aside
       className={`${
         collapsed ? 'w-16' : 'w-64'
-      } transition-all duration-300 bg-gray-900 border-r border-gray-800 h-screen flex flex-col shrink-0`}
+      } transition-all duration-300 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 h-screen flex flex-col shrink-0`}
     >
       {/* Header with toggle */}
-      <div className="flex items-center h-14 px-4 border-b border-gray-800">
+      <div className="flex items-center h-14 px-4 border-b border-gray-200 dark:border-gray-800">
         {!collapsed && (
-          <span className="text-sm font-semibold text-gray-100 flex-1">
+          <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex-1">
             ACMI Pricing
           </span>
         )}
         <button
           onClick={toggle}
-          className="p-1 text-gray-400 hover:text-gray-100 rounded-md hover:bg-gray-800 transition-colors"
+          className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           <ChevronLeft
@@ -74,8 +76,8 @@ export function Sidebar() {
               href={href}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors group ${
                 isActive
-                  ? 'text-indigo-400 bg-gray-800'
-                  : 'text-gray-400 hover:text-gray-100 hover:bg-gray-800'
+                  ? 'text-indigo-600 dark:text-indigo-400 bg-gray-100 dark:bg-gray-800'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
             >
               <Icon size={18} className="shrink-0" />
@@ -86,6 +88,11 @@ export function Sidebar() {
           )
         })}
       </nav>
+
+      {/* Theme toggle footer */}
+      <div className="border-t border-gray-200 dark:border-gray-800 px-3 py-3">
+        {!collapsed && <ThemeToggle />}
+      </div>
     </aside>
   )
 }
