@@ -8,7 +8,7 @@ async function getQuotes(
   token: string
 ): Promise<{ items: QuoteListItem[]; total: number }> {
   try {
-    const res = await fetch(`${API_URL}/quotes?limit=50`, {
+    const res = await fetch(`${API_URL}/quotes/?limit=50`, {
       headers: { Cookie: `access_token=${token}` },
       cache: 'no-store',
     })
