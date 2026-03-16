@@ -79,7 +79,7 @@ export async function saveQuoteAction(
   if (!token) return { error: 'Not authenticated' }
 
   try {
-    const res = await fetch(`${API_URL}/quotes`, {
+    const res = await fetch(`${API_URL}/quotes/`, {
       method: 'POST',
       headers: authHeaders(token),
       body: JSON.stringify(payload),
@@ -115,7 +115,7 @@ export async function listQuotesAction(params?: {
     if (params?.offset !== undefined) searchParams.set('offset', String(params.offset))
 
     const qs = searchParams.toString()
-    const url = `${API_URL}/quotes${qs ? `?${qs}` : ''}`
+    const url = `${API_URL}/quotes/${qs ? `?${qs}` : ''}`
 
     const res = await fetch(url, {
       headers: authHeaders(token),
