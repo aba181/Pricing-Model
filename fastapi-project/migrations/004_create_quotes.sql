@@ -32,10 +32,10 @@ CREATE TABLE IF NOT EXISTS quotes (
     created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_quotes_client ON quotes(client_code, created_at DESC);
-CREATE INDEX idx_quotes_status ON quotes(status);
-CREATE INDEX idx_quotes_created ON quotes(created_at DESC);
-CREATE INDEX idx_quotes_msn_list ON quotes USING GIN(msn_list);
+CREATE INDEX IF NOT EXISTS idx_quotes_client ON quotes(client_code, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_quotes_status ON quotes(status);
+CREATE INDEX IF NOT EXISTS idx_quotes_created ON quotes(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_quotes_msn_list ON quotes USING GIN(msn_list);
 
 -- Per-MSN snapshot within a quote
 CREATE TABLE IF NOT EXISTS quote_msn_snapshots (
@@ -52,4 +52,4 @@ CREATE TABLE IF NOT EXISTS quote_msn_snapshots (
     UNIQUE(quote_id, msn)
 );
 
-CREATE INDEX idx_quote_msn_snapshots_quote ON quote_msn_snapshots(quote_id);
+CREATE INDEX IF NOT EXISTS idx_quote_msn_snapshots_quote ON quote_msn_snapshots(quote_id);

@@ -28,8 +28,9 @@ async def run_migrations(pool: asyncpg.Pool) -> None:
         for sql_file in sorted(migrations_dir.glob("*.sql")):
             if sql_file.name not in applied:
                 sql = sql_file.read_text()
-                await conn.execute(sql)
-                await conn.execute("INSERT INTO _migrations (filename) VALUES ($1)", sql_file.name)
+                async with conn.transaction():
+                    await conn.execute(sql)
+                    await conn.execute("INSERT INTO _migrations (filename) VALUES ($1)", sql_file.name)
 
 
 @asynccontextmanager

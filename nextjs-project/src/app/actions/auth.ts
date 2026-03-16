@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
 const API_BASE = process.env.API_URL ?? 'http://localhost:8000'
+const IS_PRODUCTION = process.env.NODE_ENV === 'production'
 
 export async function loginAction(prevState: unknown, formData: FormData) {
   const email = formData.get('email') as string
@@ -28,7 +29,7 @@ export async function loginAction(prevState: unknown, formData: FormData) {
     if (tokenMatch) {
       cookieStore.set('access_token', tokenMatch[1], {
         httpOnly: true,
-        secure: false, // development — FastAPI also sets secure=false in dev
+        secure: IS_PRODUCTION,
         sameSite: 'lax',
         maxAge: 7 * 24 * 3600, // 7 days
         path: '/',

@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS pricing_config (
 );
 
 -- Only one pricing_config row can be current at any time
-CREATE UNIQUE INDEX idx_pricing_config_current
+CREATE UNIQUE INDEX IF NOT EXISTS idx_pricing_config_current
     ON pricing_config (is_current) WHERE is_current = TRUE;
 
 
@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS crew_config (
 );
 
 -- Each aircraft_type can have exactly one current config row
-CREATE UNIQUE INDEX idx_crew_config_current
+CREATE UNIQUE INDEX IF NOT EXISTS idx_crew_config_current
     ON crew_config (aircraft_type, is_current) WHERE is_current = TRUE;
 
 
