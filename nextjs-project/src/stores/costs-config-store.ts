@@ -54,7 +54,7 @@ const INITIAL_MAINT_COSTS: MaintCostItem[] = [
   { name: 'Aircraft Maintenance - Internal (AD-HOC)', perMonthPerAc: 0, mapping: 'Line Maintenance' },
   { name: 'C-Check', perMonthPerAc: 13636.4, mapping: 'Maintenance C-Check' },
   { name: 'Maintenance Personnel Salary', perMonthPerAc: 10038.36, mapping: 'Maintenance personnel - salary' },
-  { name: 'Tires/Wheels', perMonthPerAc: 50000, mapping: '' },
+  { name: 'Tires/Wheels', perMonthPerAc: 0, mapping: '' },
   { name: 'Spare Parts KPI (Per BH)', perMonthPerAc: 231, mapping: '' },
   { name: 'Capital Maintenance', perMonthPerAc: 10000, mapping: 'Base Maintenance' },
   { name: 'Accomodation & Travel M', perMonthPerAc: 3000, mapping: 'Accomodation & Travel M' },
@@ -83,8 +83,8 @@ const INITIAL_DOC: DocItem[] = [
 ]
 
 const INITIAL_OTHER_COGS: OtherCogsItem[] = [
-  { name: 'Commission - Third Party Summer', perMonth: 200, mapping: 'Commissions' },
-  { name: 'Commission - Third Party Winter', perMonth: 100, mapping: 'Commissions' },
+  { name: 'Commission - Third Party Summer', perMonth: 0, mapping: 'Commissions' },
+  { name: 'Commission - Third Party Winter', perMonth: 0, mapping: 'Commissions' },
   { name: 'Commission - MXC', perMonth: 42, mapping: 'Commissions' },
   { name: 'Other Fixed', perMonth: 0, mapping: 'Other Fixed', hasTotal: true, total: 87864.36 },
   { name: 'Technical', perMonth: 0, mapping: 'Technical', hasTotal: true, total: 970898 },
