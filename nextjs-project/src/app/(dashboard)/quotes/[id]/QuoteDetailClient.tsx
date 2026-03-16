@@ -16,6 +16,18 @@ export function QuoteDetailClient({ quote }: QuoteDetailClientProps) {
 
   const dashState = quote.dashboard_state as Record<string, string> | null
 
+  // Compute EBITDA margin from MSN summaries (D&A is 0 in the model, so netProfit ≈ EBITDA)
+  const totals = msnSummaries.reduce(
+    (acc, s) => ({
+      totalRevenue: acc.totalRevenue + s.totalRevenue,
+      netProfit: acc.netProfit + s.netProfit,
+    }),
+    { totalRevenue: 0, netProfit: 0 },
+  )
+  const ebitdaMargin = totals.totalRevenue > 0
+    ? ((totals.netProfit / totals.totalRevenue) * 100).toFixed(1)
+    : '0.0'
+
   return (
     <div className="space-y-6">
       <QuoteHeader
@@ -27,7 +39,7 @@ export function QuoteDetailClient({ quote }: QuoteDetailClientProps) {
 
       <QuoteMetrics
         exchangeRate={dashState?.exchangeRate ?? quote.exchange_rate}
-        marginPercent={dashState?.marginPercent ?? quote.margin_percent}
+        ebitdaMargin={ebitdaMargin}
         msnCount={quote.msn_list?.length ?? 0}
       />
 
