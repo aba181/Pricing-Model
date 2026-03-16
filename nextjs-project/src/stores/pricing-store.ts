@@ -26,7 +26,7 @@ export interface MsnInput {
   excessBh: string // Excess BH above MGH (default 0)
   excessHourRate: string // EUR per excess BH (default 0)
   bhFhRatio: string // BH:FH ratio — FH = BH / bhFhRatio (default 1.2)
-  apuFhRatio: string // APU FH:FH ratio — APU FH = FH * apuFhRatio (default 1.1)
+  apuFhRatio: string // APU FH:FH ratio — APU FH = FH * apuFhRatio (default 0.7)
   // Aircraft rates from Aircraft tab (EUR, monthly — fixed)
   leaseRentEur: string // Dry lease rent per month
   sixYearCheckEur: string // 6-year check reserve per month
@@ -96,7 +96,7 @@ interface PricingStore {
   exchangeRate: string // Default "0.85"
   marginPercent: string // Default "0"
   bhFhRatio: string // Global BH:FH ratio — FH = BH / bhFhRatio (default 1.2)
-  apuFhRatio: string // Global APU FH:FH ratio — APU FH = FH * apuFhRatio (default 1.1)
+  apuFhRatio: string // Global APU FH:FH ratio — APU FH = FH * apuFhRatio (default 0.7)
   msnInputs: MsnInput[]
 
   // P&L results
@@ -141,7 +141,7 @@ const initialState = {
   exchangeRate: '0.85',
   marginPercent: '0',
   bhFhRatio: '1.2',
-  apuFhRatio: '1.1',
+  apuFhRatio: '0.7',
   msnInputs: [] as MsnInput[],
   selectedMsn: null as number | null,
   msnResults: [] as MsnPnlResult[],
@@ -202,7 +202,7 @@ export const usePricingStore = create<PricingStore>()((set) => ({
       exchangeRate: quoteData.dashboardState.exchangeRate,
       marginPercent: quoteData.dashboardState.marginPercent,
       bhFhRatio: quoteData.dashboardState.bhFhRatio ?? '1.2',
-      apuFhRatio: quoteData.dashboardState.apuFhRatio ?? '1.1',
+      apuFhRatio: quoteData.dashboardState.apuFhRatio ?? '0.7',
       msnInputs: quoteData.msnInputs,
       msnResults: quoteData.msnResults,
       totalResult: quoteData.totalResult,

@@ -24,14 +24,14 @@ export interface TrainingRow {
 // ---- Initial data from "Crew Cost.xlsx" ----
 
 const INITIAL_PAYROLL: PayrollRow[] = [
-  { position: 'Flight-pilot, Instructor', grossSalary: 6036.31, benefits: 178, perDiemFD: 355, perDiemNFD: 60, perBhPerdiem: 11 },
-  { position: 'Co-pilot', grossSalary: 4480.45, benefits: 178, perDiemFD: 230, perDiemNFD: 60, perBhPerdiem: 5 },
+  { position: 'Flight-pilot, Instructor', grossSalary: 6036.31, benefits: 178, perDiemFD: 310, perDiemNFD: 60, perBhPerdiem: 11 },
+  { position: 'Co-pilot', grossSalary: 4480.45, benefits: 178, perDiemFD: 210, perDiemNFD: 60, perBhPerdiem: 5 },
   { position: 'Cabin Attendant / Steward(ess)', grossSalary: 1222.50, benefits: 178, perDiemFD: 100, perDiemNFD: 60, perBhPerdiem: 0 },
   { position: 'Cabin Attendant / Steward(ess)', grossSalary: 1222.50, benefits: 178, perDiemFD: 100, perDiemNFD: 60, perBhPerdiem: 0 },
   { position: 'Cabin Attendant / Steward(ess)', grossSalary: 1222.50, benefits: 178, perDiemFD: 100, perDiemNFD: 60, perBhPerdiem: 0 },
   { position: 'Cabin Attendant / Steward(ess)', grossSalary: 1222.50, benefits: 178, perDiemFD: 100, perDiemNFD: 60, perBhPerdiem: 0 },
-  { position: 'Senior Cabin Attendant / Senior Steward(ess)', grossSalary: 1396.34, benefits: 178, perDiemFD: 150, perDiemNFD: 60, perBhPerdiem: 0 },
-  { position: 'Senior Steward Instructor', grossSalary: 1572.73, benefits: 178, perDiemFD: 150, perDiemNFD: 60, perBhPerdiem: 0 },
+  { position: 'Senior Cabin Attendant / Senior Steward(ess)', grossSalary: 1396.34, benefits: 178, perDiemFD: 115, perDiemNFD: 60, perBhPerdiem: 0 },
+  { position: 'Senior Steward Instructor', grossSalary: 1572.73, benefits: 178, perDiemFD: 125, perDiemNFD: 60, perBhPerdiem: 0 },
 ]
 
 const INITIAL_OTHER_COST: CostRow[] = [
@@ -84,8 +84,8 @@ export const useCrewConfigStore = create<CrewConfigStore>()((set) => ({
   otherCost: INITIAL_OTHER_COST,
   training: INITIAL_TRAINING,
   averageAC: 10.17,
-  fdDays: 15,
-  nfdDays: 16,
+  fdDays: 18,
+  nfdDays: 10,
 
   updatePayroll: (idx, field, value) =>
     set((s) => ({

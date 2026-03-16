@@ -49,7 +49,7 @@ const INITIAL_MAINT_PERSONNEL: MaintPersonnel[] = [
 ]
 
 const INITIAL_MAINT_COSTS: MaintCostItem[] = [
-  { name: 'Line Maintenance - Internal', perMonthPerAc: 28000, mapping: 'Line Maintenance' },
+  { name: 'Line Maintenance - Internal', perMonthPerAc: 22000, mapping: 'Line Maintenance' },
   { name: 'Line Maintenance - 3rd Party', perMonthPerAc: 10000, mapping: 'Line Maintenance' },
   { name: 'Aircraft Maintenance - Internal (AD-HOC)', perMonthPerAc: 0, mapping: 'Line Maintenance' },
   { name: 'C-Check', perMonthPerAc: 13636.4, mapping: 'Maintenance C-Check' },
