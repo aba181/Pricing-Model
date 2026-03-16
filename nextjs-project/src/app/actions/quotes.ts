@@ -41,15 +41,13 @@ export interface QuoteDetailResponse {
   pricing_config_snapshot: Record<string, unknown>
   crew_config_snapshot: Record<string, unknown>
   costs_config_snapshot: Record<string, unknown>
-  quote_msn_snapshots: QuoteMsnSnapshot[]
+  msn_snapshots: QuoteMsnSnapshot[]
   created_at: string
-  updated_at: string
   created_by: number
 }
 
 export interface QuoteMsnSnapshot {
   id: number
-  quote_id: number
   msn: number
   aircraft_type: string
   aircraft_id: number

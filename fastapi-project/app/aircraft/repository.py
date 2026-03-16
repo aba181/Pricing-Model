@@ -160,3 +160,38 @@ class AircraftRepository(BaseRepository):
             benign_rate,
             hot_rate,
         )
+
+    async def delete_epr_rows(self, aircraft_id: int) -> str:
+        """Delete ALL EPR matrix rows for an aircraft."""
+        return await self.execute(
+            "DELETE FROM epr_matrix_rows WHERE aircraft_id = $1",
+            aircraft_id,
+        )
+
+    async def bulk_replace_epr_matrix(
+        self,
+        aircraft_id: int,
+        rows: list[tuple],
+    ) -> list[dict]:
+        """Replace the entire EPR matrix for an aircraft.
+
+        Deletes all existing rows, then inserts the new set.
+        Each tuple is (cycle_ratio, benign_rate, hot_rate).
+        """
+        await self.delete_epr_rows(aircraft_id)
+        results = []
+        for cycle_ratio, benign_rate, hot_rate in rows:
+            row = await self.fetch_one(
+                """
+                INSERT INTO epr_matrix_rows (aircraft_id, cycle_ratio, benign_rate, hot_rate)
+                VALUES ($1, $2, $3, $4)
+                RETURNING *
+                """,
+                aircraft_id,
+                cycle_ratio,
+                benign_rate,
+                hot_rate,
+            )
+            if row:
+                results.append(row)
+        return results

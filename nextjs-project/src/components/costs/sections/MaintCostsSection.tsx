@@ -1,0 +1,40 @@
+'use client'
+
+import { EditableCell } from '@/components/ui/EditableCell'
+import { TableCard } from '@/components/ui/TableParts'
+import type { MaintCostItem } from '@/stores/costs-config-store'
+
+const thClass = 'text-left px-3 py-2 text-gray-500 dark:text-gray-400 font-medium text-[10px] uppercase tracking-wider'
+const tdClass = 'px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300'
+const tdLabelClass = 'px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 pl-4'
+const trHover = 'hover:bg-gray-100/20 dark:bg-gray-800/20'
+
+export interface MaintCostsSectionProps {
+  data: MaintCostItem[]
+  onUpdate: (idx: number, value: number) => void
+}
+
+export function MaintCostsSection({ data, onUpdate }: MaintCostsSectionProps) {
+  return (
+    <TableCard>
+      <thead>
+        <tr className="border-b border-gray-300 dark:border-gray-700">
+          <th className={`${thClass} w-[360px]`}>Name</th>
+          <th className={`${thClass} w-[160px] text-right`}>Per Month / Per A/C</th>
+          <th className={`${thClass} w-[220px]`}>P&L Mapping</th>
+        </tr>
+      </thead>
+      <tbody>
+        {data.map((item, i) => (
+          <tr key={i} className={trHover}>
+            <td className={tdLabelClass}>{item.name}</td>
+            <td className={tdClass}>
+              <EditableCell value={item.perMonthPerAc} onChange={(v) => onUpdate(i, v ?? 0)} allowNull={false} decimals={2} />
+            </td>
+            <td className={`${tdClass} text-gray-400 dark:text-gray-500 text-xs`}>{item.mapping}</td>
+          </tr>
+        ))}
+      </tbody>
+    </TableCard>
+  )
+}

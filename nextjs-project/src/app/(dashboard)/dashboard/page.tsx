@@ -1,28 +1,8 @@
 import { cookies } from 'next/headers'
 import { DashboardSummary } from '@/components/pricing/DashboardSummary'
+import type { AircraftOption } from '@/lib/api-converters'
 
 const API_URL = process.env.API_URL ?? 'http://localhost:8000'
-
-interface EprMatrixRowApi {
-  cycle_ratio: string
-  benign_rate: string
-  hot_rate: string
-}
-
-interface AircraftOption {
-  id: number
-  msn: number
-  aircraft_type: string
-  registration: string | null
-  lease_rent_eur: string | null
-  six_year_check_eur: string | null
-  twelve_year_check_eur: string | null
-  ldg_eur: string | null
-  apu_rate_usd: string | null
-  llp1_rate_usd: string | null
-  llp2_rate_usd: string | null
-  epr_matrix: EprMatrixRowApi[]
-}
 
 async function getAircraftList(): Promise<AircraftOption[]> {
   const cookieStore = await cookies()

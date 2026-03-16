@@ -1,358 +1,42 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, ExternalLink } from 'lucide-react'
-import { usePricingStore } from '@/stores/pricing-store'
-import { useCrewConfigStore } from '@/stores/crew-config-store'
-import { useCostsConfigStore } from '@/stores/costs-config-store'
-import { StatusBadge } from '@/components/quotes/StatusBadge'
-import { computeMsnPnlSummary } from '@/lib/pnl-engine'
-import type { MsnPnlSummary } from '@/lib/pnl-engine'
+import { useQuoteHydration } from '@/components/quotes/hooks/useQuoteHydration'
+import { QuoteHeader } from '@/components/quotes/QuoteHeader'
+import { QuoteMetrics } from '@/components/quotes/QuoteMetrics'
+import { QuoteMsnTable } from '@/components/quotes/QuoteMsnTable'
 import type { QuoteDetailResponse } from '@/app/actions/quotes'
-import type { MsnInput, MsnPnlResult, ComponentBreakdown } from '@/stores/pricing-store'
 
 interface QuoteDetailClientProps {
   quote: QuoteDetailResponse
 }
 
 export function QuoteDetailClient({ quote }: QuoteDetailClientProps) {
-  const router = useRouter()
-  const [loaded, setLoaded] = useState(false)
-  const [msnSummaries, setMsnSummaries] = useState<MsnPnlSummary[]>([])
-
-  useEffect(() => {
-    // Populate all 3 stores from the quote snapshot data
-    const dashboardState = (quote.dashboard_state ?? {}) as Record<string, string>
-
-    // Reconstruct msnInputs from msn_snapshots
-    const msnInputs: MsnInput[] = (quote.msn_snapshots ?? []).map((snap) => {
-      const input = snap.msn_input as Record<string, unknown>
-      return {
-        id: input.id as number | undefined,
-        aircraftId: (input.aircraftId as number) ?? snap.aircraft_id,
-        msn: (input.msn as number) ?? snap.msn,
-        aircraftType: (input.aircraftType as string) ?? snap.aircraft_type,
-        registration: (input.registration as string | null) ?? null,
-        mgh: String(input.mgh ?? '350'),
-        cycleRatio: String(input.cycleRatio ?? '1.0'),
-        environment: (input.environment as 'benign' | 'hot') ?? 'benign',
-        periodStart: (input.periodStart as string) ?? '',
-        periodEnd: (input.periodEnd as string) ?? '',
-        leaseType: (input.leaseType as 'wet' | 'damp' | 'moist') ?? 'wet',
-        crewSets: (input.crewSets as number) ?? 4,
-        acmiRate: String(input.acmiRate ?? '0'),
-        excessBh: String(input.excessBh ?? '0'),
-        excessHourRate: String(input.excessHourRate ?? '0'),
-        bhFhRatio: String(input.bhFhRatio ?? '1.2'),
-        apuFhRatio: String(input.apuFhRatio ?? '1.1'),
-        leaseRentEur: String(input.leaseRentEur ?? '0'),
-        sixYearCheckEur: String(input.sixYearCheckEur ?? '0'),
-        twelveYearCheckEur: String(input.twelveYearCheckEur ?? '0'),
-        ldgEur: String(input.ldgEur ?? '0'),
-        apuRateUsd: String(input.apuRateUsd ?? '0'),
-        llp1RateUsd: String(input.llp1RateUsd ?? '0'),
-        llp2RateUsd: String(input.llp2RateUsd ?? '0'),
-        eprMatrix: (input.eprMatrix as Array<{ cycleRatio: number; benignRate: number; hotRate: number }>) ?? [],
-      }
-    })
-
-    // Reconstruct msnResults from msn_snapshots
-    const msnResults: MsnPnlResult[] = (quote.msn_snapshots ?? []).map((snap) => {
-      const bd = snap.breakdown as Record<string, string>
-      const mp = snap.monthly_pnl as Record<string, string>
-      return {
-        msn: snap.msn,
-        aircraftType: snap.aircraft_type,
-        breakdown: {
-          aircraftEurPerBh: bd.aircraftEurPerBh ?? '0',
-          crewEurPerBh: bd.crewEurPerBh ?? '0',
-          maintenanceEurPerBh: bd.maintenanceEurPerBh ?? '0',
-          insuranceEurPerBh: bd.insuranceEurPerBh ?? '0',
-          docEurPerBh: bd.docEurPerBh ?? '0',
-          otherCogsEurPerBh: bd.otherCogsEurPerBh ?? '0',
-          overheadEurPerBh: bd.overheadEurPerBh ?? '0',
-          totalCostPerBh: bd.totalCostPerBh ?? '0',
-          revenuePerBh: bd.revenuePerBh ?? '0',
-          marginPercent: bd.marginPercent ?? '0',
-          finalRatePerBh: bd.finalRatePerBh ?? '0',
-        },
-        monthlyCost: mp.monthlyCost ?? '0',
-        monthlyRevenue: mp.monthlyRevenue ?? '0',
-        monthlyPnl: mp.monthlyPnl ?? '0',
-      }
-    })
-
-    // Compute totalResult from individual msn results
-    let totalResult: ComponentBreakdown | null = null
-    if (msnResults.length > 0) {
-      const sum = (field: keyof ComponentBreakdown) =>
-        msnResults
-          .reduce((acc, r) => acc + parseFloat(r.breakdown[field] || '0'), 0)
-          .toFixed(2)
-      const avg = (field: keyof ComponentBreakdown) =>
-        (
-          msnResults.reduce((acc, r) => acc + parseFloat(r.breakdown[field] || '0'), 0) /
-          msnResults.length
-        ).toFixed(2)
-
-      totalResult = {
-        aircraftEurPerBh: avg('aircraftEurPerBh'),
-        crewEurPerBh: avg('crewEurPerBh'),
-        maintenanceEurPerBh: avg('maintenanceEurPerBh'),
-        insuranceEurPerBh: avg('insuranceEurPerBh'),
-        docEurPerBh: avg('docEurPerBh'),
-        otherCogsEurPerBh: avg('otherCogsEurPerBh'),
-        overheadEurPerBh: avg('overheadEurPerBh'),
-        totalCostPerBh: avg('totalCostPerBh'),
-        revenuePerBh: avg('revenuePerBh'),
-        marginPercent: dashboardState.marginPercent ?? '0',
-        finalRatePerBh: avg('finalRatePerBh'),
-      }
-    }
-
-    // Load into pricing store
-    usePricingStore.getState().loadFromQuote({
-      dashboardState: {
-        projectName: dashboardState.projectName,
-        exchangeRate: dashboardState.exchangeRate ?? quote.exchange_rate,
-        marginPercent: dashboardState.marginPercent ?? quote.margin_percent,
-        bhFhRatio: dashboardState.bhFhRatio,
-        apuFhRatio: dashboardState.apuFhRatio,
-      },
-      msnInputs,
-      msnResults,
-      totalResult,
-    })
-
-    // Load crew config snapshot
-    const crewSnap = quote.crew_config_snapshot as Record<string, unknown> | null
-    if (crewSnap && Object.keys(crewSnap).length > 0) {
-      useCrewConfigStore.getState().loadFromSnapshot({
-        payroll: crewSnap.payroll as Array<{ position: string; grossSalary: number; benefits: number; perDiemFD: number; perDiemNFD: number; perBhPerdiem: number }>,
-        otherCost: crewSnap.otherCost as Array<{ item: string; amount: number | null }>,
-        training: crewSnap.training as Array<{ item: string; amount: number | null }>,
-        averageAC: crewSnap.averageAC as number,
-        fdDays: crewSnap.fdDays as number,
-        nfdDays: crewSnap.nfdDays as number,
-      })
-    }
-
-    // Load costs config snapshot
-    const costsSnap = quote.costs_config_snapshot as Record<string, unknown> | null
-    if (costsSnap && Object.keys(costsSnap).length > 0) {
-      useCostsConfigStore.getState().loadFromSnapshot({
-        maintPersonnel: costsSnap.maintPersonnel as Array<{ name: string; engineers: number; perDiem: number; days: number }>,
-        maintCosts: costsSnap.maintCosts as Array<{ name: string; perMonthPerAc: number; mapping: string }>,
-        insurance: costsSnap.insurance as Array<{ msn: number; priceUsd: number }>,
-        doc: costsSnap.doc as Array<{ name: string; total: number; mapping: string }>,
-        otherCogs: costsSnap.otherCogs as Array<{ name: string; perMonth: number; mapping: string; hasTotal?: boolean; total?: number }>,
-        overhead: costsSnap.overhead as Array<{ name: string; total: number; mapping: string }>,
-        avgAc: costsSnap.avgAc as number,
-      })
-    }
-
-    // Compute P&L summaries using the full engine (matches PnlTable logic)
-    const crewData = useCrewConfigStore.getState()
-    const costsData = useCostsConfigStore.getState()
-    const exRate = parseFloat(dashboardState.exchangeRate ?? quote.exchange_rate ?? '0.85')
-
-    const summaries = msnInputs.map((input) =>
-      computeMsnPnlSummary(input, crewData, costsData, exRate),
-    )
-    setMsnSummaries(summaries)
-
-    setLoaded(true)
-  }, [quote])
-
-  const formatDate = (dateStr: string) => {
-    try {
-      return new Date(dateStr).toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    } catch {
-      return dateStr
-    }
-  }
+  const { loaded, msnSummaries } = useQuoteHydration(quote)
 
   const dashState = quote.dashboard_state as Record<string, string> | null
 
   return (
     <div className="space-y-6">
-      {/* Quote header */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                {quote.quote_number}
-              </h1>
-              <StatusBadge status={quote.status} />
-            </div>
-            <p className="text-gray-700 dark:text-gray-300">{quote.client_name}</p>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-              Created {formatDate(quote.created_at)}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => router.push('/quotes')}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-            >
-              <ArrowLeft size={14} />
-              Back to Quotes
-            </button>
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-500 transition-colors"
-            >
-              <ExternalLink size={14} />
-              Fork and Edit on Dashboard
-            </button>
-          </div>
-        </div>
-      </div>
+      <QuoteHeader
+        quoteNumber={quote.quote_number}
+        clientName={quote.client_name}
+        status={quote.status}
+        createdAt={quote.created_at}
+      />
 
-      {/* Fork info banner */}
-      <div className="bg-indigo-50 dark:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-700 rounded-lg p-3 text-sm text-indigo-700 dark:text-indigo-200">
-        You are viewing a saved quote. Any changes will create a new quote when
-        saved (fork behavior). Click &quot;Fork and Edit on Dashboard&quot; to modify
-        this quote as a new working copy.
-      </div>
+      <QuoteMetrics
+        exchangeRate={dashState?.exchangeRate ?? quote.exchange_rate}
+        marginPercent={dashState?.marginPercent ?? quote.margin_percent}
+        msnCount={quote.msn_list?.length ?? 0}
+      />
 
-      {/* Key metrics summary */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Exchange Rate (USD/EUR)</p>
-          <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 font-mono">
-            {dashState?.exchangeRate ?? quote.exchange_rate}
-          </p>
-        </div>
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Margin</p>
-          <p className="text-lg font-semibold text-gray-900 dark:text-gray-100 font-mono">
-            {dashState?.marginPercent ?? quote.margin_percent}%
-          </p>
-        </div>
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Aircraft (MSNs)</p>
-          <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            {quote.msn_list?.length ?? 0}
-          </p>
-        </div>
-      </div>
-
-      {/* MSN breakdown */}
-      {loaded && quote.msn_snapshots && quote.msn_snapshots.length > 0 && (() => {
-        const fmtNum = (v: number) =>
-          v.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
-        const fmtDec = (v: number) =>
-          v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-
-        // Compute totals across all MSNs
-        const totals = msnSummaries.reduce(
-          (acc, s) => ({
-            totalRevenue: acc.totalRevenue + s.totalRevenue,
-            totalCost: acc.totalCost + s.totalCost,
-            netProfit: acc.netProfit + s.netProfit,
-            totalBh: acc.totalBh + s.totalBh,
-          }),
-          { totalRevenue: 0, totalCost: 0, netProfit: 0, totalBh: 0 },
-        )
-        const totalAcmiCostPerBh = totals.totalBh > 0 ? totals.totalCost / totals.totalBh : 0
-        const totalAcmiRatePerBh = totals.totalBh > 0 ? totals.totalRevenue / totals.totalBh : 0
-
-        return (
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-800">
-              <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                MSN Breakdown
-              </h2>
-            </div>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400">
-                  <th className="text-left px-4 py-2 font-medium">MSN</th>
-                  <th className="text-left px-4 py-2 font-medium">Type</th>
-                  <th className="text-right px-4 py-2 font-medium">ACMI Rate/BH</th>
-                  <th className="text-right px-4 py-2 font-medium">ACMI Cost/BH</th>
-                  <th className="text-right px-4 py-2 font-medium">Net Profit</th>
-                </tr>
-              </thead>
-              <tbody>
-                {quote.msn_snapshots.map((snap, idx) => {
-                  const summary = msnSummaries[idx]
-                  if (!summary) return null
-
-                  return (
-                    <tr
-                      key={snap.id}
-                      className="border-b border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800/50"
-                    >
-                      <td className="px-4 py-2 text-gray-800 dark:text-gray-200 font-medium">
-                        {snap.msn}
-                      </td>
-                      <td className="px-4 py-2 text-gray-700 dark:text-gray-300">
-                        {snap.aircraft_type}
-                      </td>
-                      <td className="px-4 py-2 text-right text-indigo-600 dark:text-indigo-300 font-mono font-medium">
-                        {fmtDec(summary.acmiRatePerBh)}
-                      </td>
-                      <td className="px-4 py-2 text-right text-gray-800 dark:text-gray-200 font-mono">
-                        {fmtNum(summary.acmiCostPerBh)}
-                      </td>
-                      <td className="px-4 py-2 text-right font-mono">
-                        <span
-                          className={
-                            summary.netProfit >= 0
-                              ? 'text-green-400'
-                              : 'text-red-400'
-                          }
-                        >
-                          {fmtNum(summary.netProfit)}
-                        </span>
-                      </td>
-                    </tr>
-                  )
-                })}
-                {/* Total row when more than 1 aircraft */}
-                {msnSummaries.length > 1 && (
-                  <tr className="border-t-2 border-gray-300 dark:border-gray-600 bg-gray-100/40 dark:bg-gray-800/40">
-                    <td className="px-4 py-2 text-gray-900 dark:text-gray-100 font-semibold">
-                      Total
-                    </td>
-                    <td className="px-4 py-2 text-gray-500 dark:text-gray-400">
-                      {msnSummaries.length} A/C
-                    </td>
-                    <td className="px-4 py-2 text-right text-indigo-600 dark:text-indigo-300 font-mono font-semibold">
-                      {fmtDec(totalAcmiRatePerBh)}
-                    </td>
-                    <td className="px-4 py-2 text-right text-gray-900 dark:text-gray-100 font-mono font-semibold">
-                      {fmtNum(totalAcmiCostPerBh)}
-                    </td>
-                    <td className="px-4 py-2 text-right font-mono font-semibold">
-                      <span
-                        className={
-                          totals.netProfit >= 0
-                            ? 'text-green-400'
-                            : 'text-red-400'
-                        }
-                      >
-                        {fmtNum(totals.netProfit)}
-                      </span>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )
-      })()}
+      {loaded && quote.msn_snapshots && quote.msn_snapshots.length > 0 && (
+        <QuoteMsnTable
+          msnSnapshots={quote.msn_snapshots}
+          msnSummaries={msnSummaries}
+        />
+      )}
 
       {/* Navigation hint */}
       <div className="text-xs text-gray-400 dark:text-gray-500">

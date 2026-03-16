@@ -6,46 +6,8 @@ import type { EprMatrixRow, MsnInput } from '@/stores/pricing-store'
 import { computePeriodMonths } from '@/stores/pricing-store'
 import { useCrewConfigStore } from '@/stores/crew-config-store'
 import { useCostsConfigStore } from '@/stores/costs-config-store'
-
-/** Interpolate EPR rate from matrix (same logic as PnlTable) */
-function interpolateEpr(
-  matrix: EprMatrixRow[],
-  targetCr: number,
-  environment: 'benign' | 'hot',
-): number {
-  if (matrix.length === 0) return 0
-  const sorted = [...matrix].sort((a, b) => a.cycleRatio - b.cycleRatio)
-  const getRate = (row: EprMatrixRow) =>
-    environment === 'benign' ? row.benignRate : row.hotRate
-  if (targetCr <= sorted[0].cycleRatio) return getRate(sorted[0])
-  if (targetCr >= sorted[sorted.length - 1].cycleRatio) return getRate(sorted[sorted.length - 1])
-  for (let i = 0; i < sorted.length - 1; i++) {
-    const lo = sorted[i]
-    const hi = sorted[i + 1]
-    if (targetCr >= lo.cycleRatio && targetCr <= hi.cycleRatio) {
-      if (lo.cycleRatio === hi.cycleRatio) return getRate(lo)
-      const t = (targetCr - lo.cycleRatio) / (hi.cycleRatio - lo.cycleRatio)
-      return getRate(lo) + t * (getRate(hi) - getRate(lo))
-    }
-  }
-  return getRate(sorted[sorted.length - 1])
-}
-
-function fmt(value: number, decimals = 2): string {
-  if (isNaN(value) || !isFinite(value)) return '0.00'
-  return value.toLocaleString('en-US', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  })
-}
-
-function fmtRate(value: number): string {
-  if (isNaN(value) || !isFinite(value)) return '0.00'
-  return value.toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })
-}
+import { fmt, fmtRate } from '@/lib/format'
+import { interpolateEpr } from '@/lib/pnl-engine'
 
 interface SummaryRow {
   label: string

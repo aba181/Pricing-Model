@@ -10,7 +10,6 @@ from decimal import Decimal
 from typing import Any
 
 from app.db.base_repository import BaseRepository
-from app.quotes.service import assemble_snapshot_json
 
 
 class QuoteRepository(BaseRepository):
@@ -65,10 +64,10 @@ class QuoteRepository(BaseRepository):
             quote_number, client_name, client_code, created_by,
             exchange_rate, margin_percent, total_eur_per_bh,
             msn_list, period_start, period_end,
-            assemble_snapshot_json(pricing_config_snapshot),
-            assemble_snapshot_json(crew_config_snapshot),
-            assemble_snapshot_json(costs_config_snapshot),
-            assemble_snapshot_json(dashboard_state),
+            pricing_config_snapshot,
+            crew_config_snapshot,
+            costs_config_snapshot,
+            dashboard_state,
         )
 
     async def create_msn_snapshot(
@@ -95,9 +94,9 @@ class QuoteRepository(BaseRepository):
                 $8, $9
             ) RETURNING *""",
             quote_id, msn, aircraft_type, aircraft_id,
-            assemble_snapshot_json(msn_input),
-            assemble_snapshot_json(breakdown),
-            assemble_snapshot_json(monthly_pnl),
+            msn_input,
+            breakdown,
+            monthly_pnl,
             monthly_cost, monthly_revenue,
         )
 

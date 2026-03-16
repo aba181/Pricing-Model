@@ -86,3 +86,28 @@ class UpdateRatesRequest(BaseModel):
     epr_escalation: Decimal | None = None
     llp_escalation: Decimal | None = None
     af_apu_escalation: Decimal | None = None
+
+
+class CreateAircraftRequest(BaseModel):
+    """Request to create a new aircraft with all its rates."""
+
+    msn: int
+    aircraft_type: str = "A320"
+    registration: str | None = None
+    # All rate fields optional
+    lease_rent_usd: Decimal | None = None
+    six_year_check_usd: Decimal | None = None
+    twelve_year_check_usd: Decimal | None = None
+    ldg_usd: Decimal | None = None
+    apu_rate_usd: Decimal | None = None
+    llp1_rate_usd: Decimal | None = None
+    llp2_rate_usd: Decimal | None = None
+    epr_escalation: Decimal | None = None
+    llp_escalation: Decimal | None = None
+    af_apu_escalation: Decimal | None = None
+
+
+class UpdateEprMatrixRequest(BaseModel):
+    """Bulk replace EPR matrix for an aircraft."""
+
+    rows: list[EprMatrixRow]

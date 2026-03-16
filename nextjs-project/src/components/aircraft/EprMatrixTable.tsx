@@ -6,6 +6,7 @@ import {
   updateEprMatrixAction,
   type UpdateEprMatrixState,
 } from '@/app/actions/aircraft'
+import { formatValue, formatRatio } from '@/lib/format'
 
 export interface EprMatrixRow {
   cycle_ratio: string
@@ -17,26 +18,6 @@ interface EprMatrixTableProps {
   eprMatrix: EprMatrixRow[]
   msn: number
   isAdmin: boolean
-}
-
-function formatValue(value: string | null): string {
-  if (value === null || value === undefined) return '-'
-  const num = parseFloat(value)
-  if (isNaN(num)) return '-'
-  return num.toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })
-}
-
-function formatRatio(value: string | null): string {
-  if (value === null || value === undefined) return '-'
-  const num = parseFloat(value)
-  if (isNaN(num)) return '-'
-  return num.toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 4,
-  })
 }
 
 export function EprMatrixTable({ eprMatrix, msn, isAdmin }: EprMatrixTableProps) {

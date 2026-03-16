@@ -157,8 +157,16 @@ export const usePricingStore = create<PricingStore>()((set) => ({
   setProjectName: (name) => set({ projectName: name }),
   setExchangeRate: (rate) => set({ exchangeRate: rate }),
   setMarginPercent: (margin) => set({ marginPercent: margin }),
-  setBhFhRatio: (ratio) => set({ bhFhRatio: ratio }),
-  setApuFhRatio: (ratio) => set({ apuFhRatio: ratio }),
+  setBhFhRatio: (ratio) =>
+    set((state) => ({
+      bhFhRatio: ratio,
+      msnInputs: state.msnInputs.map((i) => ({ ...i, bhFhRatio: ratio })),
+    })),
+  setApuFhRatio: (ratio) =>
+    set((state) => ({
+      apuFhRatio: ratio,
+      msnInputs: state.msnInputs.map((i) => ({ ...i, apuFhRatio: ratio })),
+    })),
 
   addMsnInput: (input) =>
     set((state) => ({
