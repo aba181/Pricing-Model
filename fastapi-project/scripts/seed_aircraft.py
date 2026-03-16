@@ -303,6 +303,9 @@ EPR_TABLES = {
 # All MSNs in fleet order
 ALL_MSNS = [3055, 3378, 3461, 3570, 3605, 4247, 5228, 5931, 1932, 1960, 1503]
 
+# Aircraft type per MSN (A321 for 1503, 1932, 1960; A320 for the rest)
+AIRCRAFT_TYPE = {msn: "A321" if msn in (1503, 1932, 1960) else "A320" for msn in ALL_MSNS}
+
 
 def validate_against_excel(excel_path: str) -> list[str]:
     """Attempt to read the Excel workbook and validate hardcoded data.
@@ -368,7 +371,7 @@ def print_seed_data():
         esc = ESCALATION_RATES[msn]
         epr = EPR_TABLES.get(msn, [])
 
-        print(f"--- MSN {msn} (A320) ---")
+        print(f"--- MSN {msn} ({AIRCRAFT_TYPE[msn]}) ---")
         print(f"  Lease Rent:   ${data['lease_rent']}")
         print(f"  6Y Check:     ${data['six_year']}")
         print(f"  12Y Check:    ${data['twelve_year']}")
@@ -389,8 +392,16 @@ def print_seed_data():
 async def seed(database_url: str):
     """Seed the database with all 11 aircraft and their cost data."""
     import asyncpg
+    import ssl as _ssl
 
-    conn = await asyncpg.connect(database_url)
+    # Handle SSL for Railway public URLs (same logic as app/db/database.py)
+    ssl_ctx = None
+    if ("proxy.rlwy.net" in database_url or "sslmode" in database_url) and "railway.internal" not in database_url:
+        ssl_ctx = _ssl.create_default_context()
+        ssl_ctx.check_hostname = False
+        ssl_ctx.verify_mode = _ssl.CERT_NONE
+
+    conn = await asyncpg.connect(database_url, ssl=ssl_ctx)
     try:
         for msn in ALL_MSNS:
             data = AIRCRAFT_DATA[msn]
@@ -398,12 +409,13 @@ async def seed(database_url: str):
             epr_rows = EPR_TABLES.get(msn, [])
 
             # Upsert aircraft
+            ac_type = AIRCRAFT_TYPE[msn]
             row = await conn.fetchrow(
                 "INSERT INTO aircraft (msn, aircraft_type) VALUES ($1, $2) "
-                "ON CONFLICT (msn) DO UPDATE SET updated_at = NOW() "
+                "ON CONFLICT (msn) DO UPDATE SET aircraft_type = $2, updated_at = NOW() "
                 "RETURNING id",
                 msn,
-                "A320",
+                ac_type,
             )
             aircraft_id = row["id"]
             print(f"  Aircraft MSN {msn} -> id={aircraft_id}")
