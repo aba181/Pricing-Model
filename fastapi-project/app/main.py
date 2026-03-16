@@ -1,4 +1,6 @@
 import pathlib
+import subprocess
+import sys
 from contextlib import asynccontextmanager
 
 import asyncpg
@@ -33,11 +35,27 @@ async def run_migrations(pool: asyncpg.Pool) -> None:
                     await conn.execute("INSERT INTO _migrations (filename) VALUES ($1)", sql_file.name)
 
 
+def run_seed_script() -> None:
+    """Run the aircraft seed script if it exists (idempotent — uses upserts)."""
+    seed_path = pathlib.Path(__file__).parent.parent / "scripts" / "seed_aircraft.py"
+    if not seed_path.exists():
+        return
+    try:
+        subprocess.run(
+            [sys.executable, str(seed_path)],
+            check=True,
+            timeout=60,
+        )
+    except Exception as e:
+        print(f"Seed script warning: {e}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifecycle: create DB pool on startup, close on shutdown."""
     app.state.pool = await create_pool(settings.database_url)
     await run_migrations(app.state.pool)
+    run_seed_script()
     yield
     await app.state.pool.close()
 

@@ -27,6 +27,8 @@ COPY fastapi-project/scripts/ ./scripts/
 
 EXPOSE 8000
 
-RUN chmod +x scripts/start.sh
-
-CMD ["scripts/start.sh"]
+CMD gunicorn app.main:app \
+    --workers 2 \
+    --worker-class uvicorn.workers.UvicornWorker \
+    --bind "0.0.0.0:${PORT:-8000}" \
+    --timeout 120
