@@ -47,7 +47,9 @@ export function UserTable({ users }: UserTableProps) {
                   className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
                     user.role === 'admin'
                       ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                      : user.role === 'viewer'
+                        ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
                   }`}
                 >
                   {user.role}

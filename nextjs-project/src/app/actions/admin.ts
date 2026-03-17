@@ -46,6 +46,54 @@ export async function listUsersAction(): Promise<{
   }
 }
 
+/* ─── Create User ─── */
+
+export interface CreateUserState {
+  success?: boolean
+  error?: string
+}
+
+export async function createUserAction(
+  prevState: CreateUserState,
+  formData: FormData
+): Promise<CreateUserState> {
+  const cookieStore = await cookies()
+  const token = cookieStore.get('access_token')?.value
+
+  if (!token) {
+    return { error: 'Not authenticated' }
+  }
+
+  const email = (formData.get('email') as string)?.trim()
+  const password = formData.get('password') as string
+  const fullName = (formData.get('full_name') as string)?.trim() || null
+  const role = (formData.get('role') as string) || 'user'
+
+  if (!email) return { error: 'Email is required' }
+  if (!password || password.length < 8) return { error: 'Password must be at least 8 characters' }
+
+  try {
+    const res = await fetch(`${API_URL}/admin/users`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: `access_token=${token}`,
+      },
+      body: JSON.stringify({ email, password, full_name: fullName, role }),
+    })
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({ detail: 'Failed to create user' }))
+      return { error: data.detail ?? 'Failed to create user' }
+    }
+
+    revalidatePath('/admin')
+    return { success: true }
+  } catch {
+    return { error: 'Network error — could not reach API' }
+  }
+}
+
 /* ─── Reset Password ─── */
 
 export interface ResetPasswordState {

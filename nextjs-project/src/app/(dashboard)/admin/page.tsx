@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 import { Users } from 'lucide-react'
 import { listUsersAction } from '@/app/actions/admin'
 import { UserTable } from '@/components/admin/UserTable'
+import { CreateUserDialog } from '@/components/admin/CreateUserDialog'
 
 const API_URL = process.env.API_URL ?? 'http://localhost:8000'
 
@@ -56,6 +57,7 @@ export default async function AdminPage() {
             Manage user accounts and reset passwords
           </p>
         </div>
+        <CreateUserDialog />
       </div>
 
       {result.error ? (
