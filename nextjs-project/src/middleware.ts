@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 
 const protectedRoutes = ['/dashboard', '/pricing', '/quotes', '/aircraft', '/admin']
 const publicRoutes = ['/login']
+const viewerAllowedRoutes = ['/dashboard', '/quotes']
+
+function getRoleFromToken(token: string): string | null {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return payload.role ?? null
+  } catch {
+    return null
+  }
+}
 
 export default function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname
@@ -15,6 +25,18 @@ export default function middleware(req: NextRequest) {
   if (isPublic && token) {
     return NextResponse.redirect(new URL('/dashboard', req.nextUrl))
   }
+
+  // Viewer role: restrict to Dashboard and Quotes only
+  if (token && isProtected) {
+    const role = getRoleFromToken(token)
+    if (role === 'viewer') {
+      const allowed = viewerAllowedRoutes.some(r => path.startsWith(r))
+      if (!allowed) {
+        return NextResponse.redirect(new URL('/dashboard', req.nextUrl))
+      }
+    }
+  }
+
   return NextResponse.next()
 }
 

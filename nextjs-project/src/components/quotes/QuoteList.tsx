@@ -10,13 +10,14 @@ import type { QuoteListItem } from '@/app/actions/quotes'
 interface QuoteListProps {
   initialQuotes: { items: QuoteListItem[]; total: number }
   isAdmin?: boolean
+  isViewer?: boolean
 }
 
 const STATUSES = ['draft', 'sent', 'accepted', 'rejected']
 
 type QuoteSortKey = 'quote_number' | 'client_name' | 'status' | 'created_at'
 
-export function QuoteList({ initialQuotes, isAdmin = false }: QuoteListProps) {
+export function QuoteList({ initialQuotes, isAdmin = false, isViewer = false }: QuoteListProps) {
   const [quotes, setQuotes] = useState(initialQuotes.items)
   const [total, setTotal] = useState(initialQuotes.total)
   const [search, setSearch] = useState('')
@@ -176,7 +177,9 @@ export function QuoteList({ initialQuotes, isAdmin = false }: QuoteListProps) {
                 <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">Rate</th>
                 <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">MSNs</th>
                 <th onClick={() => handleSort('created_at')} className="text-left px-4 py-3 font-medium cursor-pointer select-none">Created{sortIndicator('created_at')}</th>
-                <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">Actions</th>
+                {!isViewer && (
+                  <th className="text-left px-4 py-3 font-medium hidden sm:table-cell">Actions</th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -208,31 +211,33 @@ export function QuoteList({ initialQuotes, isAdmin = false }: QuoteListProps) {
                   <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                     {formatDate(q.created_at)}
                   </td>
-                  <td className="px-4 py-3 hidden sm:table-cell">
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={q.status}
-                        onChange={(e) => handleStatusUpdate(q.id, e.target.value)}
-                        className="bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-2 py-1 text-xs text-gray-800 dark:text-gray-200 focus:border-indigo-400 focus:outline-none"
-                      >
-                        {STATUSES.map((s) => (
-                          <option key={s} value={s}>
-                            {s.charAt(0).toUpperCase() + s.slice(1)}
-                          </option>
-                        ))}
-                      </select>
-                      {isAdmin && (
-                        <button
-                          onClick={() => handleDelete(q.id, q.quote_number)}
-                          disabled={deletingId === q.id}
-                          title="Delete quote"
-                          className="p-1 rounded text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50"
+                  {!isViewer && (
+                    <td className="px-4 py-3 hidden sm:table-cell">
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={q.status}
+                          onChange={(e) => handleStatusUpdate(q.id, e.target.value)}
+                          className="bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-2 py-1 text-xs text-gray-800 dark:text-gray-200 focus:border-indigo-400 focus:outline-none"
                         >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
+                          {STATUSES.map((s) => (
+                            <option key={s} value={s}>
+                              {s.charAt(0).toUpperCase() + s.slice(1)}
+                            </option>
+                          ))}
+                        </select>
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleDelete(q.id, q.quote_number)}
+                            disabled={deletingId === q.id}
+                            title="Delete quote"
+                            className="p-1 rounded text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

@@ -21,8 +21,29 @@ async function getAircraftList(): Promise<AircraftOption[]> {
   }
 }
 
+async function getIsViewer(): Promise<boolean> {
+  const cookieStore = await cookies()
+  const token = cookieStore.get('access_token')?.value
+  if (!token) return false
+
+  try {
+    const res = await fetch(`${API_URL}/auth/me`, {
+      headers: { Cookie: `access_token=${token}` },
+      cache: 'no-store',
+    })
+    if (!res.ok) return false
+    const user = await res.json()
+    return user.role === 'viewer'
+  } catch {
+    return false
+  }
+}
+
 export default async function DashboardPage() {
-  const aircraftList = await getAircraftList()
+  const [aircraftList, isViewer] = await Promise.all([
+    getAircraftList(),
+    getIsViewer(),
+  ])
 
   return (
     <div className="space-y-6">
@@ -32,7 +53,7 @@ export default async function DashboardPage() {
           Configure MSN inputs and view pricing summary
         </p>
       </div>
-      <DashboardSummary aircraftList={aircraftList} />
+      <DashboardSummary aircraftList={aircraftList} isViewer={isViewer} />
     </div>
   )
 }

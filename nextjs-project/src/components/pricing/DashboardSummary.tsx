@@ -12,9 +12,10 @@ import type { AircraftOption } from '@/lib/api-converters'
 
 interface DashboardSummaryProps {
   aircraftList: AircraftOption[]
+  isViewer?: boolean
 }
 
-export function DashboardSummary({ aircraftList }: DashboardSummaryProps) {
+export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSummaryProps) {
   const {
     projectName,
     exchangeRate,
@@ -110,14 +111,16 @@ export function DashboardSummary({ aircraftList }: DashboardSummaryProps) {
           {isCalculating && (
             <div className="text-xs text-indigo-600 dark:text-indigo-400 pb-2">Calculating...</div>
           )}
-          <button
-            onClick={() => setShowSaveDialog(true)}
-            disabled={msnResults.length === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-indigo-600 text-white rounded-md hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <Save size={12} />
-            Save as Quote
-          </button>
+          {!isViewer && (
+            <button
+              onClick={() => setShowSaveDialog(true)}
+              disabled={msnResults.length === 0}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-indigo-600 text-white rounded-md hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <Save size={12} />
+              Save as Quote
+            </button>
+          )}
           {savedNotice && (
             <div className="text-xs text-green-400 pb-2">
               Saved: {savedNotice}

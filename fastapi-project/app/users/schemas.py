@@ -8,13 +8,13 @@ from pydantic import BaseModel, EmailStr
 class CreateUserRequest(BaseModel):
     email: EmailStr
     password: str
-    role: Literal["admin", "user"] = "user"
+    role: Literal["admin", "user", "viewer"] = "user"
     full_name: str | None = None
 
 
 class UpdateUserRequest(BaseModel):
     full_name: str | None = None
-    role: Literal["admin", "user"] | None = None
+    role: Literal["admin", "user", "viewer"] | None = None
     is_active: bool | None = None
 
 

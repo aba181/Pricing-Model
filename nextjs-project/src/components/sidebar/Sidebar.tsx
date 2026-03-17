@@ -28,8 +28,13 @@ const navItems = [
   { href: '/admin', label: 'Admin', icon: Settings },
 ]
 
+const viewerAllowedHrefs = new Set(['/dashboard', '/quotes'])
 
-export function Sidebar() {
+interface SidebarProps {
+  userRole?: string
+}
+
+export function Sidebar({ userRole = 'user' }: SidebarProps) {
   const { isCollapsed, toggle } = useSidebarStore()
   const [mounted, setMounted] = useState(false)
   const pathname = usePathname()
@@ -68,7 +73,9 @@ export function Sidebar() {
 
       {/* Navigation items */}
       <nav className="flex-1 p-2 space-y-0.5">
-        {navItems.map(({ href, label, icon: Icon }) => {
+        {navItems
+          .filter(({ href }) => userRole !== 'viewer' || viewerAllowedHrefs.has(href))
+          .map(({ href, label, icon: Icon }) => {
           const isActive = pathname.startsWith(href)
           return (
             <Link
