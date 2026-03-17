@@ -11,6 +11,9 @@ import { VARIABLE_COST_KEYS, FIXED_COST_KEYS, OVERHEAD_KEYS, ALL_DATA_KEYS } fro
 export interface PnlLineConfig {
   // A component — variable (from Aircraft tab + KPIs)
   maintReservesVariable: number // EPR MR + LLP MR + APU MR (monthly, EUR)
+  eprMr: number   // EPR maintenance reserve sub-component (EUR)
+  llpMr: number   // LLP maintenance reserve sub-component (EUR)
+  apuMr: number   // APU maintenance reserve sub-component (EUR)
   // A component — fixed (from Aircraft tab)
   leaseRentEur: number
   maintReservesFixedEur: number
@@ -97,6 +100,9 @@ export function buildMonthlyData(
     // -- VARIABLE COST --
     // A: reserves variable (EPR MR + LLP MR + APU MR) from Aircraft tab
     data['maintReservesVariable'][m] = cfg.maintReservesVariable
+    data['maintReservesVariable_epr'][m] = cfg.eprMr
+    data['maintReservesVariable_llp'][m] = cfg.llpMr
+    data['maintReservesVariable_apu'][m] = cfg.apuMr
     data['assetMgmtFee'][m] = 0
 
     // C: per diems (from Crew tab)

@@ -149,6 +149,7 @@ export const ALL_DATA_KEYS = [
   ...VARIABLE_COST_KEYS,
   ...FIXED_COST_KEYS,
   ...OVERHEAD_KEYS,
+  'maintReservesVariable_epr', 'maintReservesVariable_llp', 'maintReservesVariable_apu',
   'wetLease', 'otherRevenue', 'financeIncome',
   'totalRevenue', 'totalVariableCost', 'contributionI',
   'totalFixedCost', 'contributionII', 'totalOverhead',

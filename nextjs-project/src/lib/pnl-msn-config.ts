@@ -287,6 +287,9 @@ export function computeMsnConfig(
 
   const cfg: PnlLineConfig = {
     maintReservesVariable: msnMaintReservesVariable,
+    eprMr: msnEprMr,
+    llpMr: msnLlpMr,
+    apuMr: msnApuMr,
     leaseRentEur: parseFloat(input.leaseRentEur || '0'),
     maintReservesFixedEur,
     pilotPerDiem: msnPilotPerDiem,

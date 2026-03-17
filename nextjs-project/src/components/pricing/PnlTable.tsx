@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useCallback } from 'react'
 import { usePricingStore } from '@/stores/pricing-store'
 import { generateMonthRange } from '@/stores/pricing-store'
 import { useCrewConfigStore } from '@/stores/crew-config-store'
@@ -8,8 +9,14 @@ import { fmt, fmtPct, fmtDec, valColor } from '@/lib/format'
 import { PNL_ROWS, MARGIN_KEYS, KPI_DECIMAL_KEYS, ALL_DATA_KEYS } from '@/lib/pnl-row-defs'
 import { buildMonthlyData } from '@/lib/pnl-monthly-builder'
 import { deriveCrewValues, deriveCostsValues, computeMsnConfig } from '@/lib/pnl-msn-config'
+import { CostDetailPopover } from './CostDetailPopover'
 
 // ---- Component ----
+
+interface PopoverState {
+  monthIndex: number
+  anchorRect: DOMRect
+}
 
 export function PnlTable() {
   const selectedMsn = usePricingStore((s) => s.selectedMsn)
@@ -35,6 +42,10 @@ export function PnlTable() {
   const costsOtherCogs = useCostsConfigStore((s) => s.otherCogs)
   const costsOverhead = useCostsConfigStore((s) => s.overhead)
   const costsAvgAc = useCostsConfigStore((s) => s.avgAc)
+
+  // -- Cost detail popover state --
+  const [popover, setPopover] = useState<PopoverState | null>(null)
+  const closePopover = useCallback(() => setPopover(null), [])
 
   // -- Derive crew and costs values using extracted modules --
   const crew = deriveCrewValues(
@@ -344,13 +355,21 @@ export function PnlTable() {
               }
 
               // Regular item rows
+              const isClickable = key === 'maintReservesVariable'
               return (
                 <tr key={idx} className="hover:bg-gray-100/20 dark:bg-gray-800/20">
                   <td className={`sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 py-1 text-gray-700 dark:text-gray-300 pl-8 ${labelColWidth}`}>
                     {row.label}
                   </td>
                   {(vals ?? []).map((v, mi) => (
-                    <td key={mi} className={`text-right px-3 py-1 font-mono text-gray-700 dark:text-gray-300 ${dataColWidth} ${valColor(v)}`}>
+                    <td
+                      key={mi}
+                      className={`text-right px-3 py-1 font-mono text-gray-700 dark:text-gray-300 ${dataColWidth} ${valColor(v)} ${isClickable ? 'cursor-pointer hover:underline hover:text-indigo-600 dark:hover:text-indigo-400' : ''}`}
+                      onClick={isClickable ? (e) => {
+                        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                        setPopover({ monthIndex: mi, anchorRect: rect })
+                      } : undefined}
+                    >
                       {fmt(v, 0)}
                     </td>
                   ))}
@@ -363,6 +382,21 @@ export function PnlTable() {
           </tbody>
         </table>
       </div>
+
+      {/* Cost detail popover */}
+      {popover && (
+        <CostDetailPopover
+          monthLabel={months[popover.monthIndex]?.label ?? ''}
+          eprMr={monthlyData['maintReservesVariable_epr']?.[popover.monthIndex] ?? 0}
+          llpMr={monthlyData['maintReservesVariable_llp']?.[popover.monthIndex] ?? 0}
+          apuMr={monthlyData['maintReservesVariable_apu']?.[popover.monthIndex] ?? 0}
+          fh={monthlyData['fh']?.[popover.monthIndex] ?? 0}
+          fc={monthlyData['fc']?.[popover.monthIndex] ?? 0}
+          apuFh={monthlyData['apuFh']?.[popover.monthIndex] ?? 0}
+          anchorRect={popover.anchorRect}
+          onClose={closePopover}
+        />
+      )}
     </div>
   )
 }
