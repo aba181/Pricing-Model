@@ -7,6 +7,7 @@ import { fmt } from '@/lib/format'
 export interface BreakdownItem {
   label: string
   value: number
+  formula?: string
 }
 
 export interface ParamItem {
@@ -87,9 +88,16 @@ export function LineDetailPopover({
       {/* Breakdown items */}
       <div className="px-3 py-2 space-y-1.5">
         {items.map((item) => (
-          <div key={item.label} className="flex justify-between items-center">
-            <span className="text-gray-600 dark:text-gray-300">{item.label}</span>
-            <span className="font-mono text-gray-900 dark:text-gray-100">{fmt(item.value, 0)}</span>
+          <div key={item.label}>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600 dark:text-gray-300">{item.label}</span>
+              <span className="font-mono text-gray-900 dark:text-gray-100">{fmt(item.value, 0)}</span>
+            </div>
+            {item.formula && (
+              <div className="text-[10px] text-gray-400 dark:text-gray-500 font-mono pl-2 mt-0.5">
+                {item.formula}
+              </div>
+            )}
           </div>
         ))}
 

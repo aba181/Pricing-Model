@@ -9,6 +9,7 @@ import { fmt, fmtPct, fmtDec, valColor } from '@/lib/format'
 import { PNL_ROWS, MARGIN_KEYS, KPI_DECIMAL_KEYS, ALL_DATA_KEYS } from '@/lib/pnl-row-defs'
 import { buildMonthlyData } from '@/lib/pnl-monthly-builder'
 import { deriveCrewValues, deriveCostsValues, computeMsnConfig } from '@/lib/pnl-msn-config'
+import { interpolateEpr } from '@/lib/pnl-engine'
 import { LineDetailPopover } from './CostDetailPopover'
 import type { BreakdownItem, ParamItem } from './CostDetailPopover'
 
@@ -206,14 +207,35 @@ export function PnlTable() {
     params?: ParamItem[]
   } | null {
     const v = (k: string) => monthlyData[k]?.[mi] ?? 0
+    // For formula computation in single-MSN view
+    const msnInput = selectedMsn !== null
+      ? msnInputs.find((i) => i.msn === selectedMsn)
+      : null
+    // Number formatter for formulas
+    const fn = (n: number, d: number = 0) =>
+      d === 0
+        ? Math.round(n).toLocaleString('en-US')
+        : n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d })
+
     switch (rowKey) {
-      case 'maintReservesVariable':
+      case 'maintReservesVariable': {
+        let eprF: string | undefined, llpF: string | undefined, apuF: string | undefined
+        if (msnInput) {
+          const cr = parseFloat(msnInput.cycleRatio || '1')
+          const eprRate = interpolateEpr(msnInput.eprMatrix ?? [], cr, msnInput.environment)
+          const llp1 = parseFloat(msnInput.llp1RateUsd || '0')
+          const llp2 = parseFloat(msnInput.llp2RateUsd || '0')
+          const apuRate = parseFloat(msnInput.apuRateUsd || '0')
+          eprF = `${fn(eprRate, 2)} \u00d7 2 \u00d7 ${fn(v('fh'), 1)} FH \u00d7 ${fn(exchangeRate, 2)} \u20ac/$`
+          llpF = `(${fn(llp1, 2)} + ${fn(llp2, 2)}) \u00d7 ${fn(v('fc'), 1)} FC \u00d7 ${fn(exchangeRate, 2)} \u20ac/$`
+          apuF = `${fn(apuRate, 2)} \u00d7 ${fn(v('apuFh'), 1)} APU FH \u00d7 ${fn(exchangeRate, 2)} \u20ac/$`
+        }
         return {
           title: 'Maint. Reserves - Variable',
           items: [
-            { label: 'EPR', value: v('maintReservesVariable_epr') },
-            { label: 'LLP', value: v('maintReservesVariable_llp') },
-            { label: 'APU', value: v('maintReservesVariable_apu') },
+            { label: 'EPR', value: v('maintReservesVariable_epr'), formula: eprF },
+            { label: 'LLP', value: v('maintReservesVariable_llp'), formula: llpF },
+            { label: 'APU', value: v('maintReservesVariable_apu'), formula: apuF },
           ],
           params: [
             { label: 'FH', value: v('fh') },
@@ -221,30 +243,48 @@ export function PnlTable() {
             { label: 'APU FH', value: v('apuFh') },
           ],
         }
-      case 'pilotPerDiem':
+      }
+      case 'pilotPerDiem': {
+        const sets = msnInput?.crewSets ?? 0
         return {
           title: 'Pilot - Per Diem',
           items: [
-            { label: 'Per Diem', value: v('pilotPerDiem_perDiem') },
-            { label: 'BH Bonus', value: v('pilotPerDiem_bhBonus') },
+            { label: 'Per Diem', value: v('pilotPerDiem_perDiem'),
+              formula: msnInput ? `${fn(crew.pilotPerDiemPerSet)} \u00d7 ${sets} sets` : undefined },
+            { label: 'BH Bonus', value: v('pilotPerDiem_bhBonus'),
+              formula: msnInput ? `${fn(crew.bhBonusPerBh, 2)}/BH \u00d7 ${fn(v('bh'))} BH` : undefined },
           ],
           params: [
             { label: 'BH', value: v('bh'), decimals: 0 },
           ],
         }
-      case 'cabinCrewPerDiem':
+      }
+      case 'cabinCrewPerDiem': {
+        let cabAttF: string | undefined, senAttF: string | undefined
+        if (msnInput) {
+          const sets = msnInput.crewSets
+          const cnt = msnInput.aircraftType === 'A321' ? 4 : 3
+          if (msnInput.leaseType === 'wet') {
+            cabAttF = `${cnt} \u00d7 ${fn(crew.cabinAttPerDiem)} \u00d7 ${sets} sets`
+            senAttF = `${fn(crew.seniorAttPerDiem)} \u00d7 ${sets} sets`
+          } else if (msnInput.leaseType === 'moist') {
+            senAttF = `${fn(crew.seniorAttPerDiem)} \u00d7 ${sets} sets`
+          }
+        }
         return {
           title: 'Cabin Crew - Per Diem',
           items: [
-            { label: 'Cabin Attendant', value: v('cabinCrewPerDiem_cabinAtt') },
-            { label: 'Senior Attendant', value: v('cabinCrewPerDiem_seniorAtt') },
+            { label: 'Cabin Attendant', value: v('cabinCrewPerDiem_cabinAtt'), formula: cabAttF },
+            { label: 'Senior Attendant', value: v('cabinCrewPerDiem_seniorAtt'), formula: senAttF },
           ],
         }
+      }
       case 'spareParts':
         return {
           title: 'Spare Parts',
           items: [
-            { label: 'BH-based', value: v('spareParts_bh') },
+            { label: 'BH-based', value: v('spareParts_bh'),
+              formula: msnInput ? `${fn(v('bh'))} BH \u00d7 ${fn(costs.sparePartsRatePerBh, 2)}/BH` : undefined },
             { label: 'Tires/Wheels', value: v('spareParts_tiresWheels') },
           ],
           params: [
@@ -252,7 +292,6 @@ export function PnlTable() {
           ],
         }
       case 'maintPersonnelPerDiem': {
-        // Compute per-role breakdown from costs store
         const totalFromStore = costsMaintPersonnel.reduce(
           (s, p) => s + p.engineers * p.perDiem * p.days, 0,
         )
@@ -265,6 +304,7 @@ export function PnlTable() {
             .map((p) => ({
               label: p.name,
               value: p.engineers * p.perDiem * p.days * scale,
+              formula: `${p.engineers} eng \u00d7 ${fn(p.perDiem)} \u00d7 ${p.days} days`,
             })),
         }
       }
@@ -277,22 +317,38 @@ export function PnlTable() {
             { label: 'Landing Gear', value: v('maintReservesFixed_ldg') },
           ],
         }
-      case 'pilotSalary':
+      case 'pilotSalary': {
+        const sets = msnInput?.crewSets ?? 0
         return {
           title: 'Pilot - Salary',
           items: [
-            { label: 'Pilot', value: v('pilotSalary_pilot') },
-            { label: 'Co-Pilot', value: v('pilotSalary_copilot') },
+            { label: 'Pilot', value: v('pilotSalary_pilot'),
+              formula: msnInput ? `${fn(crew.pilotSS)} \u00d7 ${sets} sets` : undefined },
+            { label: 'Co-Pilot', value: v('pilotSalary_copilot'),
+              formula: msnInput ? `${fn(crew.copilotSS)} \u00d7 ${sets} sets` : undefined },
           ],
         }
-      case 'cabinCrewSalary':
+      }
+      case 'cabinCrewSalary': {
+        let cabAttF: string | undefined, senAttF: string | undefined
+        if (msnInput) {
+          const sets = msnInput.crewSets
+          const cnt = msnInput.aircraftType === 'A321' ? 4 : 3
+          if (msnInput.leaseType === 'wet') {
+            cabAttF = `${cnt} \u00d7 ${fn(crew.cabinAttendantSS)} \u00d7 ${sets} sets`
+            senAttF = `${fn(crew.seniorAttendantSS)} \u00d7 ${sets} sets`
+          } else if (msnInput.leaseType === 'moist') {
+            senAttF = `${fn(crew.seniorAttendantSS)} \u00d7 ${sets} sets`
+          }
+        }
         return {
           title: 'Cabin Crew - Salary',
           items: [
-            { label: 'Cabin Attendant', value: v('cabinCrewSalary_cabinAtt') },
-            { label: 'Senior Attendant', value: v('cabinCrewSalary_seniorAtt') },
+            { label: 'Cabin Attendant', value: v('cabinCrewSalary_cabinAtt'), formula: cabAttF },
+            { label: 'Senior Attendant', value: v('cabinCrewSalary_seniorAtt'), formula: senAttF },
           ],
         }
+      }
       case 'lineMaintenance':
         return {
           title: 'Line Maintenance',
