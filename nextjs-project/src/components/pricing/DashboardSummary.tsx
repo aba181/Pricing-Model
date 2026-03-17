@@ -81,7 +81,13 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
               step="0.0001"
               value={exchangeRate}
               onChange={(e) => setExchangeRate(e.target.value)}
-              className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:border-indigo-400 focus:outline-none"
+              readOnly={isViewer}
+              tabIndex={isViewer ? -1 : undefined}
+              className={`w-full border rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none ${
+                isViewer
+                  ? 'bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 cursor-default'
+                  : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 focus:border-indigo-400'
+              }`}
             />
           </div>
           <div className="w-[100px]">
@@ -93,7 +99,13 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
               step="0.01"
               value={bhFhRatio}
               onChange={(e) => setBhFhRatio(e.target.value)}
-              className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:border-indigo-400 focus:outline-none"
+              readOnly={isViewer}
+              tabIndex={isViewer ? -1 : undefined}
+              className={`w-full border rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none ${
+                isViewer
+                  ? 'bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 cursor-default'
+                  : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 focus:border-indigo-400'
+              }`}
             />
           </div>
           <div className="w-[100px]">
@@ -105,7 +117,13 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
               step="0.01"
               value={apuFhRatio}
               onChange={(e) => setApuFhRatio(e.target.value)}
-              className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:border-indigo-400 focus:outline-none"
+              readOnly={isViewer}
+              tabIndex={isViewer ? -1 : undefined}
+              className={`w-full border rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none ${
+                isViewer
+                  ? 'bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700 cursor-default'
+                  : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 focus:border-indigo-400'
+              }`}
             />
           </div>
           {isCalculating && (
