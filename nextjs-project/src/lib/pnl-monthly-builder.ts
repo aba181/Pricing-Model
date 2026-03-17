@@ -58,6 +58,22 @@ export interface PnlLineConfig {
   // Other COGS (from Costs tab) — commission rates per BH
   commissionSummerRate: number // Nov-Apr: rate x BH
   commissionWinterRate: number // May-Oct: rate x BH
+  // -- Sub-components for drill-down popovers --
+  pilotPerDiem_perDiem: number    // per diem component (pilotPerDiemPerSet × crewSets)
+  pilotPerDiem_bhBonus: number    // BH bonus component (bhBonusPerBh × totalBH)
+  cabinCrewPerDiem_cabinAtt: number  // cabin attendant per diem portion
+  cabinCrewPerDiem_seniorAtt: number // senior attendant per diem portion
+  spareParts_bh: number           // BH-based spare parts (totalBH × rate)
+  spareParts_tiresWheels: number  // tires/wheels fixed cost
+  maintReservesFixed_6yr: number  // 6-year check
+  maintReservesFixed_12yr: number // 12-year check
+  maintReservesFixed_ldg: number  // landing gear
+  pilotSalary_pilot: number       // pilot SS × crewSets
+  pilotSalary_copilot: number     // copilot SS × crewSets
+  cabinCrewSalary_cabinAtt: number   // cabin attendant SS portion
+  cabinCrewSalary_seniorAtt: number  // senior attendant SS portion
+  lineMaintenance_internal: number   // Line Maintenance - Internal
+  lineMaintenance_3rdParty: number   // Line Maintenance - 3rd Party
 }
 
 /**
@@ -107,11 +123,17 @@ export function buildMonthlyData(
 
     // C: per diems (from Crew tab)
     data['pilotPerDiem'][m] = cfg.pilotPerDiem
+    data['pilotPerDiem_perDiem'][m] = cfg.pilotPerDiem_perDiem
+    data['pilotPerDiem_bhBonus'][m] = cfg.pilotPerDiem_bhBonus
     data['cabinCrewPerDiem'][m] = cfg.cabinCrewPerDiem
+    data['cabinCrewPerDiem_cabinAtt'][m] = cfg.cabinCrewPerDiem_cabinAtt
+    data['cabinCrewPerDiem_seniorAtt'][m] = cfg.cabinCrewPerDiem_seniorAtt
     data['accomTravelC'][m] = cfg.accomTravelC
 
     // M: variable maintenance (from Costs tab)
     data['spareParts'][m] = cfg.spareParts
+    data['spareParts_bh'][m] = cfg.spareParts_bh
+    data['spareParts_tiresWheels'][m] = cfg.spareParts_tiresWheels
     data['maintPersonnelPerDiem'][m] = cfg.maintPersonnelPerDiem
     data['accomTravelM'][m] = 0
     data['otherMaintV'][m] = 0
@@ -138,15 +160,24 @@ export function buildMonthlyData(
     // A: from Aircraft tab rates
     data['dryLease'][m] = cfg.leaseRentEur
     data['maintReservesFixed'][m] = cfg.maintReservesFixedEur
+    data['maintReservesFixed_6yr'][m] = cfg.maintReservesFixed_6yr
+    data['maintReservesFixed_12yr'][m] = cfg.maintReservesFixed_12yr
+    data['maintReservesFixed_ldg'][m] = cfg.maintReservesFixed_ldg
 
     // C: from Crew tab
     data['pilotSalary'][m] = cfg.pilotSalary
+    data['pilotSalary_pilot'][m] = cfg.pilotSalary_pilot
+    data['pilotSalary_copilot'][m] = cfg.pilotSalary_copilot
     data['cabinCrewSalary'][m] = cfg.cabinCrewSalary
+    data['cabinCrewSalary_cabinAtt'][m] = cfg.cabinCrewSalary_cabinAtt
+    data['cabinCrewSalary_seniorAtt'][m] = cfg.cabinCrewSalary_seniorAtt
     data['staffUniformF'][m] = cfg.staffUniformF
     data['trainingC'][m] = cfg.trainingC
 
     // M: from Costs tab
     data['lineMaintenance'][m] = cfg.lineMaintenance
+    data['lineMaintenance_internal'][m] = cfg.lineMaintenance_internal
+    data['lineMaintenance_3rdParty'][m] = cfg.lineMaintenance_3rdParty
     data['baseMaintenance'][m] = cfg.baseMaintenance
     data['maintPersonnelSalary'][m] = cfg.maintPersonnelSalary
     data['trainningM'][m] = cfg.trainningM

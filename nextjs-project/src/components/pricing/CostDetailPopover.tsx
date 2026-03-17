@@ -4,33 +4,34 @@ import { useEffect, useRef } from 'react'
 import { X } from 'lucide-react'
 import { fmt } from '@/lib/format'
 
-interface CostDetailPopoverProps {
-  /** Month label (e.g., "Mar 2026") */
+export interface BreakdownItem {
+  label: string
+  value: number
+}
+
+export interface ParamItem {
+  label: string
+  value: number
+  decimals?: number
+}
+
+interface LineDetailPopoverProps {
+  title: string
   monthLabel: string
-  /** Sub-component values for the selected month */
-  eprMr: number
-  llpMr: number
-  apuMr: number
-  /** KPI values for the selected month */
-  fh: number
-  fc: number
-  apuFh: number
-  /** Position anchor */
+  items: BreakdownItem[]
+  params?: ParamItem[]
   anchorRect: DOMRect
   onClose: () => void
 }
 
-export function CostDetailPopover({
+export function LineDetailPopover({
+  title,
   monthLabel,
-  eprMr,
-  llpMr,
-  apuMr,
-  fh,
-  fc,
-  apuFh,
+  items,
+  params,
   anchorRect,
   onClose,
-}: CostDetailPopoverProps) {
+}: LineDetailPopoverProps) {
   const ref = useRef<HTMLDivElement>(null)
 
   // Close on click outside
@@ -53,7 +54,7 @@ export function CostDetailPopover({
     return () => document.removeEventListener('keydown', handleKey)
   }, [onClose])
 
-  const total = eprMr + llpMr + apuMr
+  const total = items.reduce((s, i) => s + i.value, 0)
 
   // Position below the clicked cell
   const top = anchorRect.bottom + 4
@@ -68,7 +69,7 @@ export function CostDetailPopover({
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 dark:border-gray-800">
         <span className="font-semibold text-gray-900 dark:text-gray-100">
-          Maint. Reserves - Variable
+          {title}
         </span>
         <button
           onClick={onClose}
@@ -83,20 +84,14 @@ export function CostDetailPopover({
         {monthLabel}
       </div>
 
-      {/* Breakdown table */}
+      {/* Breakdown items */}
       <div className="px-3 py-2 space-y-1.5">
-        <div className="flex justify-between items-center">
-          <span className="text-gray-600 dark:text-gray-300">EPR</span>
-          <span className="font-mono text-gray-900 dark:text-gray-100">{fmt(eprMr, 0)}</span>
-        </div>
-        <div className="flex justify-between items-center">
-          <span className="text-gray-600 dark:text-gray-300">LLP</span>
-          <span className="font-mono text-gray-900 dark:text-gray-100">{fmt(llpMr, 0)}</span>
-        </div>
-        <div className="flex justify-between items-center">
-          <span className="text-gray-600 dark:text-gray-300">APU</span>
-          <span className="font-mono text-gray-900 dark:text-gray-100">{fmt(apuMr, 0)}</span>
-        </div>
+        {items.map((item) => (
+          <div key={item.label} className="flex justify-between items-center">
+            <span className="text-gray-600 dark:text-gray-300">{item.label}</span>
+            <span className="font-mono text-gray-900 dark:text-gray-100">{fmt(item.value, 0)}</span>
+          </div>
+        ))}
 
         <div className="border-t border-gray-200 dark:border-gray-700 pt-1.5 flex justify-between items-center font-semibold">
           <span className="text-gray-900 dark:text-gray-100">Total</span>
@@ -105,23 +100,21 @@ export function CostDetailPopover({
       </div>
 
       {/* Parameters */}
-      <div className="px-3 py-2 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 rounded-b-lg">
-        <div className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">Parameters</div>
-        <div className="grid grid-cols-3 gap-2 text-[11px]">
-          <div>
-            <span className="text-gray-500 dark:text-gray-400">FH</span>
-            <span className="ml-1 font-mono text-gray-800 dark:text-gray-200">{fmt(fh, 1)}</span>
-          </div>
-          <div>
-            <span className="text-gray-500 dark:text-gray-400">FC</span>
-            <span className="ml-1 font-mono text-gray-800 dark:text-gray-200">{fmt(fc, 1)}</span>
-          </div>
-          <div>
-            <span className="text-gray-500 dark:text-gray-400">APU FH</span>
-            <span className="ml-1 font-mono text-gray-800 dark:text-gray-200">{fmt(apuFh, 1)}</span>
+      {params && params.length > 0 && (
+        <div className="px-3 py-2 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 rounded-b-lg">
+          <div className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">Parameters</div>
+          <div className={`grid gap-2 text-[11px] ${params.length <= 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+            {params.map((p) => (
+              <div key={p.label}>
+                <span className="text-gray-500 dark:text-gray-400">{p.label}</span>
+                <span className="ml-1 font-mono text-gray-800 dark:text-gray-200">
+                  {fmt(p.value, p.decimals ?? 1)}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

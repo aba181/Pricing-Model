@@ -22,6 +22,8 @@ import type { PnlLineConfig } from './pnl-monthly-builder'
 
 export interface CrewDerivedValues {
   pilotSalaryPerSet: number
+  pilotSS: number            // pilot only (gross + benefits)
+  copilotSS: number          // copilot only (gross + benefits)
   cabinAttendantSS: number
   seniorAttendantSS: number
   uniformPerMonth: number
@@ -42,9 +44,9 @@ export function deriveCrewValues(
   nfdDays: number,
 ): CrewDerivedValues {
   // Pilot salary per crew set = (pilot SS) + (copilot SS)
-  const pilotSalaryPerSet =
-    (payroll[0].grossSalary + payroll[0].benefits) +
-    (payroll[1].grossSalary + payroll[1].benefits)
+  const pilotSS = payroll[0].grossSalary + payroll[0].benefits
+  const copilotSS = payroll[1].grossSalary + payroll[1].benefits
+  const pilotSalaryPerSet = pilotSS + copilotSS
 
   // Cabin attendant SS (any of rows 2-5)
   const cabinAttendantSS = payroll[2].grossSalary + payroll[2].benefits
@@ -83,6 +85,8 @@ export function deriveCrewValues(
 
   return {
     pilotSalaryPerSet,
+    pilotSS,
+    copilotSS,
     cabinAttendantSS,
     seniorAttendantSS,
     uniformPerMonth,
@@ -99,6 +103,8 @@ export function deriveCrewValues(
 
 export interface CostsDerivedValues {
   lineMaintenanceVal: number
+  lineMaintenanceInternal: number
+  lineMaintenance3rdParty: number
   baseMaintenanceVal: number
   maintPersonnelSalaryVal: number
   trainningVal: number
@@ -131,7 +137,9 @@ export function deriveCostsValues(
 ): CostsDerivedValues {
   // M component: look up by name in maintCosts
   const findMaintCost = (name: string) => maintCosts.find((c) => c.name === name)?.perMonthPerAc ?? 0
-  const lineMaintenanceVal = findMaintCost('Line Maintenance - Internal') + findMaintCost('Line Maintenance - 3rd Party')
+  const lineMaintenanceInternal = findMaintCost('Line Maintenance - Internal')
+  const lineMaintenance3rdParty = findMaintCost('Line Maintenance - 3rd Party')
+  const lineMaintenanceVal = lineMaintenanceInternal + lineMaintenance3rdParty
   const baseMaintenanceVal = findMaintCost('Capital Maintenance')
   const maintPersonnelSalaryVal = findMaintCost('Maintenance Personnel Salary')
   const trainningVal = findMaintCost('Trainning')
@@ -181,6 +189,8 @@ export function deriveCostsValues(
 
   return {
     lineMaintenanceVal,
+    lineMaintenanceInternal,
+    lineMaintenance3rdParty,
     baseMaintenanceVal,
     maintPersonnelSalaryVal,
     trainningVal,
@@ -238,29 +248,43 @@ export function computeMsnConfig(
   const msnTotalBh = msnMgh + msnExcessBh
 
   // C component — salary
-  const msnPilotSalary = crew.pilotSalaryPerSet * msnCrewSets
+  const msnPilotSalary_pilot = crew.pilotSS * msnCrewSets
+  const msnPilotSalary_copilot = crew.copilotSS * msnCrewSets
+  const msnPilotSalary = msnPilotSalary_pilot + msnPilotSalary_copilot
   let msnCabinCrewSalary = 0
+  let msnCabinCrewSalary_cabinAtt = 0
+  let msnCabinCrewSalary_seniorAtt = 0
   if (msnLeaseType === 'wet') {
     if (msnAircraftType === 'A321') {
-      msnCabinCrewSalary = (4 * crew.cabinAttendantSS + crew.seniorAttendantSS) * msnCrewSets
+      msnCabinCrewSalary_cabinAtt = 4 * crew.cabinAttendantSS * msnCrewSets
     } else {
-      msnCabinCrewSalary = (3 * crew.cabinAttendantSS + crew.seniorAttendantSS) * msnCrewSets
+      msnCabinCrewSalary_cabinAtt = 3 * crew.cabinAttendantSS * msnCrewSets
     }
+    msnCabinCrewSalary_seniorAtt = crew.seniorAttendantSS * msnCrewSets
+    msnCabinCrewSalary = msnCabinCrewSalary_cabinAtt + msnCabinCrewSalary_seniorAtt
   } else if (msnLeaseType === 'moist') {
-    msnCabinCrewSalary = crew.seniorAttendantSS * msnCrewSets
+    msnCabinCrewSalary_seniorAtt = crew.seniorAttendantSS * msnCrewSets
+    msnCabinCrewSalary = msnCabinCrewSalary_seniorAtt
   }
 
   // C component — per diems
-  const msnPilotPerDiem = crew.pilotPerDiemPerSet * msnCrewSets + crew.bhBonusPerBh * msnTotalBh
+  const msnPilotPerDiem_perDiem = crew.pilotPerDiemPerSet * msnCrewSets
+  const msnPilotPerDiem_bhBonus = crew.bhBonusPerBh * msnTotalBh
+  const msnPilotPerDiem = msnPilotPerDiem_perDiem + msnPilotPerDiem_bhBonus
   let msnCabinCrewPerDiem = 0
+  let msnCabinCrewPerDiem_cabinAtt = 0
+  let msnCabinCrewPerDiem_seniorAtt = 0
   if (msnLeaseType === 'wet') {
     if (msnAircraftType === 'A321') {
-      msnCabinCrewPerDiem = (4 * crew.cabinAttPerDiem + crew.seniorAttPerDiem) * msnCrewSets
+      msnCabinCrewPerDiem_cabinAtt = 4 * crew.cabinAttPerDiem * msnCrewSets
     } else {
-      msnCabinCrewPerDiem = (3 * crew.cabinAttPerDiem + crew.seniorAttPerDiem) * msnCrewSets
+      msnCabinCrewPerDiem_cabinAtt = 3 * crew.cabinAttPerDiem * msnCrewSets
     }
+    msnCabinCrewPerDiem_seniorAtt = crew.seniorAttPerDiem * msnCrewSets
+    msnCabinCrewPerDiem = msnCabinCrewPerDiem_cabinAtt + msnCabinCrewPerDiem_seniorAtt
   } else if (msnLeaseType === 'moist') {
-    msnCabinCrewPerDiem = crew.seniorAttPerDiem * msnCrewSets
+    msnCabinCrewPerDiem_seniorAtt = crew.seniorAttPerDiem * msnCrewSets
+    msnCabinCrewPerDiem = msnCabinCrewPerDiem_seniorAtt
   }
 
   // Insurance for this MSN
@@ -277,13 +301,15 @@ export function computeMsnConfig(
   const msnMaintReservesVariable = msnEprMr + msnLlpMr + msnApuMr
 
   // Spare parts = totalBH x spare parts rate + tires/wheels fixed
-  const msnSpareParts = msnTotalBh * costs.sparePartsRatePerBh + costs.tiresWheelsCost
+  const msnSpareParts_bh = msnTotalBh * costs.sparePartsRatePerBh
+  const msnSpareParts_tiresWheels = costs.tiresWheelsCost
+  const msnSpareParts = msnSpareParts_bh + msnSpareParts_tiresWheels
 
   // Sum of 6yr + 12yr + LDG from MsnInput
-  const maintReservesFixedEur =
-    parseFloat(input.sixYearCheckEur || '0') +
-    parseFloat(input.twelveYearCheckEur || '0') +
-    parseFloat(input.ldgEur || '0')
+  const msnMaintReservesFixed_6yr = parseFloat(input.sixYearCheckEur || '0')
+  const msnMaintReservesFixed_12yr = parseFloat(input.twelveYearCheckEur || '0')
+  const msnMaintReservesFixed_ldg = parseFloat(input.ldgEur || '0')
+  const maintReservesFixedEur = msnMaintReservesFixed_6yr + msnMaintReservesFixed_12yr + msnMaintReservesFixed_ldg
 
   const cfg: PnlLineConfig = {
     maintReservesVariable: msnMaintReservesVariable,
@@ -324,6 +350,22 @@ export function computeMsnConfig(
     airportCharges: costs.airportChargesVal,
     commissionSummerRate: costs.commissionSummerRate,
     commissionWinterRate: costs.commissionWinterRate,
+    // Sub-components for drill-down
+    pilotPerDiem_perDiem: msnPilotPerDiem_perDiem,
+    pilotPerDiem_bhBonus: msnPilotPerDiem_bhBonus,
+    cabinCrewPerDiem_cabinAtt: msnCabinCrewPerDiem_cabinAtt,
+    cabinCrewPerDiem_seniorAtt: msnCabinCrewPerDiem_seniorAtt,
+    spareParts_bh: msnSpareParts_bh,
+    spareParts_tiresWheels: msnSpareParts_tiresWheels,
+    maintReservesFixed_6yr: msnMaintReservesFixed_6yr,
+    maintReservesFixed_12yr: msnMaintReservesFixed_12yr,
+    maintReservesFixed_ldg: msnMaintReservesFixed_ldg,
+    pilotSalary_pilot: msnPilotSalary_pilot,
+    pilotSalary_copilot: msnPilotSalary_copilot,
+    cabinCrewSalary_cabinAtt: msnCabinCrewSalary_cabinAtt,
+    cabinCrewSalary_seniorAtt: msnCabinCrewSalary_seniorAtt,
+    lineMaintenance_internal: costs.lineMaintenanceInternal,
+    lineMaintenance_3rdParty: costs.lineMaintenance3rdParty,
   }
 
   return {

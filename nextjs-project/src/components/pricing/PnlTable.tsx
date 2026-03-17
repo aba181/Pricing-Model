@@ -9,11 +9,25 @@ import { fmt, fmtPct, fmtDec, valColor } from '@/lib/format'
 import { PNL_ROWS, MARGIN_KEYS, KPI_DECIMAL_KEYS, ALL_DATA_KEYS } from '@/lib/pnl-row-defs'
 import { buildMonthlyData } from '@/lib/pnl-monthly-builder'
 import { deriveCrewValues, deriveCostsValues, computeMsnConfig } from '@/lib/pnl-msn-config'
-import { CostDetailPopover } from './CostDetailPopover'
+import { LineDetailPopover } from './CostDetailPopover'
+import type { BreakdownItem, ParamItem } from './CostDetailPopover'
 
-// ---- Component ----
+// ---- Clickable row definitions ----
+
+const CLICKABLE_ROWS = new Set([
+  'maintReservesVariable',
+  'pilotPerDiem',
+  'cabinCrewPerDiem',
+  'spareParts',
+  'maintPersonnelPerDiem',
+  'maintReservesFixed',
+  'pilotSalary',
+  'cabinCrewSalary',
+  'lineMaintenance',
+])
 
 interface PopoverState {
+  rowKey: string
   monthIndex: number
   anchorRect: DOMRect
 }
@@ -183,6 +197,113 @@ export function PnlTable() {
     const arr = monthlyData[key]
     if (!arr) return 0
     return arr.reduce((s, v) => s + v, 0)
+  }
+
+  // -- Breakdown config for drill-down popovers --
+  function getDetailConfig(rowKey: string, mi: number): {
+    title: string
+    items: BreakdownItem[]
+    params?: ParamItem[]
+  } | null {
+    const v = (k: string) => monthlyData[k]?.[mi] ?? 0
+    switch (rowKey) {
+      case 'maintReservesVariable':
+        return {
+          title: 'Maint. Reserves - Variable',
+          items: [
+            { label: 'EPR', value: v('maintReservesVariable_epr') },
+            { label: 'LLP', value: v('maintReservesVariable_llp') },
+            { label: 'APU', value: v('maintReservesVariable_apu') },
+          ],
+          params: [
+            { label: 'FH', value: v('fh') },
+            { label: 'FC', value: v('fc') },
+            { label: 'APU FH', value: v('apuFh') },
+          ],
+        }
+      case 'pilotPerDiem':
+        return {
+          title: 'Pilot - Per Diem',
+          items: [
+            { label: 'Per Diem', value: v('pilotPerDiem_perDiem') },
+            { label: 'BH Bonus', value: v('pilotPerDiem_bhBonus') },
+          ],
+          params: [
+            { label: 'BH', value: v('bh'), decimals: 0 },
+          ],
+        }
+      case 'cabinCrewPerDiem':
+        return {
+          title: 'Cabin Crew - Per Diem',
+          items: [
+            { label: 'Cabin Attendant', value: v('cabinCrewPerDiem_cabinAtt') },
+            { label: 'Senior Attendant', value: v('cabinCrewPerDiem_seniorAtt') },
+          ],
+        }
+      case 'spareParts':
+        return {
+          title: 'Spare Parts',
+          items: [
+            { label: 'BH-based', value: v('spareParts_bh') },
+            { label: 'Tires/Wheels', value: v('spareParts_tiresWheels') },
+          ],
+          params: [
+            { label: 'BH', value: v('bh'), decimals: 0 },
+          ],
+        }
+      case 'maintPersonnelPerDiem': {
+        // Compute per-role breakdown from costs store
+        const totalFromStore = costsMaintPersonnel.reduce(
+          (s, p) => s + p.engineers * p.perDiem * p.days, 0,
+        )
+        const monthVal = v('maintPersonnelPerDiem')
+        const scale = totalFromStore > 0 ? monthVal / totalFromStore : 0
+        return {
+          title: 'Maint. Personnel - Per Diems',
+          items: costsMaintPersonnel
+            .filter((p) => p.engineers * p.perDiem * p.days > 0)
+            .map((p) => ({
+              label: p.name,
+              value: p.engineers * p.perDiem * p.days * scale,
+            })),
+        }
+      }
+      case 'maintReservesFixed':
+        return {
+          title: 'Maint. Reserves - Fixed',
+          items: [
+            { label: '6-Year Check', value: v('maintReservesFixed_6yr') },
+            { label: '12-Year Check', value: v('maintReservesFixed_12yr') },
+            { label: 'Landing Gear', value: v('maintReservesFixed_ldg') },
+          ],
+        }
+      case 'pilotSalary':
+        return {
+          title: 'Pilot - Salary',
+          items: [
+            { label: 'Pilot', value: v('pilotSalary_pilot') },
+            { label: 'Co-Pilot', value: v('pilotSalary_copilot') },
+          ],
+        }
+      case 'cabinCrewSalary':
+        return {
+          title: 'Cabin Crew - Salary',
+          items: [
+            { label: 'Cabin Attendant', value: v('cabinCrewSalary_cabinAtt') },
+            { label: 'Senior Attendant', value: v('cabinCrewSalary_seniorAtt') },
+          ],
+        }
+      case 'lineMaintenance':
+        return {
+          title: 'Line Maintenance',
+          items: [
+            { label: 'Internal', value: v('lineMaintenance_internal') },
+            { label: '3rd Party', value: v('lineMaintenance_3rdParty') },
+          ],
+        }
+      default:
+        return null
+    }
   }
 
   // Header: MSN number
@@ -355,7 +476,7 @@ export function PnlTable() {
               }
 
               // Regular item rows
-              const isClickable = key === 'maintReservesVariable'
+              const isClickable = CLICKABLE_ROWS.has(key)
               return (
                 <tr key={idx} className="hover:bg-gray-100/20 dark:bg-gray-800/20">
                   <td className={`sticky left-0 z-10 bg-white dark:bg-gray-900 px-4 py-1 text-gray-700 dark:text-gray-300 pl-8 ${labelColWidth}`}>
@@ -367,7 +488,7 @@ export function PnlTable() {
                       className={`text-right px-3 py-1 font-mono text-gray-700 dark:text-gray-300 ${dataColWidth} ${valColor(v)} ${isClickable ? 'cursor-pointer hover:underline hover:text-indigo-600 dark:hover:text-indigo-400' : ''}`}
                       onClick={isClickable ? (e) => {
                         const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-                        setPopover({ monthIndex: mi, anchorRect: rect })
+                        setPopover({ rowKey: key, monthIndex: mi, anchorRect: rect })
                       } : undefined}
                     >
                       {fmt(v, 0)}
@@ -383,20 +504,21 @@ export function PnlTable() {
         </table>
       </div>
 
-      {/* Cost detail popover */}
-      {popover && (
-        <CostDetailPopover
-          monthLabel={months[popover.monthIndex]?.label ?? ''}
-          eprMr={monthlyData['maintReservesVariable_epr']?.[popover.monthIndex] ?? 0}
-          llpMr={monthlyData['maintReservesVariable_llp']?.[popover.monthIndex] ?? 0}
-          apuMr={monthlyData['maintReservesVariable_apu']?.[popover.monthIndex] ?? 0}
-          fh={monthlyData['fh']?.[popover.monthIndex] ?? 0}
-          fc={monthlyData['fc']?.[popover.monthIndex] ?? 0}
-          apuFh={monthlyData['apuFh']?.[popover.monthIndex] ?? 0}
-          anchorRect={popover.anchorRect}
-          onClose={closePopover}
-        />
-      )}
+      {/* Line detail popover */}
+      {popover && (() => {
+        const cfg = getDetailConfig(popover.rowKey, popover.monthIndex)
+        if (!cfg) return null
+        return (
+          <LineDetailPopover
+            title={cfg.title}
+            monthLabel={months[popover.monthIndex]?.label ?? ''}
+            items={cfg.items}
+            params={cfg.params}
+            anchorRect={popover.anchorRect}
+            onClose={closePopover}
+          />
+        )
+      })()}
     </div>
   )
 }
