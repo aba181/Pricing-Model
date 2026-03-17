@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react'
 import { usePricingStore } from '@/stores/pricing-store'
 import type { EprMatrixRow, MsnInput } from '@/stores/pricing-store'
-import { computePeriodMonths } from '@/stores/pricing-store'
+import { computePeriodMonths, generateMonthRange } from '@/stores/pricing-store'
 import { useCrewConfigStore } from '@/stores/crew-config-store'
 import { useCostsConfigStore } from '@/stores/costs-config-store'
 import { fmt, fmtRate } from '@/lib/format'
 import { interpolateEpr } from '@/lib/pnl-engine'
+import { buildMonthDayInfos } from '@/lib/pnl-proration'
 
 interface SummaryRow {
   label: string
@@ -37,6 +38,8 @@ function computeMsnCosts(
     bhBonusPerBh: number
     cabinAttPerDiem: number
     seniorAttPerDiem: number
+    fdDays: number
+    nfdDays: number
   },
   // Costs derived values
   costs: {
@@ -144,9 +147,69 @@ function computeMsnCosts(
   const mxcCommission = costs.commissionMxcRate * totalBh
   const overhead = baseOverhead + mxcCommission
 
-  // ── Totals ──
+  // ── Totals (per month, full-month values) ──
   const acmiCost = aircraft + crewTotal + maintenance + insurance + doc + otherCogs
   const totalCost = acmiCost
+
+  // ── Prorated totals across all months ──
+  const months = generateMonthRange(input.periodStart, input.periodEnd)
+  const monthDayInfos = buildMonthDayInfos(months, input.periodStart, input.periodEnd)
+  const workingDays = crew.fdDays + crew.nfdDays
+
+  // Split per-diem components for correct proration
+  const pilotPerDiem_perDiem = crew.pilotPerDiemPerSet * crewSets
+  const pilotPerDiem_bhBonus = crew.bhBonusPerBh * totalBh
+
+  let tRevenue = 0, tAircraft = 0, tCrew = 0, tMaint = 0
+  let tInsurance = 0, tDoc = 0, tOtherCogs = 0, tOverhead = 0
+  let tBhSold = 0, tBhActual = 0, tFh = 0, tFc = 0
+
+  const _baseOverhead = costs.overheadPerMonth.reduce((s, v) => s + v, 0)
+
+  for (let m = 0; m < months.length; m++) {
+    const info = monthDayInfos[m]
+    const isPartial = info.activeDays < info.totalDays
+    const df = isPartial ? info.activeDays / info.totalDays : 1.0
+    const cdf = (isPartial && workingDays > 0) ? info.activeDays / workingDays : 1.0
+    const monthBh = totalBh * df
+
+    tRevenue += revenuePerMonth * df
+    tBhSold += mgh * df
+    tBhActual += totalBh * df
+    tFh += fh * df
+    tFc += fc * df
+
+    // Aircraft: fixed (dryLease, maintReservesFixed) + variable * df
+    tAircraft += dryLease + maintReservesFixed + maintReservesVariable * df
+
+    // Crew: fixed (salaries, uniform, training) + per diems prorated
+    tCrew += crewFixed
+      + pilotPerDiem_perDiem * cdf + pilotPerDiem_bhBonus * df
+      + cabinCrewPerDiem * cdf
+      + crew.accomTravelCPerMonth * df
+
+    // Maintenance: fixed (line, base, salary, training, cCheck) + variable prorated
+    tMaint += maintFixed
+      + totalBh * costs.sparePartsRatePerBh * df + costs.tiresWheelsCost * df
+      + costs.maintPerDiemVal * df
+
+    // Insurance: fixed (not prorated)
+    tInsurance += insurance
+
+    // DOC: fuel/handling/navigation/airport prorated, technical/otherFixed fixed
+    tDoc += (costs.fuelVal + costs.handlingVal + costs.navigationVal + costs.airportChargesVal) * df
+      + costs.technicalVal + costs.otherFixedVal
+
+    // Commissions: BH-proportional with season
+    const calMonth = months[m].month
+    const isSummer = calMonth >= 5 && calMonth <= 10
+    tOtherCogs += (isSummer ? costs.commissionWinterRate : costs.commissionSummerRate) * monthBh
+
+    // Overhead: NOT prorated (MXC commission uses full-month BH, matching PnlTable)
+    tOverhead += _baseOverhead + costs.commissionMxcRate * totalBh
+  }
+
+  const tAcmiCost = tAircraft + tCrew + tMaint + tInsurance + tDoc + tOtherCogs
 
   return {
     msn: input.msn,
@@ -169,6 +232,22 @@ function computeMsnCosts(
     acmiCost,
     totalCost,
     overhead,
+    total: {
+      revenue: tRevenue,
+      bhSold: tBhSold,
+      bhActual: tBhActual,
+      fh: tFh,
+      fc: tFc,
+      aircraft: tAircraft,
+      crew: tCrew,
+      maintenance: tMaint,
+      insurance: tInsurance,
+      doc: tDoc,
+      otherCogs: tOtherCogs,
+      acmiCost: tAcmiCost,
+      totalCost: tAcmiCost,
+      overhead: tOverhead,
+    },
   }
 }
 
@@ -292,6 +371,7 @@ export function SummaryTable() {
     pilotSalaryPerSet, cabinAttendantSS, seniorAttendantSS,
     uniformPerMonth, trainingPerMonth, accomTravelCPerMonth,
     pilotPerDiemPerSet, bhBonusPerBh, cabinAttPerDiem, seniorAttPerDiem,
+    fdDays: crewFdDays, nfdDays: crewNfdDays,
   }
   const costsDerived = {
     lineMaintenanceVal, baseMaintenanceVal, maintPersonnelSalaryVal,
@@ -317,28 +397,25 @@ export function SummaryTable() {
     ? activeInput.leaseType.charAt(0).toUpperCase() + activeInput.leaseType.slice(1) + ' Lease'
     : '-'
 
-  // ── Total Project (all MSNs aggregated) ──
+  // ── Total Project (all MSNs aggregated, with proration) ──
   const totalProjectDuration = numAc === 1
     ? perMsnData[0].duration
     : Math.max(...perMsnData.map((d) => d.duration))
 
   const totalMgh = perMsnData.reduce((s, d) => s + d.mgh, 0)
 
-  const sum = (key: keyof ReturnType<typeof computeMsnCosts>) =>
-    perMsnData.reduce((s, d) => s + (d[key] as number) * d.duration, 0)
-
-  const totalProjectRevenue = sum('revenuePerMonth')
-  const totalProjectBhSold = sum('bhSold')
-  const totalProjectBhActual = sum('bhActual')
-  const totalProjectFh = sum('fh')
-  const totalProjectFc = sum('fc')
-  const tAircraftAbs = sum('aircraft')
-  const tCrewAbs = sum('crew')
-  const tMaintAbs = sum('maintenance')
-  const tInsuranceAbs = sum('insurance')
-  const tDocAbs = sum('doc')
-  const tAcmiCostAbs = sum('acmiCost')
-  const tOverheadAbs = sum('overhead')
+  const totalProjectRevenue = perMsnData.reduce((s, d) => s + d.total.revenue, 0)
+  const totalProjectBhSold = perMsnData.reduce((s, d) => s + d.total.bhSold, 0)
+  const totalProjectBhActual = perMsnData.reduce((s, d) => s + d.total.bhActual, 0)
+  const totalProjectFh = perMsnData.reduce((s, d) => s + d.total.fh, 0)
+  const totalProjectFc = perMsnData.reduce((s, d) => s + d.total.fc, 0)
+  const tAircraftAbs = perMsnData.reduce((s, d) => s + d.total.aircraft, 0)
+  const tCrewAbs = perMsnData.reduce((s, d) => s + d.total.crew, 0)
+  const tMaintAbs = perMsnData.reduce((s, d) => s + d.total.maintenance, 0)
+  const tInsuranceAbs = perMsnData.reduce((s, d) => s + d.total.insurance, 0)
+  const tDocAbs = perMsnData.reduce((s, d) => s + d.total.doc, 0)
+  const tAcmiCostAbs = perMsnData.reduce((s, d) => s + d.total.acmiCost, 0)
+  const tOverheadAbs = perMsnData.reduce((s, d) => s + d.total.overhead, 0)
   const totalProjectCost = tAcmiCostAbs
   const totalProjectGrossProfit = totalProjectRevenue - totalProjectCost
   const totalProjectNetProfit = totalProjectGrossProfit - tOverheadAbs

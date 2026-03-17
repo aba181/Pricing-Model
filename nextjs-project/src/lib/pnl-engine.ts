@@ -363,7 +363,7 @@ export function computeMsnPnlSummary(
     // Overhead (NOT prorated)
     const totalOverhead =
       (overheadPerMonth[0] ?? 0) +
-      ((overheadPerMonth[1] ?? 0) + commissionMxcRate * monthBh) +
+      ((overheadPerMonth[1] ?? 0) + commissionMxcRate * totalBhPerMonth) +
       (overheadPerMonth[2] ?? 0) +
       (overheadPerMonth[3] ?? 0) +
       (overheadPerMonth[4] ?? 0) +
