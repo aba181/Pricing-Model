@@ -1,21 +1,22 @@
-"""Quote API endpoints: save, list, detail, status update, PDF stub.
+"""Quote API endpoints: save, list, detail, status update, delete, PDF stub.
 
 Endpoints:
-- POST /quotes: Save a new quote with full state snapshot
-- GET  /quotes: List quotes with search, status, and MSN filters
-- GET  /quotes/{quote_id}: Get full quote detail with MSN snapshots
-- PATCH /quotes/{quote_id}/status: Update quote status (creator or admin only)
-- GET  /quotes/{quote_id}/pdf: PDF export stub (501 -- BLOCKED pending QUOT-06)
+- POST   /quotes: Save a new quote with full state snapshot
+- GET    /quotes: List quotes with search, status, and MSN filters
+- GET    /quotes/{quote_id}: Get full quote detail with MSN snapshots
+- PATCH  /quotes/{quote_id}/status: Update quote status (creator or admin only)
+- DELETE /quotes/{quote_id}: Delete a quote (admin only)
+- GET    /quotes/{quote_id}/pdf: PDF export stub (501 -- BLOCKED pending QUOT-06)
 """
 from __future__ import annotations
 
 from decimal import Decimal
 
 import asyncpg
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from fastapi.responses import JSONResponse
 
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import get_current_user, require_admin
 from app.db.database import get_db
 from app.quotes.repository import QuoteRepository
 from app.quotes.schemas import (
@@ -269,6 +270,30 @@ async def update_quote_status(
         "status": updated["status"],
         "client_name": updated["client_name"],
     }
+
+
+# ---- Delete Quote (Admin Only) ----
+
+
+@router.delete("/{quote_id}", status_code=204)
+async def delete_quote(
+    quote_id: int,
+    current_user: dict = Depends(require_admin),
+    db: asyncpg.Connection = Depends(get_db),
+):
+    """Delete a quote. Admin only.
+
+    Removes the quote and all associated MSN snapshots (via CASCADE).
+    Returns 204 No Content on success.
+    """
+    repo = QuoteRepository(db)
+
+    existing = await repo.get_quote(quote_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Quote not found")
+
+    await repo.delete_quote(quote_id)
+    return Response(status_code=204)
 
 
 # ---- PDF Export Stub ----

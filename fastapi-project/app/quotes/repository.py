@@ -206,3 +206,14 @@ class QuoteRepository(BaseRepository):
             "UPDATE quotes SET status = $1 WHERE id = $2 RETURNING *",
             status, quote_id,
         )
+
+    async def delete_quote(self, quote_id: int) -> bool:
+        """Delete a quote by ID. Returns True if a row was deleted.
+
+        Associated quote_msn_snapshots are removed automatically via
+        ON DELETE CASCADE.
+        """
+        result = await self.execute(
+            "DELETE FROM quotes WHERE id = $1", quote_id
+        )
+        return result == "DELETE 1"

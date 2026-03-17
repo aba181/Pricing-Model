@@ -180,3 +180,26 @@ export async function updateQuoteStatusAction(
     return { error: 'Network error -- could not reach API' }
   }
 }
+
+export async function deleteQuoteAction(
+  quoteId: number
+): Promise<{ success: true } | { error: string }> {
+  const token = await getToken()
+  if (!token) return { error: 'Not authenticated' }
+
+  try {
+    const res = await fetch(`${API_URL}/quotes/${quoteId}`, {
+      method: 'DELETE',
+      headers: authHeaders(token),
+    })
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({ detail: 'Failed to delete quote' }))
+      return { error: data.detail ?? 'Failed to delete quote' }
+    }
+
+    return { success: true }
+  } catch {
+    return { error: 'Network error -- could not reach API' }
+  }
+}

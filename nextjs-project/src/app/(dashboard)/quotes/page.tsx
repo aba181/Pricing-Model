@@ -19,13 +19,27 @@ async function getQuotes(
   }
 }
 
+async function getIsAdmin(token: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_URL}/auth/me`, {
+      headers: { Cookie: `access_token=${token}` },
+      cache: 'no-store',
+    })
+    if (!res.ok) return false
+    const user = await res.json()
+    return user.role === 'admin'
+  } catch {
+    return false
+  }
+}
+
 export default async function QuotesPage() {
   const cookieStore = await cookies()
   const token = cookieStore.get('access_token')?.value
 
-  const initialQuotes = token
-    ? await getQuotes(token)
-    : { items: [], total: 0 }
+  const [initialQuotes, isAdmin] = token
+    ? await Promise.all([getQuotes(token), getIsAdmin(token)])
+    : [{ items: [], total: 0 }, false]
 
   return (
     <div className="space-y-6">
@@ -37,7 +51,7 @@ export default async function QuotesPage() {
             : 'No quotes yet'}
         </p>
       </div>
-      <QuoteList initialQuotes={initialQuotes} />
+      <QuoteList initialQuotes={initialQuotes} isAdmin={isAdmin} />
     </div>
   )
 }

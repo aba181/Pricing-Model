@@ -2,25 +2,27 @@
 
 import { useState, useRef, useCallback } from 'react'
 import Link from 'next/link'
-import { Search } from 'lucide-react'
+import { Search, Trash2 } from 'lucide-react'
 import { StatusBadge } from './StatusBadge'
-import { listQuotesAction, updateQuoteStatusAction } from '@/app/actions/quotes'
+import { listQuotesAction, updateQuoteStatusAction, deleteQuoteAction } from '@/app/actions/quotes'
 import type { QuoteListItem } from '@/app/actions/quotes'
 
 interface QuoteListProps {
   initialQuotes: { items: QuoteListItem[]; total: number }
+  isAdmin?: boolean
 }
 
 const STATUSES = ['draft', 'sent', 'accepted', 'rejected']
 
 type QuoteSortKey = 'quote_number' | 'client_name' | 'status' | 'created_at'
 
-export function QuoteList({ initialQuotes }: QuoteListProps) {
+export function QuoteList({ initialQuotes, isAdmin = false }: QuoteListProps) {
   const [quotes, setQuotes] = useState(initialQuotes.items)
   const [total, setTotal] = useState(initialQuotes.total)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [statusError, setStatusError] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
   const [sortKey, setSortKey] = useState<QuoteSortKey>('created_at')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -89,6 +91,20 @@ export function QuoteList({ initialQuotes }: QuoteListProps) {
     setQuotes((prev) =>
       prev.map((q) => (q.id === quoteId ? { ...q, status: newStatus } : q))
     )
+  }
+
+  const handleDelete = async (quoteId: number, quoteNumber: string) => {
+    if (!window.confirm(`Delete quote ${quoteNumber}? This cannot be undone.`)) return
+    setDeletingId(quoteId)
+    setStatusError(null)
+    const result = await deleteQuoteAction(quoteId)
+    setDeletingId(null)
+    if ('error' in result) {
+      setStatusError(result.error)
+      return
+    }
+    setQuotes((prev) => prev.filter((q) => q.id !== quoteId))
+    setTotal((prev) => prev - 1)
   }
 
   const formatDate = (dateStr: string) => {
@@ -193,17 +209,29 @@ export function QuoteList({ initialQuotes }: QuoteListProps) {
                     {formatDate(q.created_at)}
                   </td>
                   <td className="px-4 py-3 hidden sm:table-cell">
-                    <select
-                      value={q.status}
-                      onChange={(e) => handleStatusUpdate(q.id, e.target.value)}
-                      className="bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-2 py-1 text-xs text-gray-800 dark:text-gray-200 focus:border-indigo-400 focus:outline-none"
-                    >
-                      {STATUSES.map((s) => (
-                        <option key={s} value={s}>
-                          {s.charAt(0).toUpperCase() + s.slice(1)}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={q.status}
+                        onChange={(e) => handleStatusUpdate(q.id, e.target.value)}
+                        className="bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded px-2 py-1 text-xs text-gray-800 dark:text-gray-200 focus:border-indigo-400 focus:outline-none"
+                      >
+                        {STATUSES.map((s) => (
+                          <option key={s} value={s}>
+                            {s.charAt(0).toUpperCase() + s.slice(1)}
+                          </option>
+                        ))}
+                      </select>
+                      {isAdmin && (
+                        <button
+                          onClick={() => handleDelete(q.id, q.quote_number)}
+                          disabled={deletingId === q.id}
+                          title="Delete quote"
+                          className="p-1 rounded text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
