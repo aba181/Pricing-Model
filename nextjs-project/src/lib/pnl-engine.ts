@@ -8,6 +8,7 @@
  */
 
 import { generateMonthRange } from '@/stores/pricing-store'
+import { buildMonthDayInfos } from './pnl-proration'
 import type { MsnInput, EprMatrixRow } from '@/stores/pricing-store'
 import type { PayrollRow, CostRow, TrainingRow } from '@/stores/crew-config-store'
 import type {
@@ -294,39 +295,55 @@ export function computeMsnPnlSummary(
     parseFloat(input.twelveYearCheckEur || '0') +
     parseFloat(input.ldgEur || '0')
 
+  // ── Proration info ──
+  const monthDayInfos = buildMonthDayInfos(months, input.periodStart, input.periodEnd)
+  const workingDays = crew.fdDays + crew.nfdDays // e.g. 28
+
+  // Per-diem split: day-based vs BH-based for pilot per diem
+  const pilotPerDiem_perDiem = pilotPerDiemPerSet * crewSets
+  const pilotPerDiem_bhBonus = bhBonusPerBh * totalBhPerMonth
+
   // ── Sum across all months ──
   let sumRevenue = 0
   let sumCost = 0
+  let sumBh = 0
 
   for (let m = 0; m < months.length; m++) {
-    sumRevenue += revenuePerMonth
+    // Proration factors
+    const info = monthDayInfos[m]
+    const isPartial = info.activeDays < info.totalDays
+    const df = isPartial ? info.activeDays / info.totalDays : 1.0
+    const cdf = (isPartial && workingDays > 0) ? info.activeDays / workingDays : 1.0
+    const monthBh = totalBhPerMonth * df
+
+    sumRevenue += revenuePerMonth * df
+    sumBh += monthBh
 
     // Commission depends on calendar month (May–Oct = summer → winter rate)
     const calMonth = months[m].month
     const isSummer = calMonth >= 5 && calMonth <= 10
     const commissions =
-      (isSummer ? commissionWinterRate : commissionSummerRate) *
-      totalBhPerMonth
+      (isSummer ? commissionWinterRate : commissionSummerRate) * monthBh
 
-    // Variable costs
+    // Variable costs (prorated)
     const totalVariable =
-      maintReservesVariable +
+      maintReservesVariable * df +
       0 /* assetMgmtFee */ +
-      pilotPerDiem +
-      cabinCrewPerDiem +
-      accomTravelCPerMonth +
-      spareParts +
-      maintPerDiemVal +
+      pilotPerDiem_perDiem * cdf + pilotPerDiem_bhBonus * df +
+      cabinCrewPerDiem * cdf +
+      accomTravelCPerMonth * df +
+      (totalBhPerMonth * sparePartsRatePerBh * df + tiresWheelsCost * df) +
+      maintPerDiemVal * df +
       0 /* accomTravelM */ +
       0 /* otherMaintV */ +
-      fuelVal +
-      handlingVal +
-      navigationVal +
-      airportChargesVal +
+      fuelVal * df +
+      handlingVal * df +
+      navigationVal * df +
+      airportChargesVal * df +
       commissions +
       0 /* delaysCancellations */
 
-    // Fixed costs
+    // Fixed costs (NOT prorated)
     const totalFixed =
       parseFloat(input.leaseRentEur || '0') +
       maintReservesFixed +
@@ -343,10 +360,10 @@ export function computeMsnPnlSummary(
       technicalVal +
       otherFixedVal
 
-    // Overhead
+    // Overhead (NOT prorated)
     const totalOverhead =
       (overheadPerMonth[0] ?? 0) +
-      ((overheadPerMonth[1] ?? 0) + commissionMxcRate * totalBhPerMonth) +
+      ((overheadPerMonth[1] ?? 0) + commissionMxcRate * monthBh) +
       (overheadPerMonth[2] ?? 0) +
       (overheadPerMonth[3] ?? 0) +
       (overheadPerMonth[4] ?? 0) +
@@ -358,7 +375,7 @@ export function computeMsnPnlSummary(
     sumCost += totalVariable + totalFixed + totalOverhead
   }
 
-  const totalBhAll = totalBhPerMonth * months.length
+  const totalBhAll = sumBh
   const netProfit = sumRevenue - sumCost
   const acmiCostPerBh = totalBhAll > 0 ? sumCost / totalBhAll : 0
 

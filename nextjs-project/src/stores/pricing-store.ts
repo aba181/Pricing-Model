@@ -18,8 +18,8 @@ export interface MsnInput {
   mgh: string // String to preserve decimal precision
   cycleRatio: string
   environment: 'benign' | 'hot'
-  periodStart: string // "YYYY-MM" format
-  periodEnd: string // "YYYY-MM" format
+  periodStart: string // "YYYY-MM" or "YYYY-MM-DD" format
+  periodEnd: string // "YYYY-MM" or "YYYY-MM-DD" format
   leaseType: 'wet' | 'damp' | 'moist'
   crewSets: number
   acmiRate: string // EUR per BH — revenue = (acmiRate × MGH) + (excessBh × excessHourRate)
@@ -40,19 +40,22 @@ export interface MsnInput {
   eprMatrix: EprMatrixRow[]
 }
 
-/** Compute period in months from start/end YYYY-MM strings (inclusive) */
+/** Compute period in months from start/end strings (YYYY-MM or YYYY-MM-DD, inclusive) */
 export function computePeriodMonths(start: string, end: string): number {
-  const [sy, sm] = start.split('-').map(Number)
-  const [ey, em] = end.split('-').map(Number)
+  const sp = start.split('-').map(Number)
+  const ep = end.split('-').map(Number)
+  const sy = sp[0], sm = sp[1], ey = ep[0], em = ep[1]
   if (!sy || !sm || !ey || !em) return 1
   const months = (ey - sy) * 12 + (em - sm) + 1
   return Math.max(1, months)
 }
 
-/** Generate an array of {year, month} for each month from start to end (inclusive) */
+/** Generate an array of {year, month} for each month from start to end (inclusive).
+ *  Accepts both YYYY-MM and YYYY-MM-DD — only year and month are used. */
 export function generateMonthRange(start: string, end: string): { year: number; month: number; label: string }[] {
-  const [sy, sm] = start.split('-').map(Number)
-  const [ey, em] = end.split('-').map(Number)
+  const sp = start.split('-').map(Number)
+  const ep = end.split('-').map(Number)
+  const sy = sp[0], sm = sp[1], ey = ep[0], em = ep[1]
   if (!sy || !sm || !ey || !em) return []
   const MONTH_LABELS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
   const result: { year: number; month: number; label: string }[] = []

@@ -6,6 +6,7 @@
  */
 
 import { VARIABLE_COST_KEYS, FIXED_COST_KEYS, OVERHEAD_KEYS, ALL_DATA_KEYS } from './pnl-row-defs'
+import type { MonthDayInfo } from './pnl-proration'
 
 /** All derived config values that feed into P&L line items */
 export interface PnlLineConfig {
@@ -74,6 +75,9 @@ export interface PnlLineConfig {
   cabinCrewSalary_seniorAtt: number  // senior attendant SS portion
   lineMaintenance_internal: number   // Line Maintenance - Internal
   lineMaintenance_3rdParty: number   // Line Maintenance - 3rd Party
+  // Crew working day info (for partial-month proration)
+  fdDays: number     // flying duty days per month (from crew config, e.g. 18)
+  nfdDays: number    // non-flying duty days per month (from crew config, e.g. 10)
 }
 
 /**
@@ -91,6 +95,7 @@ export function buildMonthlyData(
   bhFhRatio: number,
   apuFhRatio: number,
   cfg: PnlLineConfig,
+  monthDayInfos?: MonthDayInfo[],
 ): Record<string, number[]> {
   const monthCount = months.length
   const data: Record<string, number[]> = {}
@@ -102,69 +107,81 @@ export function buildMonthlyData(
 
   if (mgh === 0) return data
 
-  // Revenue = (ACMI Rate x MGH) + (Excess BH x Excess Hour Rate)
-  const revenue = acmiRate * mgh + excessBh * excessHourRate
-  const totalBh = mgh + excessBh
+  // Full-month base values
+  const fullRevenue = acmiRate * mgh + excessBh * excessHourRate
+  const fullTotalBh = mgh + excessBh
+  const workingDays = cfg.fdDays + cfg.nfdDays // e.g. 18 + 10 = 28
 
   for (let m = 0; m < monthCount; m++) {
-    // Revenue
-    data['wetLease'][m] = revenue
+    // -- Proration factors --
+    const info = monthDayInfos?.[m]
+    const isPartial = info ? info.activeDays < info.totalDays : false
+    const df = isPartial ? info!.activeDays / info!.totalDays : 1.0 // dayFraction for BH/DOC
+    const cdf = (isPartial && workingDays > 0) // crewDayFraction for pilot/cabin per diems
+      ? info!.activeDays / workingDays
+      : 1.0
+
+    // Prorated month values
+    const monthMgh = mgh * df
+    const monthExcessBh = excessBh * df
+    const monthTotalBh = monthMgh + monthExcessBh
+    const monthRevenue = acmiRate * monthMgh + monthExcessBh * excessHourRate
+
+    // Revenue (prorated)
+    data['wetLease'][m] = monthRevenue
     data['otherRevenue'][m] = 0
     data['financeIncome'][m] = 0
-    data['totalRevenue'][m] = revenue
+    data['totalRevenue'][m] = monthRevenue
 
-    // -- VARIABLE COST --
-    // A: reserves variable (EPR MR + LLP MR + APU MR) from Aircraft tab
-    data['maintReservesVariable'][m] = cfg.maintReservesVariable
-    data['maintReservesVariable_epr'][m] = cfg.eprMr
-    data['maintReservesVariable_llp'][m] = cfg.llpMr
-    data['maintReservesVariable_apu'][m] = cfg.apuMr
+    // -- VARIABLE COST (prorated) --
+    // A: reserves variable — BH-proportional (scale by dayFraction)
+    data['maintReservesVariable'][m] = cfg.maintReservesVariable * df
+    data['maintReservesVariable_epr'][m] = cfg.eprMr * df
+    data['maintReservesVariable_llp'][m] = cfg.llpMr * df
+    data['maintReservesVariable_apu'][m] = cfg.apuMr * df
     data['assetMgmtFee'][m] = 0
 
-    // C: per diems (from Crew tab)
-    data['pilotPerDiem'][m] = cfg.pilotPerDiem
-    data['pilotPerDiem_perDiem'][m] = cfg.pilotPerDiem_perDiem
-    data['pilotPerDiem_bhBonus'][m] = cfg.pilotPerDiem_bhBonus
-    data['cabinCrewPerDiem'][m] = cfg.cabinCrewPerDiem
-    data['cabinCrewPerDiem_cabinAtt'][m] = cfg.cabinCrewPerDiem_cabinAtt
-    data['cabinCrewPerDiem_seniorAtt'][m] = cfg.cabinCrewPerDiem_seniorAtt
-    data['accomTravelC'][m] = cfg.accomTravelC
+    // C: per diems — crew day fraction for per diem, BH fraction for BH bonus
+    data['pilotPerDiem_perDiem'][m] = cfg.pilotPerDiem_perDiem * cdf
+    data['pilotPerDiem_bhBonus'][m] = cfg.pilotPerDiem_bhBonus * df
+    data['pilotPerDiem'][m] = data['pilotPerDiem_perDiem'][m] + data['pilotPerDiem_bhBonus'][m]
+    data['cabinCrewPerDiem_cabinAtt'][m] = cfg.cabinCrewPerDiem_cabinAtt * cdf
+    data['cabinCrewPerDiem_seniorAtt'][m] = cfg.cabinCrewPerDiem_seniorAtt * cdf
+    data['cabinCrewPerDiem'][m] = data['cabinCrewPerDiem_cabinAtt'][m] + data['cabinCrewPerDiem_seniorAtt'][m]
+    data['accomTravelC'][m] = cfg.accomTravelC * df
 
-    // M: variable maintenance (from Costs tab)
-    data['spareParts'][m] = cfg.spareParts
-    data['spareParts_bh'][m] = cfg.spareParts_bh
-    data['spareParts_tiresWheels'][m] = cfg.spareParts_tiresWheels
-    data['maintPersonnelPerDiem'][m] = cfg.maintPersonnelPerDiem
+    // M: variable maintenance — BH-proportional + day-proportional
+    data['spareParts_bh'][m] = cfg.spareParts_bh * df
+    data['spareParts_tiresWheels'][m] = cfg.spareParts_tiresWheels * df
+    data['spareParts'][m] = data['spareParts_bh'][m] + data['spareParts_tiresWheels'][m]
+    data['maintPersonnelPerDiem'][m] = cfg.maintPersonnelPerDiem * df
     data['accomTravelM'][m] = 0
     data['otherMaintV'][m] = 0
 
-    // DOC: from Costs tab
-    data['fuel'][m] = cfg.fuel
-    data['handling'][m] = cfg.handling
-    data['navigation'][m] = cfg.navigation
-    data['airportCharges'][m] = cfg.airportCharges
+    // DOC: day-proportional
+    data['fuel'][m] = cfg.fuel * df
+    data['handling'][m] = cfg.handling * df
+    data['navigation'][m] = cfg.navigation * df
+    data['airportCharges'][m] = cfg.airportCharges * df
 
-    // Other COGS: commissions = rate x totalBH, rate depends on calendar month
-    // May-Oct -> winter rate, Nov-Apr -> summer rate
+    // Commissions: BH-proportional (use prorated totalBh)
     const calMonth = months[m].month
-    const isSummer = calMonth >= 5 && calMonth <= 10 // May(5) - Oct(10)
-    data['commissions'][m] = (isSummer ? cfg.commissionWinterRate : cfg.commissionSummerRate) * totalBh
+    const isSummer = calMonth >= 5 && calMonth <= 10
+    data['commissions'][m] = (isSummer ? cfg.commissionWinterRate : cfg.commissionSummerRate) * monthTotalBh
     data['delaysCancellations'][m] = 0
 
     // Total variable cost
     const totalVar = VARIABLE_COST_KEYS.reduce((s, k) => s + data[k][m], 0)
     data['totalVariableCost'][m] = totalVar
-    data['contributionI'][m] = revenue - totalVar
+    data['contributionI'][m] = monthRevenue - totalVar
 
-    // -- FIXED COST --
-    // A: from Aircraft tab rates
+    // -- FIXED COST (NOT prorated) --
     data['dryLease'][m] = cfg.leaseRentEur
     data['maintReservesFixed'][m] = cfg.maintReservesFixedEur
     data['maintReservesFixed_6yr'][m] = cfg.maintReservesFixed_6yr
     data['maintReservesFixed_12yr'][m] = cfg.maintReservesFixed_12yr
     data['maintReservesFixed_ldg'][m] = cfg.maintReservesFixed_ldg
 
-    // C: from Crew tab
     data['pilotSalary'][m] = cfg.pilotSalary
     data['pilotSalary_pilot'][m] = cfg.pilotSalary_pilot
     data['pilotSalary_copilot'][m] = cfg.pilotSalary_copilot
@@ -174,7 +191,6 @@ export function buildMonthlyData(
     data['staffUniformF'][m] = cfg.staffUniformF
     data['trainingC'][m] = cfg.trainingC
 
-    // M: from Costs tab
     data['lineMaintenance'][m] = cfg.lineMaintenance
     data['lineMaintenance_internal'][m] = cfg.lineMaintenance_internal
     data['lineMaintenance_3rdParty'][m] = cfg.lineMaintenance_3rdParty
@@ -183,10 +199,7 @@ export function buildMonthlyData(
     data['trainningM'][m] = cfg.trainningM
     data['maintCCheck'][m] = cfg.maintCCheck
 
-    // I: from Costs tab (insurance for selected MSN)
     data['insuranceFixed'][m] = cfg.insuranceFixed
-
-    // Other: from Costs tab
     data['technical'][m] = cfg.technical
     data['otherFixed'][m] = cfg.otherFixed
 
@@ -194,7 +207,7 @@ export function buildMonthlyData(
     data['totalFixedCost'][m] = totalFixed
     data['contributionII'][m] = data['contributionI'][m] - totalFixed
 
-    // -- OVERHEAD -- from Costs tab (per month per AC)
+    // -- OVERHEAD (NOT prorated) --
     data['personnelCostSS'][m] = cfg.personnelCostSS
     data['personnelCost'][m] = cfg.personnelCost
     data['travelExpenses'][m] = cfg.travelExpenses
@@ -210,29 +223,29 @@ export function buildMonthlyData(
 
     // EBITDA
     data['ebitda'][m] = data['contributionII'][m] - totalOH
-    data['ebitdaMargin'][m] = revenue > 0 ? data['ebitda'][m] / revenue : 0
+    data['ebitdaMargin'][m] = monthRevenue > 0 ? data['ebitda'][m] / monthRevenue : 0
 
     // D&A, EBIT
     data['depAmort'][m] = 0
     data['ebit'][m] = data['ebitda'][m] - data['depAmort'][m]
-    data['ebitMargin'][m] = revenue > 0 ? data['ebit'][m] / revenue : 0
+    data['ebitMargin'][m] = monthRevenue > 0 ? data['ebit'][m] / monthRevenue : 0
 
     // Below EBIT
     data['interestNet'][m] = 0
     data['fxNet'][m] = 0
     data['tax'][m] = 0
     data['netProfit'][m] = data['ebit'][m] - data['interestNet'][m] - data['fxNet'][m] - data['tax'][m]
-    data['netProfitMargin'][m] = revenue > 0 ? data['netProfit'][m] / revenue : 0
+    data['netProfitMargin'][m] = monthRevenue > 0 ? data['netProfit'][m] / monthRevenue : 0
 
-    // KPIs — total BH = MGH + Excess BH
-    const fh = bhFhRatio > 0 ? totalBh / bhFhRatio : 0
+    // KPIs — prorated BH values
+    const monthFh = bhFhRatio > 0 ? monthTotalBh / bhFhRatio : 0
     data['acOperational'][m] = 1
-    data['bh'][m] = totalBh
-    data['avgBhPerAc'][m] = totalBh
-    data['fh'][m] = fh
-    data['fc'][m] = cycleRatio > 0 ? fh / cycleRatio : 0
+    data['bh'][m] = monthTotalBh
+    data['avgBhPerAc'][m] = monthTotalBh
+    data['fh'][m] = monthFh
+    data['fc'][m] = cycleRatio > 0 ? monthFh / cycleRatio : 0
     data['fhFcRatio'][m] = cycleRatio
-    data['apuFh'][m] = fh * apuFhRatio
+    data['apuFh'][m] = monthFh * apuFhRatio
   }
 
   return data

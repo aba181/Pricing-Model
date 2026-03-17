@@ -233,6 +233,8 @@ export function computeMsnConfig(
   crew: CrewDerivedValues,
   costs: CostsDerivedValues,
   exchangeRate: number,
+  fdDays: number = 18,
+  nfdDays: number = 10,
 ): MsnComputeResult {
   const msnMgh = parseFloat(input.mgh) || 0
   const msnAcmiRate = parseFloat(input.acmiRate || '0')
@@ -366,6 +368,8 @@ export function computeMsnConfig(
     cabinCrewSalary_seniorAtt: msnCabinCrewSalary_seniorAtt,
     lineMaintenance_internal: costs.lineMaintenanceInternal,
     lineMaintenance_3rdParty: costs.lineMaintenance3rdParty,
+    fdDays,
+    nfdDays,
   }
 
   return {

@@ -34,15 +34,16 @@ export function useAddAircraft(
     // Prevent duplicate MSN
     if (msnInputs.some((i) => i.msn === ac.msn)) return
 
-    // Default: current month to 12 months later
+    // Default: 1st of current month to last day of 12th month ahead
     const now = new Date()
     const startYear = now.getFullYear()
     const startMonth = now.getMonth() + 1 // 1-indexed
-    const endDate = new Date(startYear, startMonth - 1 + 11, 1) // 11 months ahead (total 12 inclusive)
+    const defaultStart = `${startYear}-${String(startMonth).padStart(2, '0')}-01`
+    const endDate = new Date(startYear, startMonth - 1 + 12, 0) // last day of 12th month ahead
     const endYear = endDate.getFullYear()
     const endMonth = endDate.getMonth() + 1
-    const defaultStart = `${startYear}-${String(startMonth).padStart(2, '0')}`
-    const defaultEnd = `${endYear}-${String(endMonth).padStart(2, '0')}`
+    const endDay = endDate.getDate()
+    const defaultEnd = `${endYear}-${String(endMonth).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`
 
     const newInput: MsnInput = {
       aircraftId: ac.id,

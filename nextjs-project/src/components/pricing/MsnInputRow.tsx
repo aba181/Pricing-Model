@@ -94,10 +94,10 @@ export function MsnInputRow({ input, onUpdate, onRemove }: MsnInputRowProps) {
 
         {/* Period Start */}
         <div>
-          <label className={labelCls}>Starting Period</label>
+          <label className={labelCls}>Start Date</label>
           <input
-            type="month"
-            value={input.periodStart}
+            type="date"
+            value={input.periodStart.length === 7 ? `${input.periodStart}-01` : input.periodStart}
             onChange={(e) => onUpdate(input.msn, 'periodStart', e.target.value)}
             className={inputCls}
           />
@@ -105,10 +105,16 @@ export function MsnInputRow({ input, onUpdate, onRemove }: MsnInputRowProps) {
 
         {/* Period End */}
         <div>
-          <label className={labelCls}>Ending Period</label>
+          <label className={labelCls}>End Date</label>
           <input
-            type="month"
-            value={input.periodEnd}
+            type="date"
+            value={(() => {
+              if (input.periodEnd.length > 7) return input.periodEnd
+              // YYYY-MM → append last day of month
+              const [y, m] = input.periodEnd.split('-').map(Number)
+              const lastDay = new Date(y, m, 0).getDate()
+              return `${input.periodEnd}-${String(lastDay).padStart(2, '0')}`
+            })()}
             onChange={(e) => onUpdate(input.msn, 'periodEnd', e.target.value)}
             className={inputCls}
           />

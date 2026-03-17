@@ -10,6 +10,7 @@ import { PNL_ROWS, MARGIN_KEYS, KPI_DECIMAL_KEYS, ALL_DATA_KEYS } from '@/lib/pn
 import { buildMonthlyData } from '@/lib/pnl-monthly-builder'
 import { deriveCrewValues, deriveCostsValues, computeMsnConfig } from '@/lib/pnl-msn-config'
 import { interpolateEpr } from '@/lib/pnl-engine'
+import { buildMonthDayInfos } from '@/lib/pnl-proration'
 import { LineDetailPopover } from './CostDetailPopover'
 import type { BreakdownItem, ParamItem } from './CostDetailPopover'
 
@@ -113,10 +114,11 @@ export function PnlTable() {
     // Single MSN view
     const input = msnInputs.find((i) => i.msn === selectedMsn)
     if (input) {
-      const r = computeMsnConfig(input, crew, costs, exchangeRate)
+      const r = computeMsnConfig(input, crew, costs, exchangeRate, crewFdDays, crewNfdDays)
+      const mdi = buildMonthDayInfos(months, input.periodStart, input.periodEnd)
       monthlyData = buildMonthlyData(
         months, r.mgh, r.acmiRate, r.excessBh, r.excessHourRate,
-        r.cycleRatio, r.bhFhRatio, r.apuFhRatio, r.cfg,
+        r.cycleRatio, r.bhFhRatio, r.apuFhRatio, r.cfg, mdi,
       )
     } else {
       // No input data — produce zeros
@@ -133,16 +135,19 @@ export function PnlTable() {
     }
 
     for (const input of msnInputs) {
-      const r = computeMsnConfig(input, crew, costs, exchangeRate)
+      const r = computeMsnConfig(input, crew, costs, exchangeRate, crewFdDays, crewNfdDays)
+      const mdi = buildMonthDayInfos(months, input.periodStart, input.periodEnd)
       const msnData = buildMonthlyData(
         months, r.mgh, r.acmiRate, r.excessBh, r.excessHourRate,
-        r.cycleRatio, r.bhFhRatio, r.apuFhRatio, r.cfg,
+        r.cycleRatio, r.bhFhRatio, r.apuFhRatio, r.cfg, mdi,
       )
 
       // Zero out months outside this MSN's active period
       for (let m = 0; m < months.length; m++) {
         const monthStr = `${months[m].year}-${String(months[m].month).padStart(2, '0')}`
-        if (monthStr < input.periodStart || monthStr > input.periodEnd) {
+        const periodStartMonth = input.periodStart.substring(0, 7)
+        const periodEndMonth = input.periodEnd.substring(0, 7)
+        if (monthStr < periodStartMonth || monthStr > periodEndMonth) {
           for (const k of ALL_DATA_KEYS) {
             msnData[k][m] = 0
           }
