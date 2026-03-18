@@ -388,3 +388,56 @@ export function computeMsnPnlSummary(
     totalBh: totalBhAll,
   }
 }
+
+/**
+ * Seasonal-aware wrapper: if the input has seasonality enabled,
+ * runs computeMsnPnlSummary twice (summer + winter) and merges.
+ */
+export function computeMsnPnlSummarySeasonal(
+  input: MsnInput,
+  crew: CrewStoreData,
+  costs: CostsStoreData,
+  exchangeRate: number,
+): MsnPnlSummary {
+  if (!input.seasonalityEnabled || !input.summer || !input.winter) {
+    return computeMsnPnlSummary(input, crew, costs, exchangeRate)
+  }
+
+  const summerInput: MsnInput = {
+    ...input,
+    mgh: input.summer.mgh,
+    cycleRatio: input.summer.cycleRatio,
+    acmiRate: input.summer.acmiRate,
+    excessHourRate: input.summer.excessHourRate,
+    excessBh: input.summer.excessBh,
+    crewSets: input.summer.crewSets,
+    periodStart: input.summer.periodStart,
+    periodEnd: input.summer.periodEnd,
+  }
+  const winterInput: MsnInput = {
+    ...input,
+    mgh: input.winter.mgh,
+    cycleRatio: input.winter.cycleRatio,
+    acmiRate: input.winter.acmiRate,
+    excessHourRate: input.winter.excessHourRate,
+    excessBh: input.winter.excessBh,
+    crewSets: input.winter.crewSets,
+    periodStart: input.winter.periodStart,
+    periodEnd: input.winter.periodEnd,
+  }
+
+  const s = computeMsnPnlSummary(summerInput, crew, costs, exchangeRate)
+  const w = computeMsnPnlSummary(winterInput, crew, costs, exchangeRate)
+
+  const totalBh = s.totalBh + w.totalBh
+  const totalRevenue = s.totalRevenue + w.totalRevenue
+  const totalCost = s.totalCost + w.totalCost
+  const netProfit = totalRevenue - totalCost
+  const acmiCostPerBh = totalBh > 0 ? totalCost / totalBh : 0
+  // Weighted average ACMI rate
+  const acmiRatePerBh = totalBh > 0
+    ? (s.acmiRatePerBh * s.totalBh + w.acmiRatePerBh * w.totalBh) / totalBh
+    : 0
+
+  return { acmiRatePerBh, acmiCostPerBh, totalRevenue, totalCost, netProfit, totalBh }
+}

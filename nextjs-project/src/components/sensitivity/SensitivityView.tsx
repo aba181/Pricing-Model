@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { usePricingStore } from '@/stores/pricing-store'
 import { useCrewConfigStore } from '@/stores/crew-config-store'
 import { useCostsConfigStore } from '@/stores/costs-config-store'
-import { computeMsnPnlSummary } from '@/lib/pnl-engine'
+import { computeMsnPnlSummarySeasonal } from '@/lib/pnl-engine'
 import { ParameterPicker, SENSITIVITY_PARAMS } from './ParameterPicker'
 import { SensitivityChart, type DataPoint } from './SensitivityChart'
 import { SensitivityTable } from './SensitivityTable'
@@ -107,7 +107,7 @@ export function SensitivityView() {
         let totalNetProfit = 0
 
         for (const input of stepInputs) {
-          const summary = computeMsnPnlSummary(input, crewData, costsData, stepExRate)
+          const summary = computeMsnPnlSummarySeasonal(input, crewData, costsData, stepExRate)
           totalCost += summary.totalCost
           totalBh += summary.totalBh
           totalNetProfit += summary.netProfit

@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react'
 import { usePricingStore } from '@/stores/pricing-store'
 import { useCrewConfigStore } from '@/stores/crew-config-store'
 import { useCostsConfigStore } from '@/stores/costs-config-store'
-import { computeMsnPnlSummary } from '@/lib/pnl-engine'
+import { computeMsnPnlSummarySeasonal } from '@/lib/pnl-engine'
 import type { MsnPnlSummary } from '@/lib/pnl-engine'
 import type { QuoteDetailResponse } from '@/app/actions/quotes'
-import type { MsnInput, MsnPnlResult, ComponentBreakdown } from '@/stores/pricing-store'
+import type { MsnInput, MsnPnlResult, ComponentBreakdown, SeasonInput } from '@/stores/pricing-store'
 import type { PayrollRow, CostRow, TrainingRow } from '@/stores/crew-config-store'
 import type {
   MaintPersonnel,
@@ -59,6 +59,9 @@ export function useQuoteHydration(quote: QuoteDetailResponse) {
         llp1RateUsd: String(input.llp1RateUsd ?? '0'),
         llp2RateUsd: String(input.llp2RateUsd ?? '0'),
         eprMatrix: (input.eprMatrix as Array<{ cycleRatio: number; benignRate: number; hotRate: number }>) ?? [],
+        seasonalityEnabled: (input.seasonalityEnabled as boolean) ?? false,
+        summer: input.summer as SeasonInput | undefined,
+        winter: input.winter as SeasonInput | undefined,
       }
     })
 
@@ -159,7 +162,7 @@ export function useQuoteHydration(quote: QuoteDetailResponse) {
     const exRate = parseFloat(dashboardState.exchangeRate ?? quote.exchange_rate ?? '0.85')
 
     const summaries = msnInputs.map((input) =>
-      computeMsnPnlSummary(input, crewData, costsData, exRate),
+      computeMsnPnlSummarySeasonal(input, crewData, costsData, exRate),
     )
     setMsnSummaries(summaries)
 

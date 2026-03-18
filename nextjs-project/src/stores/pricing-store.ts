@@ -9,6 +9,18 @@ export interface EprMatrixRow {
   hotRate: number
 }
 
+/** Per-season operational parameters (used when seasonality is enabled) */
+export interface SeasonInput {
+  mgh: string
+  cycleRatio: string
+  acmiRate: string
+  excessHourRate: string
+  excessBh: string
+  crewSets: number
+  periodStart: string // "YYYY-MM-DD"
+  periodEnd: string   // "YYYY-MM-DD"
+}
+
 export interface MsnInput {
   id?: number // DB id (from project_msn_inputs)
   aircraftId: number
@@ -38,6 +50,10 @@ export interface MsnInput {
   llp2RateUsd: string // LLP #2 rate per FC
   // EPR matrix from Aircraft tab (USD per engine)
   eprMatrix: EprMatrixRow[]
+  // Seasonality
+  seasonalityEnabled: boolean
+  summer?: SeasonInput
+  winter?: SeasonInput
 }
 
 /** Compute period in months from start/end strings (YYYY-MM or YYYY-MM-DD, inclusive) */
@@ -136,6 +152,8 @@ interface PricingStore {
     llp2RateUsd: string
     eprMatrix: EprMatrixRow[]
   }) => void
+  toggleSeasonality: (msn: number, enabled: boolean) => void
+  updateSeasonInput: (msn: number, season: 'summer' | 'winter', field: keyof SeasonInput, value: string | number) => void
   setLastError: (err: string | null) => void
   reset: () => void
   loadFromQuote: (quoteData: {
@@ -224,6 +242,35 @@ export const usePricingStore = create<PricingStore>()((set) => ({
             }
           : i
       ),
+    })),
+
+  toggleSeasonality: (msn, enabled) =>
+    set((state) => ({
+      msnInputs: state.msnInputs.map((i) => {
+        if (i.msn !== msn) return i
+        if (enabled) {
+          const seasonDefaults: SeasonInput = {
+            mgh: i.mgh,
+            cycleRatio: i.cycleRatio,
+            acmiRate: i.acmiRate,
+            excessHourRate: i.excessHourRate,
+            excessBh: i.excessBh,
+            crewSets: i.crewSets,
+            periodStart: i.periodStart,
+            periodEnd: i.periodEnd,
+          }
+          return { ...i, seasonalityEnabled: true, summer: { ...seasonDefaults }, winter: { ...seasonDefaults } }
+        }
+        return { ...i, seasonalityEnabled: false, summer: undefined, winter: undefined }
+      }),
+    })),
+
+  updateSeasonInput: (msn, season, field, value) =>
+    set((state) => ({
+      msnInputs: state.msnInputs.map((i) => {
+        if (i.msn !== msn || !i[season]) return i
+        return { ...i, [season]: { ...i[season]!, [field]: value } }
+      }),
     })),
 
   setSelectedMsn: (msn) => set({ selectedMsn: msn }),

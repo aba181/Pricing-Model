@@ -33,10 +33,31 @@ export function useCalculation(
       setIsCalculating(true)
       setLastError(null)
 
-      const result = await calculatePnlAction({
-        exchange_rate: exchangeRate,
-        margin_percent: marginPercent,
-        msn_inputs: msnInputs.map((i) => ({
+      // Expand seasonal MSNs into two entries (one per season)
+      const expandedInputs = msnInputs.flatMap((i) => {
+        if (i.seasonalityEnabled && i.summer && i.winter) {
+          return [
+            {
+              msn: i.msn,
+              mgh: i.summer.mgh,
+              cycle_ratio: i.summer.cycleRatio,
+              environment: i.environment,
+              period_months: computePeriodMonths(i.summer.periodStart, i.summer.periodEnd),
+              lease_type: i.leaseType,
+              crew_sets: i.summer.crewSets,
+            },
+            {
+              msn: i.msn,
+              mgh: i.winter.mgh,
+              cycle_ratio: i.winter.cycleRatio,
+              environment: i.environment,
+              period_months: computePeriodMonths(i.winter.periodStart, i.winter.periodEnd),
+              lease_type: i.leaseType,
+              crew_sets: i.winter.crewSets,
+            },
+          ]
+        }
+        return [{
           msn: i.msn,
           mgh: i.mgh,
           cycle_ratio: i.cycleRatio,
@@ -44,7 +65,13 @@ export function useCalculation(
           period_months: computePeriodMonths(i.periodStart, i.periodEnd),
           lease_type: i.leaseType,
           crew_sets: i.crewSets,
-        })),
+        }]
+      })
+
+      const result = await calculatePnlAction({
+        exchange_rate: exchangeRate,
+        margin_percent: marginPercent,
+        msn_inputs: expandedInputs,
       })
 
       if ('error' in result) {
@@ -54,7 +81,50 @@ export function useCalculation(
       }
 
       const calcResponse = result as CalculateResponse
-      const converted = calcResponse.msn_results.map(toStoreMsnResult)
+      const rawConverted = calcResponse.msn_results.map(toStoreMsnResult)
+
+      // Merge duplicate MSN results (from seasonal expansion) by averaging breakdowns
+      const mergedMap = new Map<number, typeof rawConverted[0]>()
+      const countMap = new Map<number, number>()
+      for (const r of rawConverted) {
+        const existing = mergedMap.get(r.msn)
+        if (existing) {
+          const count = (countMap.get(r.msn) ?? 1) + 1
+          countMap.set(r.msn, count)
+          // Running average of breakdown fields
+          const avgField = (field: keyof typeof existing.breakdown) =>
+            String(
+              ((parseFloat(existing.breakdown[field]) * (count - 1)) + parseFloat(r.breakdown[field])) / count
+            )
+          existing.breakdown = {
+            aircraftEurPerBh: avgField('aircraftEurPerBh'),
+            crewEurPerBh: avgField('crewEurPerBh'),
+            maintenanceEurPerBh: avgField('maintenanceEurPerBh'),
+            insuranceEurPerBh: avgField('insuranceEurPerBh'),
+            docEurPerBh: avgField('docEurPerBh'),
+            otherCogsEurPerBh: avgField('otherCogsEurPerBh'),
+            overheadEurPerBh: avgField('overheadEurPerBh'),
+            totalCostPerBh: avgField('totalCostPerBh'),
+            revenuePerBh: avgField('revenuePerBh'),
+            marginPercent: avgField('marginPercent'),
+            finalRatePerBh: avgField('finalRatePerBh'),
+          }
+          existing.monthlyCost = String(
+            ((parseFloat(existing.monthlyCost) * (count - 1)) + parseFloat(r.monthlyCost)) / count
+          )
+          existing.monthlyRevenue = String(
+            ((parseFloat(existing.monthlyRevenue) * (count - 1)) + parseFloat(r.monthlyRevenue)) / count
+          )
+          existing.monthlyPnl = String(
+            ((parseFloat(existing.monthlyPnl) * (count - 1)) + parseFloat(r.monthlyPnl)) / count
+          )
+        } else {
+          mergedMap.set(r.msn, { ...r })
+          countMap.set(r.msn, 1)
+        }
+      }
+      const converted = Array.from(mergedMap.values())
+
       const total = calcResponse.total
         ? toStoreBreakdown(calcResponse.total)
         : null

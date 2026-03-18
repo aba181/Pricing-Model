@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { X, RefreshCw } from 'lucide-react'
-import type { MsnInput } from '@/stores/pricing-store'
+import type { MsnInput, SeasonInput } from '@/stores/pricing-store'
 import { usePricingStore } from '@/stores/pricing-store'
 import type { AircraftOption } from '@/lib/api-converters'
 
@@ -20,9 +20,122 @@ const selectCls =
   'w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded px-1 py-0.5 text-[11px] text-gray-900 dark:text-gray-100 focus:border-indigo-400 focus:outline-none'
 const labelCls = 'text-[10px] text-gray-400 dark:text-gray-500 leading-tight'
 
+/** Reusable per-season field grid */
+function SeasonFields({
+  data,
+  onFieldChange,
+}: {
+  data: SeasonInput
+  onFieldChange: (field: keyof SeasonInput, value: string | number) => void
+}) {
+  return (
+    <div className="grid grid-cols-3 gap-x-2 gap-y-1">
+      {/* MGH */}
+      <div>
+        <label className={labelCls}>MGH</label>
+        <input
+          type="number"
+          step="0.01"
+          value={data.mgh}
+          onChange={(e) => onFieldChange('mgh', e.target.value)}
+          className={inputCls}
+        />
+      </div>
+
+      {/* Cycle Ratio */}
+      <div>
+        <label className={labelCls}>FH:FC</label>
+        <input
+          type="number"
+          step="0.0001"
+          value={data.cycleRatio}
+          onChange={(e) => onFieldChange('cycleRatio', e.target.value)}
+          className={inputCls}
+        />
+      </div>
+
+      {/* ACMI Rate */}
+      <div>
+        <label className={labelCls}>ACMI Rate</label>
+        <input
+          type="number"
+          step="0.01"
+          value={data.acmiRate}
+          onChange={(e) => onFieldChange('acmiRate', e.target.value)}
+          className={inputCls}
+        />
+      </div>
+
+      {/* Excess Hour Rate */}
+      <div>
+        <label className={labelCls}>Excess Hour Rate</label>
+        <input
+          type="number"
+          step="0.01"
+          value={data.excessHourRate}
+          onChange={(e) => onFieldChange('excessHourRate', e.target.value)}
+          className={inputCls}
+        />
+      </div>
+
+      {/* Period Start */}
+      <div>
+        <label className={labelCls}>Start Date</label>
+        <input
+          type="date"
+          value={data.periodStart.length === 7 ? `${data.periodStart}-01` : data.periodStart}
+          onChange={(e) => onFieldChange('periodStart', e.target.value)}
+          className={inputCls}
+        />
+      </div>
+
+      {/* Period End */}
+      <div>
+        <label className={labelCls}>End Date</label>
+        <input
+          type="date"
+          value={(() => {
+            if (data.periodEnd.length > 7) return data.periodEnd
+            const [y, m] = data.periodEnd.split('-').map(Number)
+            const lastDay = new Date(y, m, 0).getDate()
+            return `${data.periodEnd}-${String(lastDay).padStart(2, '0')}`
+          })()}
+          onChange={(e) => onFieldChange('periodEnd', e.target.value)}
+          className={inputCls}
+        />
+      </div>
+
+      {/* Excess BH */}
+      <div>
+        <label className={labelCls}>Excess Hour</label>
+        <input
+          type="number"
+          step="0.01"
+          value={data.excessBh}
+          onChange={(e) => onFieldChange('excessBh', e.target.value)}
+          className={inputCls}
+        />
+      </div>
+
+      {/* Crew Sets */}
+      <div>
+        <label className={labelCls}>Crew</label>
+        <input
+          type="number"
+          min={1}
+          value={data.crewSets}
+          onChange={(e) => onFieldChange('crewSets', parseInt(e.target.value) || 1)}
+          className={inputCls}
+        />
+      </div>
+    </div>
+  )
+}
+
 export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns }: MsnInputRowProps) {
   const [showSwap, setShowSwap] = useState(false)
-  const { swapMsnAircraft } = usePricingStore()
+  const [activeTab, setActiveTab] = useState<'summer' | 'winter'>('summer')
+  const { swapMsnAircraft, toggleSeasonality, updateSeasonInput } = usePricingStore()
 
   // Aircraft available for swap: not already used, or is the current one
   const swapOptions = aircraftList.filter(
@@ -54,6 +167,10 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
       })),
     })
     setShowSwap(false)
+  }
+
+  const handleSeasonFieldChange = (season: 'summer' | 'winter', field: keyof SeasonInput, value: string | number) => {
+    updateSeasonInput(input.msn, season, field, value)
   }
 
   return (
@@ -98,144 +215,221 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
             </button>
           )}
         </div>
-        <button
-          onClick={() => onRemove(input.msn)}
-          className="p-0.5 text-gray-400 dark:text-gray-500 hover:text-red-400 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700"
-          aria-label={`Remove MSN ${input.msn}`}
-        >
-          <X size={12} />
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Seasonality toggle */}
+          <label className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={input.seasonalityEnabled}
+              onChange={(e) => toggleSeasonality(input.msn, e.target.checked)}
+              className="w-3 h-3 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            Seasonality
+          </label>
+          <button
+            onClick={() => onRemove(input.msn)}
+            className="p-0.5 text-gray-400 dark:text-gray-500 hover:text-red-400 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+            aria-label={`Remove MSN ${input.msn}`}
+          >
+            <X size={12} />
+          </button>
+        </div>
       </div>
 
-      {/* Input grid — 3 columns */}
-      <div className="grid grid-cols-3 gap-x-2 gap-y-1">
-        {/* MGH */}
-        <div>
-          <label className={labelCls}>MGH</label>
-          <input
-            type="number"
-            step="0.01"
-            value={input.mgh}
-            onChange={(e) => onUpdate(input.msn, 'mgh', e.target.value)}
-            className={inputCls}
+      {/* Seasonal tabs or flat inputs */}
+      {input.seasonalityEnabled && input.summer && input.winter ? (
+        <>
+          {/* Tab bar */}
+          <div className="flex gap-1 mb-1.5">
+            <button
+              onClick={() => setActiveTab('summer')}
+              className={`px-2.5 py-0.5 text-[10px] font-medium rounded transition-colors ${
+                activeTab === 'summer'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600'
+              }`}
+            >
+              Summer
+            </button>
+            <button
+              onClick={() => setActiveTab('winter')}
+              className={`px-2.5 py-0.5 text-[10px] font-medium rounded transition-colors ${
+                activeTab === 'winter'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600'
+              }`}
+            >
+              Winter
+            </button>
+          </div>
+
+          {/* Per-season fields */}
+          <SeasonFields
+            data={activeTab === 'summer' ? input.summer : input.winter}
+            onFieldChange={(field, value) => handleSeasonFieldChange(activeTab, field, value)}
           />
-        </div>
 
-        {/* Cycle Ratio */}
-        <div>
-          <label className={labelCls}>FH:FC</label>
-          <input
-            type="number"
-            step="0.0001"
-            value={input.cycleRatio}
-            onChange={(e) => onUpdate(input.msn, 'cycleRatio', e.target.value)}
-            className={inputCls}
-          />
-        </div>
+          {/* Shared fields below tabs */}
+          <div className="grid grid-cols-3 gap-x-2 gap-y-1 mt-1 pt-1 border-t border-gray-200 dark:border-gray-700/50">
+            {/* Environment */}
+            <div>
+              <label className={labelCls}>Environment</label>
+              <select
+                value={input.environment}
+                onChange={(e) => onUpdate(input.msn, 'environment', e.target.value)}
+                className={selectCls}
+              >
+                <option value="benign">Benign</option>
+                <option value="hot">Hot</option>
+              </select>
+            </div>
 
-        {/* ACMI Rate */}
-        <div>
-          <label className={labelCls}>ACMI Rate</label>
-          <input
-            type="number"
-            step="0.01"
-            value={input.acmiRate}
-            onChange={(e) => onUpdate(input.msn, 'acmiRate', e.target.value)}
-            className={inputCls}
-          />
-        </div>
+            {/* Lease Type */}
+            <div>
+              <label className={labelCls}>Lease Type</label>
+              <select
+                value={input.leaseType}
+                onChange={(e) => onUpdate(input.msn, 'leaseType', e.target.value)}
+                className={selectCls}
+              >
+                <option value="wet">Wet</option>
+                <option value="damp">Damp</option>
+                <option value="moist">Moist</option>
+              </select>
+            </div>
+          </div>
+        </>
+      ) : (
+        /* Non-seasonal: original flat input grid */
+        <div className="grid grid-cols-3 gap-x-2 gap-y-1">
+          {/* MGH */}
+          <div>
+            <label className={labelCls}>MGH</label>
+            <input
+              type="number"
+              step="0.01"
+              value={input.mgh}
+              onChange={(e) => onUpdate(input.msn, 'mgh', e.target.value)}
+              className={inputCls}
+            />
+          </div>
 
-        {/* Excess Hour Rate */}
-        <div>
-          <label className={labelCls}>Excess Hour Rate</label>
-          <input
-            type="number"
-            step="0.01"
-            value={input.excessHourRate}
-            onChange={(e) => onUpdate(input.msn, 'excessHourRate', e.target.value)}
-            className={inputCls}
-          />
-        </div>
+          {/* Cycle Ratio */}
+          <div>
+            <label className={labelCls}>FH:FC</label>
+            <input
+              type="number"
+              step="0.0001"
+              value={input.cycleRatio}
+              onChange={(e) => onUpdate(input.msn, 'cycleRatio', e.target.value)}
+              className={inputCls}
+            />
+          </div>
 
-        {/* Period Start */}
-        <div>
-          <label className={labelCls}>Start Date</label>
-          <input
-            type="date"
-            value={input.periodStart.length === 7 ? `${input.periodStart}-01` : input.periodStart}
-            onChange={(e) => onUpdate(input.msn, 'periodStart', e.target.value)}
-            className={inputCls}
-          />
-        </div>
+          {/* ACMI Rate */}
+          <div>
+            <label className={labelCls}>ACMI Rate</label>
+            <input
+              type="number"
+              step="0.01"
+              value={input.acmiRate}
+              onChange={(e) => onUpdate(input.msn, 'acmiRate', e.target.value)}
+              className={inputCls}
+            />
+          </div>
 
-        {/* Period End */}
-        <div>
-          <label className={labelCls}>End Date</label>
-          <input
-            type="date"
-            value={(() => {
-              if (input.periodEnd.length > 7) return input.periodEnd
-              // YYYY-MM → append last day of month
-              const [y, m] = input.periodEnd.split('-').map(Number)
-              const lastDay = new Date(y, m, 0).getDate()
-              return `${input.periodEnd}-${String(lastDay).padStart(2, '0')}`
-            })()}
-            onChange={(e) => onUpdate(input.msn, 'periodEnd', e.target.value)}
-            className={inputCls}
-          />
-        </div>
+          {/* Excess Hour Rate */}
+          <div>
+            <label className={labelCls}>Excess Hour Rate</label>
+            <input
+              type="number"
+              step="0.01"
+              value={input.excessHourRate}
+              onChange={(e) => onUpdate(input.msn, 'excessHourRate', e.target.value)}
+              className={inputCls}
+            />
+          </div>
 
-        {/* Excess BH */}
-        <div>
-          <label className={labelCls}>Excess Hour</label>
-          <input
-            type="number"
-            step="0.01"
-            value={input.excessBh}
-            onChange={(e) => onUpdate(input.msn, 'excessBh', e.target.value)}
-            className={inputCls}
-          />
-        </div>
+          {/* Period Start */}
+          <div>
+            <label className={labelCls}>Start Date</label>
+            <input
+              type="date"
+              value={input.periodStart.length === 7 ? `${input.periodStart}-01` : input.periodStart}
+              onChange={(e) => onUpdate(input.msn, 'periodStart', e.target.value)}
+              className={inputCls}
+            />
+          </div>
 
-        {/* Environment */}
-        <div>
-          <label className={labelCls}>Environment</label>
-          <select
-            value={input.environment}
-            onChange={(e) => onUpdate(input.msn, 'environment', e.target.value)}
-            className={selectCls}
-          >
-            <option value="benign">Benign</option>
-            <option value="hot">Hot</option>
-          </select>
-        </div>
+          {/* Period End */}
+          <div>
+            <label className={labelCls}>End Date</label>
+            <input
+              type="date"
+              value={(() => {
+                if (input.periodEnd.length > 7) return input.periodEnd
+                // YYYY-MM → append last day of month
+                const [y, m] = input.periodEnd.split('-').map(Number)
+                const lastDay = new Date(y, m, 0).getDate()
+                return `${input.periodEnd}-${String(lastDay).padStart(2, '0')}`
+              })()}
+              onChange={(e) => onUpdate(input.msn, 'periodEnd', e.target.value)}
+              className={inputCls}
+            />
+          </div>
 
-        {/* Crew Sets */}
-        <div>
-          <label className={labelCls}>Crew</label>
-          <input
-            type="number"
-            min={1}
-            value={input.crewSets}
-            onChange={(e) => onUpdate(input.msn, 'crewSets', parseInt(e.target.value) || 1)}
-            className={inputCls}
-          />
-        </div>
+          {/* Excess BH */}
+          <div>
+            <label className={labelCls}>Excess Hour</label>
+            <input
+              type="number"
+              step="0.01"
+              value={input.excessBh}
+              onChange={(e) => onUpdate(input.msn, 'excessBh', e.target.value)}
+              className={inputCls}
+            />
+          </div>
 
-        {/* Lease Type */}
-        <div>
-          <label className={labelCls}>Lease Type</label>
-          <select
-            value={input.leaseType}
-            onChange={(e) => onUpdate(input.msn, 'leaseType', e.target.value)}
-            className={selectCls}
-          >
-            <option value="wet">Wet</option>
-            <option value="damp">Damp</option>
-            <option value="moist">Moist</option>
-          </select>
+          {/* Environment */}
+          <div>
+            <label className={labelCls}>Environment</label>
+            <select
+              value={input.environment}
+              onChange={(e) => onUpdate(input.msn, 'environment', e.target.value)}
+              className={selectCls}
+            >
+              <option value="benign">Benign</option>
+              <option value="hot">Hot</option>
+            </select>
+          </div>
+
+          {/* Crew Sets */}
+          <div>
+            <label className={labelCls}>Crew</label>
+            <input
+              type="number"
+              min={1}
+              value={input.crewSets}
+              onChange={(e) => onUpdate(input.msn, 'crewSets', parseInt(e.target.value) || 1)}
+              className={inputCls}
+            />
+          </div>
+
+          {/* Lease Type */}
+          <div>
+            <label className={labelCls}>Lease Type</label>
+            <select
+              value={input.leaseType}
+              onChange={(e) => onUpdate(input.msn, 'leaseType', e.target.value)}
+              className={selectCls}
+            >
+              <option value="wet">Wet</option>
+              <option value="damp">Damp</option>
+              <option value="moist">Moist</option>
+            </select>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

@@ -381,10 +381,81 @@ export function SummaryTable() {
     fuelVal, handlingVal, navigationVal, airportChargesVal, overheadPerMonth,
   }
 
-  // ── Compute per-MSN data ──
-  const perMsnData = msnInputs.map((input) =>
-    computeMsnCosts(input, exchangeRate, bhFhRatioNum, apuFhRatioNum, crewDerived, costsDerived)
-  )
+  // ── Compute per-MSN data (with seasonal merge when applicable) ──
+  const perMsnData = msnInputs.map((input) => {
+    if (input.seasonalityEnabled && input.summer && input.winter) {
+      // Build virtual inputs for each season by overlaying season fields onto the base input
+      const summerInput: MsnInput = {
+        ...input,
+        mgh: input.summer.mgh,
+        cycleRatio: input.summer.cycleRatio,
+        acmiRate: input.summer.acmiRate,
+        excessHourRate: input.summer.excessHourRate,
+        excessBh: input.summer.excessBh,
+        crewSets: input.summer.crewSets,
+        periodStart: input.summer.periodStart,
+        periodEnd: input.summer.periodEnd,
+      }
+      const winterInput: MsnInput = {
+        ...input,
+        mgh: input.winter.mgh,
+        cycleRatio: input.winter.cycleRatio,
+        acmiRate: input.winter.acmiRate,
+        excessHourRate: input.winter.excessHourRate,
+        excessBh: input.winter.excessBh,
+        crewSets: input.winter.crewSets,
+        periodStart: input.winter.periodStart,
+        periodEnd: input.winter.periodEnd,
+      }
+      const s = computeMsnCosts(summerInput, exchangeRate, bhFhRatioNum, apuFhRatioNum, crewDerived, costsDerived)
+      const w = computeMsnCosts(winterInput, exchangeRate, bhFhRatioNum, apuFhRatioNum, crewDerived, costsDerived)
+      const totalDuration = s.duration + w.duration
+
+      // Weighted average per-month values (weight by duration)
+      const wAvg = (sv: number, wv: number) => totalDuration > 0 ? (sv * s.duration + wv * w.duration) / totalDuration : 0
+
+      return {
+        ...s,
+        // Per-month: weighted average of both seasons
+        mgh: wAvg(s.mgh, w.mgh),
+        bhSold: wAvg(s.bhSold, w.bhSold),
+        bhActual: wAvg(s.bhActual, w.bhActual),
+        fh: wAvg(s.fh, w.fh),
+        fc: wAvg(s.fc, w.fc),
+        cycleRatio: wAvg(s.cycleRatio, w.cycleRatio),
+        acmiRate: wAvg(s.acmiRate, w.acmiRate),
+        duration: totalDuration,
+        revenuePerMonth: wAvg(s.revenuePerMonth, w.revenuePerMonth),
+        aircraft: wAvg(s.aircraft, w.aircraft),
+        crew: wAvg(s.crew, w.crew),
+        maintenance: wAvg(s.maintenance, w.maintenance),
+        insurance: wAvg(s.insurance, w.insurance),
+        doc: wAvg(s.doc, w.doc),
+        otherCogs: wAvg(s.otherCogs, w.otherCogs),
+        acmiCost: wAvg(s.acmiCost, w.acmiCost),
+        totalCost: wAvg(s.acmiCost, w.acmiCost),
+        overhead: wAvg(s.overhead, w.overhead),
+        // Totals: sum both seasons
+        total: {
+          revenue: s.total.revenue + w.total.revenue,
+          bhSold: s.total.bhSold + w.total.bhSold,
+          bhActual: s.total.bhActual + w.total.bhActual,
+          fh: s.total.fh + w.total.fh,
+          fc: s.total.fc + w.total.fc,
+          aircraft: s.total.aircraft + w.total.aircraft,
+          crew: s.total.crew + w.total.crew,
+          maintenance: s.total.maintenance + w.total.maintenance,
+          insurance: s.total.insurance + w.total.insurance,
+          doc: s.total.doc + w.total.doc,
+          otherCogs: s.total.otherCogs + w.total.otherCogs,
+          acmiCost: s.total.acmiCost + w.total.acmiCost,
+          totalCost: s.total.acmiCost + w.total.acmiCost,
+          overhead: s.total.overhead + w.total.overhead,
+        },
+      }
+    }
+    return computeMsnCosts(input, exchangeRate, bhFhRatioNum, apuFhRatioNum, crewDerived, costsDerived)
+  })
 
   // ── Active MSN (Per Month column) ──
   const activeMsn = perMsnData.find((d) => d.msn === selectedMsn) ?? perMsnData[0]

@@ -77,6 +77,8 @@ export function useAddAircraft(
         benignRate: parseFloat(r.benign_rate),
         hotRate: parseFloat(r.hot_rate),
       })),
+      // Seasonality (off by default)
+      seasonalityEnabled: false,
     }
 
     addMsnInput(newInput)
