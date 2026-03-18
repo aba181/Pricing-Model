@@ -606,7 +606,7 @@ export function SummaryTable() {
       )}
 
       {/* Header */}
-      <div className="grid grid-cols-[1fr_80px_80px] bg-gray-100/60 dark:bg-gray-800/60 border-b border-gray-300 dark:border-gray-700">
+      <div className="grid grid-cols-[1fr_90px_90px] bg-gray-100/60 dark:bg-gray-800/60 border-b border-gray-300 dark:border-gray-700">
         <div className="px-3 py-1.5 flex items-center gap-2">
           <span className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Summary</span>
           <div className="flex bg-gray-200 dark:bg-gray-700 rounded-md p-0.5">
@@ -649,7 +649,7 @@ export function SummaryTable() {
           return (
             <div
               key={idx}
-              className={`grid grid-cols-[1fr_80px_80px] ${row.isBold ? 'bg-gray-100/30 dark:bg-gray-800/30' : ''}`}
+              className={`grid grid-cols-[1fr_90px_90px] ${row.isBold ? 'bg-gray-100/30 dark:bg-gray-800/30' : ''}`}
             >
               <div className={`px-3 py-[3px] text-xs ${row.isBold ? 'font-semibold text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'}`}>
                 {row.label}

@@ -150,7 +150,7 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
       {/* Side-by-side: Summary (left) + MSN Inputs (right) */}
       <div className="flex gap-4 items-start">
         {/* Left: Summary Table */}
-        <div className="shrink-0 w-[340px]">
+        <div className="shrink-0 w-[380px]">
           <SummaryTable />
         </div>
 
