@@ -79,6 +79,10 @@ export function useAddAircraft(
       })),
       // Seasonality (off by default)
       seasonalityEnabled: false,
+      // Fixed cost coverage (off by default)
+      fixedCostCoverageEnabled: false,
+      fixedCostCoveragePercent: '50',
+      fixedCostCoverageMonths: '6',
     }
 
     addMsnInput(newInput)

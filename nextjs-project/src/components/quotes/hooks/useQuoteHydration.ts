@@ -62,6 +62,9 @@ export function useQuoteHydration(quote: QuoteDetailResponse) {
         seasonalityEnabled: (input.seasonalityEnabled as boolean) ?? false,
         summer: input.summer as SeasonInput | undefined,
         winter: input.winter as SeasonInput | undefined,
+        fixedCostCoverageEnabled: (input.fixedCostCoverageEnabled as boolean) ?? false,
+        fixedCostCoveragePercent: String(input.fixedCostCoveragePercent ?? '50'),
+        fixedCostCoverageMonths: String(input.fixedCostCoverageMonths ?? '6'),
       }
     })
 
@@ -123,9 +126,6 @@ export function useQuoteHydration(quote: QuoteDetailResponse) {
         marginPercent: dashboardState.marginPercent ?? quote.margin_percent,
         bhFhRatio: dashboardState.bhFhRatio,
         apuFhRatio: dashboardState.apuFhRatio,
-        fixedCostCoverageEnabled: String(dashboardState.fixedCostCoverageEnabled) === 'true',
-        fixedCostCoveragePercent: dashboardState.fixedCostCoveragePercent,
-        fixedCostCoverageMonths: dashboardState.fixedCostCoverageMonths,
       },
       msnInputs,
       msnResults,

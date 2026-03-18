@@ -270,9 +270,6 @@ export function SummaryTable() {
     selectedMsn,
     setSelectedMsn,
     isCalculating,
-    fixedCostCoverageEnabled,
-    fixedCostCoveragePercent,
-    fixedCostCoverageMonths,
   } = usePricingStore()
 
   // ── Crew config ──
@@ -502,23 +499,21 @@ export function SummaryTable() {
   const totalProjectFh = perMsnData.reduce((s, d) => s + d.total.fh, 0)
   const totalProjectFc = perMsnData.reduce((s, d) => s + d.total.fc, 0)
 
-  // ── Fixed Cost Coverage: coverage% × monthly fixed cost × months ──
-  const coveragePct = fixedCostCoverageEnabled ? (parseFloat(fixedCostCoveragePercent) || 0) / 100 : 0
-  const coverageMonths = fixedCostCoverageEnabled ? (parseFloat(fixedCostCoverageMonths) || 0) : 0
-  // Sum monthly fixed costs across all MSNs, then multiply by coverage % and months
-  const totalMonthlyFixedAircraft = perMsnData.reduce((s, d) => s + d.fixedCosts.aircraft, 0)
-  const totalMonthlyFixedCrew = perMsnData.reduce((s, d) => s + d.fixedCosts.crew, 0)
-  const totalMonthlyFixedMaint = perMsnData.reduce((s, d) => s + d.fixedCosts.maintenance, 0)
-  const totalMonthlyFixedInsurance = perMsnData.reduce((s, d) => s + d.fixedCosts.insurance, 0)
-  const totalMonthlyFixedDoc = perMsnData.reduce((s, d) => s + d.fixedCosts.doc, 0)
-  const totalMonthlyFixedOverhead = perMsnData.reduce((s, d) => s + d.fixedCosts.overhead, 0)
-
-  const covAircraft = totalMonthlyFixedAircraft * coveragePct * coverageMonths
-  const covCrew = totalMonthlyFixedCrew * coveragePct * coverageMonths
-  const covMaint = totalMonthlyFixedMaint * coveragePct * coverageMonths
-  const covInsurance = totalMonthlyFixedInsurance * coveragePct * coverageMonths
-  const covDoc = totalMonthlyFixedDoc * coveragePct * coverageMonths
-  const covOverhead = totalMonthlyFixedOverhead * coveragePct * coverageMonths
+  // ── Fixed Cost Coverage: per-MSN coverage% × monthly fixed cost × months ──
+  let covAircraft = 0, covCrew = 0, covMaint = 0, covInsurance = 0, covDoc = 0, covOverhead = 0
+  for (let idx = 0; idx < msnInputs.length; idx++) {
+    const inp = msnInputs[idx]
+    if (!inp.fixedCostCoverageEnabled) continue
+    const pct = (parseFloat(inp.fixedCostCoveragePercent) || 0) / 100
+    const months = parseFloat(inp.fixedCostCoverageMonths) || 0
+    const d = perMsnData[idx]
+    covAircraft += d.fixedCosts.aircraft * pct * months
+    covCrew += d.fixedCosts.crew * pct * months
+    covMaint += d.fixedCosts.maintenance * pct * months
+    covInsurance += d.fixedCosts.insurance * pct * months
+    covDoc += d.fixedCosts.doc * pct * months
+    covOverhead += d.fixedCosts.overhead * pct * months
+  }
 
   const tAircraftAbs = perMsnData.reduce((s, d) => s + d.total.aircraft, 0) + covAircraft
   const tCrewAbs = perMsnData.reduce((s, d) => s + d.total.crew, 0) + covCrew

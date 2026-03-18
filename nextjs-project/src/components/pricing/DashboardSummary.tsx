@@ -32,12 +32,6 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
     setApuFhRatio,
     removeMsnInput,
     updateMsnInput,
-    fixedCostCoverageEnabled,
-    fixedCostCoveragePercent,
-    fixedCostCoverageMonths,
-    setFixedCostCoverageEnabled,
-    setFixedCostCoveragePercent,
-    setFixedCostCoverageMonths,
   } = usePricingStore()
 
   const [showSaveDialog, setShowSaveDialog] = useState(false)
@@ -131,50 +125,6 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
                   : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-700 focus:border-indigo-400'
               }`}
             />
-          </div>
-          {/* Fixed Cost Coverage */}
-          <div className="flex items-end gap-2">
-            <label className="flex items-center gap-1.5 text-[11px] font-medium text-gray-500 dark:text-gray-400 cursor-pointer select-none pb-2">
-              <input
-                type="checkbox"
-                checked={fixedCostCoverageEnabled}
-                onChange={(e) => setFixedCostCoverageEnabled(e.target.checked)}
-                className="w-3.5 h-3.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-              />
-              Fixed Cost Coverage
-            </label>
-            {fixedCostCoverageEnabled && (
-              <>
-                <div className="w-[70px]">
-                  <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
-                    Coverage %
-                  </label>
-                  <input
-                    type="number"
-                    step="1"
-                    min="0"
-                    max="100"
-                    value={fixedCostCoveragePercent}
-                    onChange={(e) => setFixedCostCoveragePercent(e.target.value)}
-                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:border-indigo-400 focus:outline-none"
-                  />
-                </div>
-                <div className="w-[70px]">
-                  <label className="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">
-                    Months
-                  </label>
-                  <input
-                    type="number"
-                    step="1"
-                    min="1"
-                    max="12"
-                    value={fixedCostCoverageMonths}
-                    onChange={(e) => setFixedCostCoverageMonths(e.target.value)}
-                    className="w-full bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:border-indigo-400 focus:outline-none"
-                  />
-                </div>
-              </>
-            )}
           </div>
           {isCalculating && (
             <div className="text-xs text-indigo-600 dark:text-indigo-400 pb-2">Calculating...</div>

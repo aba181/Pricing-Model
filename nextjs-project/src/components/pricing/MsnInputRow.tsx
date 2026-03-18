@@ -8,7 +8,7 @@ import type { AircraftOption } from '@/lib/api-converters'
 
 interface MsnInputRowProps {
   input: MsnInput
-  onUpdate: (msn: number, field: keyof MsnInput, value: string | number) => void
+  onUpdate: (msn: number, field: keyof MsnInput, value: string | number | boolean) => void
   onRemove: (msn: number) => void
   aircraftList: AircraftOption[]
   usedMsns: number[]
@@ -226,6 +226,16 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
             />
             Seasonality
           </label>
+          {/* Fixed Cost Coverage toggle */}
+          <label className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={input.fixedCostCoverageEnabled}
+              onChange={(e) => onUpdate(input.msn, 'fixedCostCoverageEnabled', e.target.checked)}
+              className="w-3 h-3 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            FC Coverage
+          </label>
           <button
             onClick={() => onRemove(input.msn)}
             className="p-0.5 text-gray-400 dark:text-gray-500 hover:text-red-400 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700"
@@ -427,6 +437,36 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
               <option value="damp">Damp</option>
               <option value="moist">Moist</option>
             </select>
+          </div>
+        </div>
+      )}
+
+      {/* Fixed Cost Coverage inputs (shown when FC Coverage is toggled on) */}
+      {input.fixedCostCoverageEnabled && (
+        <div className="grid grid-cols-3 gap-x-2 gap-y-1 mt-1 pt-1 border-t border-gray-200 dark:border-gray-700/50">
+          <div>
+            <label className={labelCls}>Coverage %</label>
+            <input
+              type="number"
+              step="1"
+              min="0"
+              max="100"
+              value={input.fixedCostCoveragePercent}
+              onChange={(e) => onUpdate(input.msn, 'fixedCostCoveragePercent', e.target.value)}
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>Coverage Months</label>
+            <input
+              type="number"
+              step="1"
+              min="1"
+              max="12"
+              value={input.fixedCostCoverageMonths}
+              onChange={(e) => onUpdate(input.msn, 'fixedCostCoverageMonths', e.target.value)}
+              className={inputCls}
+            />
           </div>
         </div>
       )}

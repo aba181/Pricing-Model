@@ -54,6 +54,10 @@ export interface MsnInput {
   seasonalityEnabled: boolean
   summer?: SeasonInput
   winter?: SeasonInput
+  // Fixed cost coverage (summer project covers winter fixed costs)
+  fixedCostCoverageEnabled: boolean
+  fixedCostCoveragePercent: string // e.g. "50"
+  fixedCostCoverageMonths: string  // e.g. "6"
 }
 
 /** Compute period in months from start/end strings (YYYY-MM or YYYY-MM-DD, inclusive) */
@@ -118,11 +122,6 @@ interface PricingStore {
   apuFhRatio: string // Global APU FH:FH ratio — APU FH = FH * apuFhRatio (default 0.7)
   msnInputs: MsnInput[]
 
-  // Fixed cost coverage (summer covers winter)
-  fixedCostCoverageEnabled: boolean
-  fixedCostCoveragePercent: string // Default "50"
-  fixedCostCoverageMonths: string  // Default "6"
-
   // P&L results
   selectedMsn: number | null // null = total project view
   msnResults: MsnPnlResult[]
@@ -139,7 +138,7 @@ interface PricingStore {
   setApuFhRatio: (ratio: string) => void
   addMsnInput: (input: MsnInput) => void
   removeMsnInput: (msn: number) => void
-  updateMsnInput: (msn: number, field: keyof MsnInput, value: string | number | null) => void
+  updateMsnInput: (msn: number, field: keyof MsnInput, value: string | number | boolean | null) => void
   setSelectedMsn: (msn: number | null) => void
   setResults: (msnResults: MsnPnlResult[], total: ComponentBreakdown | null) => void
   setIsCalculating: (val: boolean) => void
@@ -157,9 +156,6 @@ interface PricingStore {
     llp2RateUsd: string
     eprMatrix: EprMatrixRow[]
   }) => void
-  setFixedCostCoverageEnabled: (enabled: boolean) => void
-  setFixedCostCoveragePercent: (percent: string) => void
-  setFixedCostCoverageMonths: (months: string) => void
   toggleSeasonality: (msn: number, enabled: boolean) => void
   updateSeasonInput: (msn: number, season: 'summer' | 'winter', field: keyof SeasonInput, value: string | number) => void
   setLastError: (err: string | null) => void
@@ -171,9 +167,6 @@ interface PricingStore {
       marginPercent: string
       bhFhRatio?: string
       apuFhRatio?: string
-      fixedCostCoverageEnabled?: boolean
-      fixedCostCoveragePercent?: string
-      fixedCostCoverageMonths?: string
     }
     msnInputs: MsnInput[]
     msnResults: MsnPnlResult[]
@@ -189,9 +182,6 @@ const initialState = {
   bhFhRatio: '1.2',
   apuFhRatio: '0.7',
   msnInputs: [] as MsnInput[],
-  fixedCostCoverageEnabled: false,
-  fixedCostCoveragePercent: '50',
-  fixedCostCoverageMonths: '6',
   selectedMsn: null as number | null,
   msnResults: [] as MsnPnlResult[],
   totalResult: null as ComponentBreakdown | null,
@@ -258,10 +248,6 @@ export const usePricingStore = create<PricingStore>()((set) => ({
       ),
     })),
 
-  setFixedCostCoverageEnabled: (enabled) => set({ fixedCostCoverageEnabled: enabled }),
-  setFixedCostCoveragePercent: (percent) => set({ fixedCostCoveragePercent: percent }),
-  setFixedCostCoverageMonths: (months) => set({ fixedCostCoverageMonths: months }),
-
   toggleSeasonality: (msn, enabled) =>
     set((state) => ({
       msnInputs: state.msnInputs.map((i) => {
@@ -309,9 +295,6 @@ export const usePricingStore = create<PricingStore>()((set) => ({
       marginPercent: quoteData.dashboardState.marginPercent,
       bhFhRatio: quoteData.dashboardState.bhFhRatio ?? '1.2',
       apuFhRatio: quoteData.dashboardState.apuFhRatio ?? '0.7',
-      fixedCostCoverageEnabled: quoteData.dashboardState.fixedCostCoverageEnabled ?? false,
-      fixedCostCoveragePercent: quoteData.dashboardState.fixedCostCoveragePercent ?? '50',
-      fixedCostCoverageMonths: quoteData.dashboardState.fixedCostCoverageMonths ?? '6',
       msnInputs: quoteData.msnInputs,
       msnResults: quoteData.msnResults,
       totalResult: quoteData.totalResult,
