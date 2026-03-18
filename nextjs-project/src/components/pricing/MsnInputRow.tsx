@@ -15,10 +15,10 @@ interface MsnInputRowProps {
 }
 
 const inputCls =
-  'w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded px-1.5 py-0.5 text-[11px] text-gray-900 dark:text-gray-100 focus:border-indigo-400 focus:outline-none'
+  'w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded px-1 py-[2px] text-[10px] text-gray-900 dark:text-gray-100 focus:border-indigo-400 focus:outline-none'
 const selectCls =
-  'w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded px-1 py-0.5 text-[11px] text-gray-900 dark:text-gray-100 focus:border-indigo-400 focus:outline-none'
-const labelCls = 'text-[10px] text-gray-400 dark:text-gray-500 leading-tight'
+  'w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded px-0.5 py-[2px] text-[10px] text-gray-900 dark:text-gray-100 focus:border-indigo-400 focus:outline-none'
+const labelCls = 'text-[9px] text-gray-400 dark:text-gray-500 leading-none'
 
 /** Reusable per-season field grid */
 function SeasonFields({
@@ -29,7 +29,7 @@ function SeasonFields({
   onFieldChange: (field: keyof SeasonInput, value: string | number) => void
 }) {
   return (
-    <div className="grid grid-cols-3 gap-x-2 gap-y-1">
+    <div className="grid grid-cols-4 gap-x-1.5 gap-y-0.5">
       {/* MGH */}
       <div>
         <label className={labelCls}>MGH</label>
@@ -174,9 +174,9 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
   }
 
   return (
-    <div className="bg-gray-100 dark:bg-gray-800/50 rounded-lg border border-gray-300 dark:border-gray-700/50 px-2.5 py-2">
+    <div className="bg-gray-100 dark:bg-gray-800/50 rounded-lg border border-gray-300 dark:border-gray-700/50 px-2 py-1.5">
       {/* Card header */}
-      <div className="flex items-center justify-between mb-1.5">
+      <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-1.5">
           <span className="text-xs font-semibold text-gray-900 dark:text-gray-100">
             MSN {input.msn}
@@ -250,10 +250,10 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
       {input.seasonalityEnabled && input.summer && input.winter ? (
         <>
           {/* Tab bar */}
-          <div className="flex gap-1 mb-1.5">
+          <div className="flex gap-1 mb-1">
             <button
               onClick={() => setActiveTab('summer')}
-              className={`px-2.5 py-0.5 text-[10px] font-medium rounded transition-colors ${
+              className={`px-2 py-[2px] text-[9px] font-medium rounded transition-colors ${
                 activeTab === 'summer'
                   ? 'bg-indigo-600 text-white'
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600'
@@ -263,7 +263,7 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
             </button>
             <button
               onClick={() => setActiveTab('winter')}
-              className={`px-2.5 py-0.5 text-[10px] font-medium rounded transition-colors ${
+              className={`px-2 py-[2px] text-[9px] font-medium rounded transition-colors ${
                 activeTab === 'winter'
                   ? 'bg-indigo-600 text-white'
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600'
@@ -280,7 +280,7 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
           />
 
           {/* Shared fields below tabs */}
-          <div className="grid grid-cols-3 gap-x-2 gap-y-1 mt-1 pt-1 border-t border-gray-200 dark:border-gray-700/50">
+          <div className="grid grid-cols-4 gap-x-1.5 gap-y-0.5 mt-0.5 pt-0.5 border-t border-gray-200 dark:border-gray-700/50">
             {/* Environment */}
             <div>
               <label className={labelCls}>Environment</label>
@@ -311,7 +311,7 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
         </>
       ) : (
         /* Non-seasonal: original flat input grid */
-        <div className="grid grid-cols-3 gap-x-2 gap-y-1">
+        <div className="grid grid-cols-4 gap-x-1.5 gap-y-0.5">
           {/* MGH */}
           <div>
             <label className={labelCls}>MGH</label>
@@ -443,7 +443,7 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
 
       {/* Fixed Cost Coverage inputs (shown when FC Coverage is toggled on) */}
       {input.fixedCostCoverageEnabled && (
-        <div className="grid grid-cols-3 gap-x-2 gap-y-1 mt-1 pt-1 border-t border-gray-200 dark:border-gray-700/50">
+        <div className="grid grid-cols-4 gap-x-1.5 gap-y-0.5 mt-0.5 pt-0.5 border-t border-gray-200 dark:border-gray-700/50">
           <div>
             <label className={labelCls}>Coverage %</label>
             <input
