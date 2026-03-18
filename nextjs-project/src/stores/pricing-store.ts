@@ -122,6 +122,20 @@ interface PricingStore {
   setSelectedMsn: (msn: number | null) => void
   setResults: (msnResults: MsnPnlResult[], total: ComponentBreakdown | null) => void
   setIsCalculating: (val: boolean) => void
+  swapMsnAircraft: (oldMsn: number, newAircraft: {
+    aircraftId: number
+    msn: number
+    aircraftType: string
+    registration: string | null
+    leaseRentEur: string
+    sixYearCheckEur: string
+    twelveYearCheckEur: string
+    ldgEur: string
+    apuRateUsd: string
+    llp1RateUsd: string
+    llp2RateUsd: string
+    eprMatrix: EprMatrixRow[]
+  }) => void
   setLastError: (err: string | null) => void
   reset: () => void
   loadFromQuote: (quoteData: {
@@ -185,6 +199,30 @@ export const usePricingStore = create<PricingStore>()((set) => ({
     set((state) => ({
       msnInputs: state.msnInputs.map((i) =>
         i.msn === msn ? { ...i, [field]: value } : i
+      ),
+    })),
+
+  swapMsnAircraft: (oldMsn, newAircraft) =>
+    set((state) => ({
+      msnInputs: state.msnInputs.map((i) =>
+        i.msn === oldMsn
+          ? {
+              ...i,
+              aircraftId: newAircraft.aircraftId,
+              msn: newAircraft.msn,
+              aircraftType: newAircraft.aircraftType,
+              registration: newAircraft.registration,
+              leaseRentEur: newAircraft.leaseRentEur,
+              sixYearCheckEur: newAircraft.sixYearCheckEur,
+              twelveYearCheckEur: newAircraft.twelveYearCheckEur,
+              ldgEur: newAircraft.ldgEur,
+              apuRateUsd: newAircraft.apuRateUsd,
+              llp1RateUsd: newAircraft.llp1RateUsd,
+              llp2RateUsd: newAircraft.llp2RateUsd,
+              eprMatrix: newAircraft.eprMatrix,
+              id: undefined, // Clear DB id since this is a new aircraft assignment
+            }
+          : i
       ),
     })),
 

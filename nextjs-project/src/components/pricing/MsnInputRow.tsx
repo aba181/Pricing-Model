@@ -1,12 +1,17 @@
 'use client'
 
-import { X } from 'lucide-react'
+import { useState } from 'react'
+import { X, RefreshCw } from 'lucide-react'
 import type { MsnInput } from '@/stores/pricing-store'
+import { usePricingStore } from '@/stores/pricing-store'
+import type { AircraftOption } from '@/lib/api-converters'
 
 interface MsnInputRowProps {
   input: MsnInput
   onUpdate: (msn: number, field: keyof MsnInput, value: string | number) => void
   onRemove: (msn: number) => void
+  aircraftList: AircraftOption[]
+  usedMsns: number[]
 }
 
 const inputCls =
@@ -15,7 +20,42 @@ const selectCls =
   'w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded px-1 py-0.5 text-[11px] text-gray-900 dark:text-gray-100 focus:border-indigo-400 focus:outline-none'
 const labelCls = 'text-[10px] text-gray-400 dark:text-gray-500 leading-tight'
 
-export function MsnInputRow({ input, onUpdate, onRemove }: MsnInputRowProps) {
+export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns }: MsnInputRowProps) {
+  const [showSwap, setShowSwap] = useState(false)
+  const { swapMsnAircraft } = usePricingStore()
+
+  // Aircraft available for swap: not already used, or is the current one
+  const swapOptions = aircraftList.filter(
+    (ac) => ac.msn === input.msn || !usedMsns.includes(ac.msn)
+  )
+
+  const handleSwap = (aircraftId: string) => {
+    const ac = aircraftList.find((a) => a.id === Number(aircraftId))
+    if (!ac || ac.msn === input.msn) {
+      setShowSwap(false)
+      return
+    }
+    swapMsnAircraft(input.msn, {
+      aircraftId: ac.id,
+      msn: ac.msn,
+      aircraftType: ac.aircraft_type,
+      registration: ac.registration,
+      leaseRentEur: ac.lease_rent_eur ?? '0',
+      sixYearCheckEur: ac.six_year_check_eur ?? '0',
+      twelveYearCheckEur: ac.twelve_year_check_eur ?? '0',
+      ldgEur: ac.ldg_eur ?? '0',
+      apuRateUsd: ac.apu_rate_usd ?? '0',
+      llp1RateUsd: ac.llp1_rate_usd ?? '0',
+      llp2RateUsd: ac.llp2_rate_usd ?? '0',
+      eprMatrix: (ac.epr_matrix ?? []).map((r) => ({
+        cycleRatio: parseFloat(r.cycle_ratio),
+        benignRate: parseFloat(r.benign_rate),
+        hotRate: parseFloat(r.hot_rate),
+      })),
+    })
+    setShowSwap(false)
+  }
+
   return (
     <div className="bg-gray-100 dark:bg-gray-800/50 rounded-lg border border-gray-300 dark:border-gray-700/50 px-2.5 py-2">
       {/* Card header */}
@@ -31,6 +71,31 @@ export function MsnInputRow({ input, onUpdate, onRemove }: MsnInputRowProps) {
             <span className="text-[11px] text-gray-400 dark:text-gray-500">
               ({input.registration})
             </span>
+          )}
+          {showSwap ? (
+            <select
+              autoFocus
+              defaultValue={String(input.aircraftId)}
+              onChange={(e) => handleSwap(e.target.value)}
+              onBlur={() => setShowSwap(false)}
+              className="bg-white dark:bg-gray-900 border border-indigo-400 rounded px-1.5 py-0.5 text-[11px] text-gray-900 dark:text-gray-100 focus:outline-none"
+            >
+              {swapOptions.map((ac) => (
+                <option key={ac.id} value={ac.id}>
+                  MSN {ac.msn} - {ac.aircraft_type}
+                  {ac.registration ? ` (${ac.registration})` : ''}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <button
+              onClick={() => setShowSwap(true)}
+              className="p-0.5 text-gray-400 dark:text-gray-500 hover:text-indigo-400 transition-colors rounded hover:bg-gray-200 dark:hover:bg-gray-700"
+              aria-label="Change aircraft"
+              title="Change aircraft"
+            >
+              <RefreshCw size={11} />
+            </button>
           )}
         </div>
         <button

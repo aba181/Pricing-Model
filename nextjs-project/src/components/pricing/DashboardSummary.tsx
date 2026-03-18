@@ -195,6 +195,8 @@ export function DashboardSummary({ aircraftList, isViewer = false }: DashboardSu
                   input={input}
                   onUpdate={updateMsnInput}
                   onRemove={removeMsnInput}
+                  aircraftList={aircraftList}
+                  usedMsns={msnInputs.map((i) => i.msn)}
                 />
               ))}
             </div>
