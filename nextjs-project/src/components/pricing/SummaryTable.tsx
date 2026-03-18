@@ -232,6 +232,15 @@ function computeMsnCosts(
     acmiCost,
     totalCost,
     overhead,
+    // Fixed cost breakdown (per month) for coverage calculation
+    fixedCosts: {
+      aircraft: dryLease + maintReservesFixed,
+      crew: crewFixed,
+      maintenance: maintFixed,
+      insurance,
+      doc: costs.technicalVal + costs.otherFixedVal,
+      overhead: costs.overheadPerMonth.reduce((s, v) => s + v, 0),
+    },
     total: {
       revenue: tRevenue,
       bhSold: tBhSold,
@@ -261,6 +270,9 @@ export function SummaryTable() {
     selectedMsn,
     setSelectedMsn,
     isCalculating,
+    fixedCostCoverageEnabled,
+    fixedCostCoveragePercent,
+    fixedCostCoverageMonths,
   } = usePricingStore()
 
   // ── Crew config ──
@@ -435,6 +447,15 @@ export function SummaryTable() {
         acmiCost: wAvg(s.acmiCost, w.acmiCost),
         totalCost: wAvg(s.acmiCost, w.acmiCost),
         overhead: wAvg(s.overhead, w.overhead),
+        // Fixed costs: weighted average (for coverage calc)
+        fixedCosts: {
+          aircraft: wAvg(s.fixedCosts.aircraft, w.fixedCosts.aircraft),
+          crew: wAvg(s.fixedCosts.crew, w.fixedCosts.crew),
+          maintenance: wAvg(s.fixedCosts.maintenance, w.fixedCosts.maintenance),
+          insurance: wAvg(s.fixedCosts.insurance, w.fixedCosts.insurance),
+          doc: wAvg(s.fixedCosts.doc, w.fixedCosts.doc),
+          overhead: wAvg(s.fixedCosts.overhead, w.fixedCosts.overhead),
+        },
         // Totals: sum both seasons
         total: {
           revenue: s.total.revenue + w.total.revenue,
@@ -480,13 +501,33 @@ export function SummaryTable() {
   const totalProjectBhActual = perMsnData.reduce((s, d) => s + d.total.bhActual, 0)
   const totalProjectFh = perMsnData.reduce((s, d) => s + d.total.fh, 0)
   const totalProjectFc = perMsnData.reduce((s, d) => s + d.total.fc, 0)
-  const tAircraftAbs = perMsnData.reduce((s, d) => s + d.total.aircraft, 0)
-  const tCrewAbs = perMsnData.reduce((s, d) => s + d.total.crew, 0)
-  const tMaintAbs = perMsnData.reduce((s, d) => s + d.total.maintenance, 0)
-  const tInsuranceAbs = perMsnData.reduce((s, d) => s + d.total.insurance, 0)
-  const tDocAbs = perMsnData.reduce((s, d) => s + d.total.doc, 0)
-  const tAcmiCostAbs = perMsnData.reduce((s, d) => s + d.total.acmiCost, 0)
-  const tOverheadAbs = perMsnData.reduce((s, d) => s + d.total.overhead, 0)
+
+  // ── Fixed Cost Coverage: coverage% × monthly fixed cost × months ──
+  const coveragePct = fixedCostCoverageEnabled ? (parseFloat(fixedCostCoveragePercent) || 0) / 100 : 0
+  const coverageMonths = fixedCostCoverageEnabled ? (parseFloat(fixedCostCoverageMonths) || 0) : 0
+  // Sum monthly fixed costs across all MSNs, then multiply by coverage % and months
+  const totalMonthlyFixedAircraft = perMsnData.reduce((s, d) => s + d.fixedCosts.aircraft, 0)
+  const totalMonthlyFixedCrew = perMsnData.reduce((s, d) => s + d.fixedCosts.crew, 0)
+  const totalMonthlyFixedMaint = perMsnData.reduce((s, d) => s + d.fixedCosts.maintenance, 0)
+  const totalMonthlyFixedInsurance = perMsnData.reduce((s, d) => s + d.fixedCosts.insurance, 0)
+  const totalMonthlyFixedDoc = perMsnData.reduce((s, d) => s + d.fixedCosts.doc, 0)
+  const totalMonthlyFixedOverhead = perMsnData.reduce((s, d) => s + d.fixedCosts.overhead, 0)
+
+  const covAircraft = totalMonthlyFixedAircraft * coveragePct * coverageMonths
+  const covCrew = totalMonthlyFixedCrew * coveragePct * coverageMonths
+  const covMaint = totalMonthlyFixedMaint * coveragePct * coverageMonths
+  const covInsurance = totalMonthlyFixedInsurance * coveragePct * coverageMonths
+  const covDoc = totalMonthlyFixedDoc * coveragePct * coverageMonths
+  const covOverhead = totalMonthlyFixedOverhead * coveragePct * coverageMonths
+
+  const tAircraftAbs = perMsnData.reduce((s, d) => s + d.total.aircraft, 0) + covAircraft
+  const tCrewAbs = perMsnData.reduce((s, d) => s + d.total.crew, 0) + covCrew
+  const tMaintAbs = perMsnData.reduce((s, d) => s + d.total.maintenance, 0) + covMaint
+  const tInsuranceAbs = perMsnData.reduce((s, d) => s + d.total.insurance, 0) + covInsurance
+  const tDocAbs = perMsnData.reduce((s, d) => s + d.total.doc, 0) + covDoc
+  const tAcmiCostAbs = tAircraftAbs + tCrewAbs + tMaintAbs + tInsuranceAbs + tDocAbs
+    + perMsnData.reduce((s, d) => s + d.total.otherCogs, 0)
+  const tOverheadAbs = perMsnData.reduce((s, d) => s + d.total.overhead, 0) + covOverhead
   const totalProjectCost = tAcmiCostAbs
   const totalProjectGrossProfit = totalProjectRevenue - totalProjectCost
   const totalProjectNetProfit = totalProjectGrossProfit - tOverheadAbs

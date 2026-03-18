@@ -44,6 +44,9 @@ export function SaveQuoteDialog({ isOpen, onClose, onSaved }: SaveQuoteDialogPro
         marginPercent: pricingState.marginPercent,
         bhFhRatio: pricingState.bhFhRatio,
         apuFhRatio: pricingState.apuFhRatio,
+        fixedCostCoverageEnabled: pricingState.fixedCostCoverageEnabled,
+        fixedCostCoveragePercent: pricingState.fixedCostCoveragePercent,
+        fixedCostCoverageMonths: pricingState.fixedCostCoverageMonths,
       }
 
       // Build crew_config_snapshot
