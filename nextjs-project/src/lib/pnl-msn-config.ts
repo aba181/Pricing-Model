@@ -237,9 +237,10 @@ export function computeMsnConfig(
   nfdDays: number = 10,
 ): MsnComputeResult {
   const msnMgh = parseFloat(input.mgh) || 0
-  const msnAcmiRate = parseFloat(input.acmiRate || '0')
+  const rateToEur = input.rateCurrency === 'usd' ? exchangeRate : 1
+  const msnAcmiRate = parseFloat(input.acmiRate || '0') * rateToEur
   const msnExcessBh = parseFloat(input.excessBh || '0')
-  const msnExcessHourRate = parseFloat(input.excessHourRate || '0')
+  const msnExcessHourRate = parseFloat(input.excessHourRate || '0') * rateToEur
   const msnCycleRatio = parseFloat(input.cycleRatio || '1')
   const msnBhFhRatio = parseFloat(input.bhFhRatio || '1.2')
   const msnApuFhRatio = parseFloat(input.apuFhRatio || '1.1')

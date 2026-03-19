@@ -8,9 +8,12 @@ import { useCostsConfigStore } from '@/stores/costs-config-store'
 import { fmt, fmtPct, fmtDec, valColor } from '@/lib/format'
 import { PNL_ROWS, MARGIN_KEYS, KPI_DECIMAL_KEYS, ALL_DATA_KEYS } from '@/lib/pnl-row-defs'
 import { buildMonthlyData } from '@/lib/pnl-monthly-builder'
+import { ALL_DATA_KEYS as ALL_KEYS_IMPORT } from '@/lib/pnl-row-defs'
 import { deriveCrewValues, deriveCostsValues, computeMsnConfig } from '@/lib/pnl-msn-config'
+import type { CrewDerivedValues, CostsDerivedValues } from '@/lib/pnl-msn-config'
 import { interpolateEpr } from '@/lib/pnl-engine'
 import { buildMonthDayInfos } from '@/lib/pnl-proration'
+import type { MsnInput } from '@/stores/pricing-store'
 import { LineDetailPopover } from './CostDetailPopover'
 import type { BreakdownItem, ParamItem } from './CostDetailPopover'
 
@@ -27,6 +30,102 @@ const CLICKABLE_ROWS = new Set([
   'cabinCrewSalary',
   'lineMaintenance',
 ])
+
+/**
+ * Build monthly P&L data for a single MSN, handling seasonality.
+ *
+ * When seasonality is enabled, each month uses the summer or winter config
+ * depending on which season period the month falls into.
+ */
+function buildMsnMonthlyData(
+  input: MsnInput,
+  months: { year: number; month: number; label: string }[],
+  crew: CrewDerivedValues,
+  costs: CostsDerivedValues,
+  exchangeRate: number,
+  fdDays: number,
+  nfdDays: number,
+): Record<string, number[]> {
+  if (input.seasonalityEnabled && input.summer && input.winter) {
+    // Determine effective period for each season (YYYY-MM from periodStart)
+    const summerStart = input.summer.periodStart.substring(0, 7)
+    const summerEnd = input.summer.periodEnd.substring(0, 7)
+    const winterStart = input.winter.periodStart.substring(0, 7)
+    const winterEnd = input.winter.periodEnd.substring(0, 7)
+
+    // Build virtual MsnInput for each season by overlaying season fields
+    const makeSeasonal = (s: typeof input.summer): MsnInput => ({
+      ...input,
+      mgh: s!.mgh,
+      cycleRatio: s!.cycleRatio,
+      acmiRate: s!.acmiRate,
+      excessHourRate: s!.excessHourRate,
+      excessBh: s!.excessBh,
+      crewSets: s!.crewSets,
+    })
+
+    const summerInput = makeSeasonal(input.summer)
+    const winterInput = makeSeasonal(input.winter)
+
+    const summerR = computeMsnConfig(summerInput, crew, costs, exchangeRate, fdDays, nfdDays)
+    const winterR = computeMsnConfig(winterInput, crew, costs, exchangeRate, fdDays, nfdDays)
+
+    // Build monthly data for each season config across the full month range
+    const summerMdi = buildMonthDayInfos(months, input.summer.periodStart, input.summer.periodEnd)
+    const winterMdi = buildMonthDayInfos(months, input.winter.periodStart, input.winter.periodEnd)
+
+    const summerData = buildMonthlyData(
+      months, summerR.mgh, summerR.acmiRate, summerR.excessBh, summerR.excessHourRate,
+      summerR.cycleRatio, summerR.bhFhRatio, summerR.apuFhRatio, summerR.cfg, summerMdi,
+    )
+    const winterData = buildMonthlyData(
+      months, winterR.mgh, winterR.acmiRate, winterR.excessBh, winterR.excessHourRate,
+      winterR.cycleRatio, winterR.bhFhRatio, winterR.apuFhRatio, winterR.cfg, winterMdi,
+    )
+
+    // For each month, pick the correct season's data
+    const data: Record<string, number[]> = {}
+    for (const k of ALL_KEYS_IMPORT) {
+      data[k] = new Array(months.length).fill(0)
+    }
+
+    for (let m = 0; m < months.length; m++) {
+      const ms = `${months[m].year}-${String(months[m].month).padStart(2, '0')}`
+      const inSummer = ms >= summerStart && ms <= summerEnd
+      const inWinter = ms >= winterStart && ms <= winterEnd
+
+      const src = inSummer ? summerData : inWinter ? winterData : null
+      if (src) {
+        for (const k of ALL_KEYS_IMPORT) {
+          data[k][m] = src[k][m]
+        }
+      }
+      // If month is in neither season, values stay 0
+    }
+
+    return data
+  }
+
+  // Non-seasonal: original logic
+  const r = computeMsnConfig(input, crew, costs, exchangeRate, fdDays, nfdDays)
+  const mdi = buildMonthDayInfos(months, input.periodStart, input.periodEnd)
+  return buildMonthlyData(
+    months, r.mgh, r.acmiRate, r.excessBh, r.excessHourRate,
+    r.cycleRatio, r.bhFhRatio, r.apuFhRatio, r.cfg, mdi,
+  )
+}
+
+/** Get the effective period start/end for an MSN input, accounting for seasonality */
+function getEffectivePeriod(input: MsnInput): { start: string; end: string } {
+  if (input.seasonalityEnabled && input.summer && input.winter) {
+    const starts = [input.summer.periodStart, input.winter.periodStart].filter(Boolean)
+    const ends = [input.summer.periodEnd, input.winter.periodEnd].filter(Boolean)
+    const start = starts.reduce((min, s) => (s < min ? s : min), starts[0])
+    const end = ends.reduce((max, e) => (e > max ? e : max), ends[0])
+    return { start, end }
+  }
+  return { start: input.periodStart, end: input.periodEnd }
+}
 
 interface PopoverState {
   rowKey: string
@@ -82,16 +181,18 @@ export function PnlTable() {
     const input = msnInputs.find((i) => i.msn === selectedMsn)
     if (match || input) hasData = true
     if (input) {
-      periodStart = input.periodStart
-      periodEnd = input.periodEnd
+      const ep = getEffectivePeriod(input)
+      periodStart = ep.start
+      periodEnd = ep.end
     }
   } else {
     // Total project view
     if (msnInputs.length > 0) {
       hasData = true
-      // Period: earliest start to latest end across all MSNs
-      periodStart = msnInputs.reduce((min, i) => (i.periodStart < min ? i.periodStart : min), msnInputs[0].periodStart)
-      periodEnd = msnInputs.reduce((max, i) => (i.periodEnd > max ? i.periodEnd : max), msnInputs[0].periodEnd)
+      // Period: earliest start to latest end across all MSNs (accounting for seasonality)
+      const allPeriods = msnInputs.map(getEffectivePeriod)
+      periodStart = allPeriods.reduce((min, p) => (p.start < min ? p.start : min), allPeriods[0].start)
+      periodEnd = allPeriods.reduce((max, p) => (p.end > max ? p.end : max), allPeriods[0].end)
     }
   }
 
@@ -114,12 +215,7 @@ export function PnlTable() {
     // Single MSN view
     const input = msnInputs.find((i) => i.msn === selectedMsn)
     if (input) {
-      const r = computeMsnConfig(input, crew, costs, exchangeRate, crewFdDays, crewNfdDays)
-      const mdi = buildMonthDayInfos(months, input.periodStart, input.periodEnd)
-      monthlyData = buildMonthlyData(
-        months, r.mgh, r.acmiRate, r.excessBh, r.excessHourRate,
-        r.cycleRatio, r.bhFhRatio, r.apuFhRatio, r.cfg, mdi,
-      )
+      monthlyData = buildMsnMonthlyData(input, months, crew, costs, exchangeRate, crewFdDays, crewNfdDays)
     } else {
       // No input data — produce zeros
       monthlyData = {}
@@ -135,18 +231,14 @@ export function PnlTable() {
     }
 
     for (const input of msnInputs) {
-      const r = computeMsnConfig(input, crew, costs, exchangeRate, crewFdDays, crewNfdDays)
-      const mdi = buildMonthDayInfos(months, input.periodStart, input.periodEnd)
-      const msnData = buildMonthlyData(
-        months, r.mgh, r.acmiRate, r.excessBh, r.excessHourRate,
-        r.cycleRatio, r.bhFhRatio, r.apuFhRatio, r.cfg, mdi,
-      )
+      const msnData = buildMsnMonthlyData(input, months, crew, costs, exchangeRate, crewFdDays, crewNfdDays)
 
-      // Zero out months outside this MSN's active period
+      // Zero out months outside this MSN's active period (accounting for seasonality)
+      const ep = getEffectivePeriod(input)
       for (let m = 0; m < months.length; m++) {
         const monthStr = `${months[m].year}-${String(months[m].month).padStart(2, '0')}`
-        const periodStartMonth = input.periodStart.substring(0, 7)
-        const periodEndMonth = input.periodEnd.substring(0, 7)
+        const periodStartMonth = ep.start.substring(0, 7)
+        const periodEndMonth = ep.end.substring(0, 7)
         if (monthStr < periodStartMonth || monthStr > periodEndMonth) {
           for (const k of ALL_DATA_KEYS) {
             msnData[k][m] = 0
