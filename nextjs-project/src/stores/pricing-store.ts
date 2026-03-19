@@ -34,9 +34,10 @@ export interface MsnInput {
   periodEnd: string // "YYYY-MM" or "YYYY-MM-DD" format
   leaseType: 'wet' | 'damp' | 'moist'
   crewSets: number
-  acmiRate: string // EUR per BH — revenue = (acmiRate × MGH) + (excessBh × excessHourRate)
+  rateCurrency: 'eur' | 'usd' // Currency of ACMI rate and excess hour rate
+  acmiRate: string // per BH — revenue = (acmiRate × MGH) + (excessBh × excessHourRate)
   excessBh: string // Excess BH above MGH (default 0)
-  excessHourRate: string // EUR per excess BH (default 0)
+  excessHourRate: string // per excess BH (default 0)
   bhFhRatio: string // BH:FH ratio — FH = BH / bhFhRatio (default 1.2)
   apuFhRatio: string // APU FH:FH ratio — APU FH = FH * apuFhRatio (default 0.7)
   // Aircraft rates from Aircraft tab (EUR, monthly — fixed)

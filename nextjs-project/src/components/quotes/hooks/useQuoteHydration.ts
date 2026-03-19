@@ -46,6 +46,7 @@ export function useQuoteHydration(quote: QuoteDetailResponse) {
         periodEnd: (input.periodEnd as string) ?? '',
         leaseType: (input.leaseType as 'wet' | 'damp' | 'moist') ?? 'wet',
         crewSets: (input.crewSets as number) ?? 4,
+        rateCurrency: (input.rateCurrency as 'eur' | 'usd') ?? 'eur',
         acmiRate: String(input.acmiRate ?? '0'),
         excessBh: String(input.excessBh ?? '0'),
         excessHourRate: String(input.excessHourRate ?? '0'),

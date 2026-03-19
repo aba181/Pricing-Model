@@ -57,6 +57,7 @@ export function useAddAircraft(
       periodEnd: defaultEnd,
       leaseType: 'wet',
       crewSets: 4,
+      rateCurrency: 'eur',
       acmiRate: '0',
       excessBh: '0',
       excessHourRate: '0',

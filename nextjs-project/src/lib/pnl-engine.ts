@@ -96,9 +96,10 @@ export function computeMsnPnlSummary(
 ): MsnPnlSummary {
   // ── Parse MSN input values ──
   const mgh = parseFloat(input.mgh) || 0
-  const acmiRate = parseFloat(input.acmiRate || '0')
+  const rateToEur = input.rateCurrency === 'usd' ? exchangeRate : 1
+  const acmiRate = (parseFloat(input.acmiRate || '0')) * rateToEur
   const excessBh = parseFloat(input.excessBh || '0')
-  const excessHourRate = parseFloat(input.excessHourRate || '0')
+  const excessHourRate = (parseFloat(input.excessHourRate || '0')) * rateToEur
   const cycleRatio = parseFloat(input.cycleRatio || '1')
   const bhFhRatio = parseFloat(input.bhFhRatio || '1.2')
   const apuFhRatio = parseFloat(input.apuFhRatio || '1.1')

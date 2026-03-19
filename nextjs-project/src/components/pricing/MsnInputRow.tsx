@@ -24,9 +24,11 @@ const labelCls = 'text-[9px] text-gray-400 dark:text-gray-500 leading-none'
 function SeasonFields({
   data,
   onFieldChange,
+  currencyLabel,
 }: {
   data: SeasonInput
   onFieldChange: (field: keyof SeasonInput, value: string | number) => void
+  currencyLabel: string
 }) {
   return (
     <div className="grid grid-cols-5 gap-x-1 gap-y-0.5">
@@ -56,7 +58,7 @@ function SeasonFields({
 
       {/* ACMI Rate */}
       <div>
-        <label className={labelCls}>ACMI Rate</label>
+        <label className={labelCls}>ACMI Rate ({currencyLabel})</label>
         <input
           type="number"
           step="0.01"
@@ -68,7 +70,7 @@ function SeasonFields({
 
       {/* Excess Hour Rate */}
       <div>
-        <label className={labelCls}>Excess Hour Rate</label>
+        <label className={labelCls}>Excess Rate ({currencyLabel})</label>
         <input
           type="number"
           step="0.01"
@@ -226,6 +228,29 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
             />
             Seasonality
           </label>
+          {/* Rate currency toggle */}
+          <div className="flex bg-gray-200 dark:bg-gray-700 rounded p-[1px]">
+            <button
+              onClick={() => onUpdate(input.msn, 'rateCurrency', 'eur')}
+              className={`px-1.5 py-[1px] text-[9px] font-semibold rounded transition-colors ${
+                input.rateCurrency === 'eur'
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-gray-500 dark:text-gray-400'
+              }`}
+            >
+              EUR
+            </button>
+            <button
+              onClick={() => onUpdate(input.msn, 'rateCurrency', 'usd')}
+              className={`px-1.5 py-[1px] text-[9px] font-semibold rounded transition-colors ${
+                input.rateCurrency === 'usd'
+                  ? 'bg-indigo-600 text-white'
+                  : 'text-gray-500 dark:text-gray-400'
+              }`}
+            >
+              USD
+            </button>
+          </div>
           {/* Fixed Cost Coverage toggle */}
           <label className="flex items-center gap-1 text-[10px] text-gray-400 dark:text-gray-500 cursor-pointer select-none">
             <input
@@ -277,6 +302,7 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
           <SeasonFields
             data={activeTab === 'summer' ? input.summer : input.winter}
             onFieldChange={(field, value) => handleSeasonFieldChange(activeTab, field, value)}
+            currencyLabel={input.rateCurrency?.toUpperCase() || 'EUR'}
           />
 
           {/* Shared fields below tabs */}
@@ -338,7 +364,7 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
 
           {/* ACMI Rate */}
           <div>
-            <label className={labelCls}>ACMI Rate</label>
+            <label className={labelCls}>ACMI Rate ({input.rateCurrency?.toUpperCase() || 'EUR'})</label>
             <input
               type="number"
               step="0.01"
@@ -350,7 +376,7 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
 
           {/* Excess Hour Rate */}
           <div>
-            <label className={labelCls}>Excess Hour Rate</label>
+            <label className={labelCls}>Excess Rate ({input.rateCurrency?.toUpperCase() || 'EUR'})</label>
             <input
               type="number"
               step="0.01"

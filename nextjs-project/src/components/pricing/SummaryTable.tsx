@@ -66,8 +66,12 @@ function computeMsnCosts(
 ) {
   const mgh = parseFloat(input.mgh) || 0
   const excessBh = parseFloat(input.excessBh || '0')
-  const excessHourRate = parseFloat(input.excessHourRate || '0')
-  const acmiRate = parseFloat(input.acmiRate || '0')
+  const rawExcessHourRate = parseFloat(input.excessHourRate || '0')
+  const rawAcmiRate = parseFloat(input.acmiRate || '0')
+  // Convert USD rates to EUR if needed
+  const rateToEur = input.rateCurrency === 'usd' ? exchangeRate : 1
+  const acmiRate = rawAcmiRate * rateToEur
+  const excessHourRate = rawExcessHourRate * rateToEur
   const cycleRatio = parseFloat(input.cycleRatio || '1')
   const totalBh = mgh + excessBh
   const fh = bhFhRatio > 0 ? totalBh / bhFhRatio : 0
