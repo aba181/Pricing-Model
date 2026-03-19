@@ -294,6 +294,7 @@ export function SummaryTable() {
   const costsAvgAc = useCostsConfigStore((s) => s.avgAc)
 
   const [displayMode, setDisplayMode] = useState<'eur' | 'eurPerBh'>('eur')
+  const [seasonFilter, setSeasonFilter] = useState<'total' | 'summer' | 'winter'>('total')
 
   const exchangeRate = parseFloat(globalExchangeRate || '0.85')
   const bhFhRatioNum = parseFloat(globalBhFhRatio || '1.2')
@@ -311,6 +312,13 @@ export function SummaryTable() {
       setSelectedMsn(msnInputs[0].msn)
     }
   }, [msnInputs, numAc, selectedMsn, setSelectedMsn])
+
+  // Reset season filter when no MSN has seasonality enabled
+  useEffect(() => {
+    if (seasonFilter !== 'total' && !msnInputs.some((i) => i.seasonalityEnabled)) {
+      setSeasonFilter('total')
+    }
+  }, [msnInputs, seasonFilter])
 
   if (msnInputs.length === 0) {
     return (
@@ -394,8 +402,14 @@ export function SummaryTable() {
     fuelVal, handlingVal, navigationVal, airportChargesVal, overheadPerMonth,
   }
 
-  // ── Compute per-MSN data (with seasonal merge when applicable) ──
-  const perMsnData = msnInputs.map((input) => {
+  // ── Compute per-MSN data (with seasonal breakdown when applicable) ──
+  type MsnCostResult = ReturnType<typeof computeMsnCosts>
+  interface MsnDataWithSeasons extends MsnCostResult {
+    summerData?: MsnCostResult
+    winterData?: MsnCostResult
+  }
+
+  const perMsnData: MsnDataWithSeasons[] = msnInputs.map((input) => {
     if (input.seasonalityEnabled && input.summer && input.winter) {
       // Build virtual inputs for each season by overlaying season fields onto the base input
       const summerInput: MsnInput = {
@@ -427,7 +441,7 @@ export function SummaryTable() {
       // Weighted average per-month values (weight by duration)
       const wAvg = (sv: number, wv: number) => totalDuration > 0 ? (sv * s.duration + wv * w.duration) / totalDuration : 0
 
-      return {
+      const combined: MsnDataWithSeasons = {
         ...s,
         // Per-month: weighted average of both seasons
         mgh: wAvg(s.mgh, w.mgh),
@@ -474,13 +488,25 @@ export function SummaryTable() {
           totalCost: s.total.acmiCost + w.total.acmiCost,
           overhead: s.total.overhead + w.total.overhead,
         },
+        // Keep separate season data for filtering
+        summerData: s,
+        winterData: w,
       }
+      return combined
     }
     return computeMsnCosts(input, exchangeRate, bhFhRatioNum, apuFhRatioNum, crewDerived, costsDerived)
   })
 
-  // ── Active MSN (Per Month column) ──
-  const activeMsn = perMsnData.find((d) => d.msn === selectedMsn) ?? perMsnData[0]
+  // ── Helper: pick season-filtered data for an MSN ──
+  const getFilteredMsn = (d: MsnDataWithSeasons): MsnCostResult => {
+    if (seasonFilter === 'summer' && d.summerData) return d.summerData
+    if (seasonFilter === 'winter' && d.winterData) return d.winterData
+    return d // combined / non-seasonal
+  }
+
+  // ── Active MSN (Per Month column) — uses season filter ──
+  const activeRaw = perMsnData.find((d) => d.msn === selectedMsn) ?? perMsnData[0]
+  const activeMsn = getFilteredMsn(activeRaw)
   const activeInput = msnInputs.find((i) => i.msn === activeMsn?.msn)
 
   const aGrossProfit = activeMsn.revenuePerMonth - activeMsn.totalCost
@@ -490,27 +516,30 @@ export function SummaryTable() {
     ? activeInput.leaseType.charAt(0).toUpperCase() + activeInput.leaseType.slice(1) + ' Lease'
     : '-'
 
-  // ── Total Project (all MSNs aggregated, with proration) ──
+  // ── Total Project (all MSNs aggregated, with proration) — uses season filter ──
+  const filteredMsnData = perMsnData.map(getFilteredMsn)
+
   const totalProjectDuration = numAc === 1
-    ? perMsnData[0].duration
-    : Math.max(...perMsnData.map((d) => d.duration))
+    ? filteredMsnData[0].duration
+    : Math.max(...filteredMsnData.map((d) => d.duration))
 
-  const totalMgh = perMsnData.reduce((s, d) => s + d.mgh, 0)
+  const totalMgh = filteredMsnData.reduce((s, d) => s + d.mgh, 0)
 
-  const totalProjectRevenue = perMsnData.reduce((s, d) => s + d.total.revenue, 0)
-  const totalProjectBhSold = perMsnData.reduce((s, d) => s + d.total.bhSold, 0)
-  const totalProjectBhActual = perMsnData.reduce((s, d) => s + d.total.bhActual, 0)
-  const totalProjectFh = perMsnData.reduce((s, d) => s + d.total.fh, 0)
-  const totalProjectFc = perMsnData.reduce((s, d) => s + d.total.fc, 0)
+  const totalProjectRevenue = filteredMsnData.reduce((s, d) => s + d.total.revenue, 0)
+  const totalProjectBhSold = filteredMsnData.reduce((s, d) => s + d.total.bhSold, 0)
+  const totalProjectBhActual = filteredMsnData.reduce((s, d) => s + d.total.bhActual, 0)
+  const totalProjectFh = filteredMsnData.reduce((s, d) => s + d.total.fh, 0)
+  const totalProjectFc = filteredMsnData.reduce((s, d) => s + d.total.fc, 0)
 
   // ── Fixed Cost Coverage: per-MSN coverage% × monthly fixed cost × months ──
+  // Coverage always uses combined (unfiltered) data — it's a total-project adjustment
   let covAircraft = 0, covCrew = 0, covMaint = 0, covInsurance = 0, covDoc = 0, covOverhead = 0
   for (let idx = 0; idx < msnInputs.length; idx++) {
     const inp = msnInputs[idx]
     if (!inp.fixedCostCoverageEnabled) continue
     const pct = (parseFloat(inp.fixedCostCoveragePercent) || 0) / 100
     const months = parseFloat(inp.fixedCostCoverageMonths) || 0
-    const d = perMsnData[idx]
+    const d = perMsnData[idx] // use combined data for coverage calc
     covAircraft += d.fixedCosts.aircraft * pct * months
     covCrew += d.fixedCosts.crew * pct * months
     covMaint += d.fixedCosts.maintenance * pct * months
@@ -519,14 +548,17 @@ export function SummaryTable() {
     covOverhead += d.fixedCosts.overhead * pct * months
   }
 
-  const tAircraftAbs = perMsnData.reduce((s, d) => s + d.total.aircraft, 0) + covAircraft
-  const tCrewAbs = perMsnData.reduce((s, d) => s + d.total.crew, 0) + covCrew
-  const tMaintAbs = perMsnData.reduce((s, d) => s + d.total.maintenance, 0) + covMaint
-  const tInsuranceAbs = perMsnData.reduce((s, d) => s + d.total.insurance, 0) + covInsurance
-  const tDocAbs = perMsnData.reduce((s, d) => s + d.total.doc, 0) + covDoc
+  // When filtering by season, only include coverage in 'total' view
+  const includeCoverage = seasonFilter === 'total'
+
+  const tAircraftAbs = filteredMsnData.reduce((s, d) => s + d.total.aircraft, 0) + (includeCoverage ? covAircraft : 0)
+  const tCrewAbs = filteredMsnData.reduce((s, d) => s + d.total.crew, 0) + (includeCoverage ? covCrew : 0)
+  const tMaintAbs = filteredMsnData.reduce((s, d) => s + d.total.maintenance, 0) + (includeCoverage ? covMaint : 0)
+  const tInsuranceAbs = filteredMsnData.reduce((s, d) => s + d.total.insurance, 0) + (includeCoverage ? covInsurance : 0)
+  const tDocAbs = filteredMsnData.reduce((s, d) => s + d.total.doc, 0) + (includeCoverage ? covDoc : 0)
   const tAcmiCostAbs = tAircraftAbs + tCrewAbs + tMaintAbs + tInsuranceAbs + tDocAbs
-    + perMsnData.reduce((s, d) => s + d.total.otherCogs, 0)
-  const tOverheadAbs = perMsnData.reduce((s, d) => s + d.total.overhead, 0) + covOverhead
+    + filteredMsnData.reduce((s, d) => s + d.total.otherCogs, 0)
+  const tOverheadAbs = filteredMsnData.reduce((s, d) => s + d.total.overhead, 0) + (includeCoverage ? covOverhead : 0)
   const totalProjectCost = tAcmiCostAbs
   const totalProjectGrossProfit = totalProjectRevenue - totalProjectCost
   const totalProjectNetProfit = totalProjectGrossProfit - tOverheadAbs
@@ -611,7 +643,7 @@ export function SummaryTable() {
 
       {/* Header */}
       <div className="grid grid-cols-[1fr_90px_90px] bg-gray-100/60 dark:bg-gray-800/60 border-b border-gray-300 dark:border-gray-700">
-        <div className="px-3 py-1.5 flex items-center gap-2">
+        <div className="px-3 py-1.5 flex items-center gap-2 flex-wrap">
           <span className="text-[11px] font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Summary</span>
           <div className="flex bg-gray-200 dark:bg-gray-700 rounded-md p-0.5">
             <button
@@ -635,6 +667,24 @@ export function SummaryTable() {
               EUR/BH
             </button>
           </div>
+          {/* Season filter — only shown when any MSN has seasonality enabled */}
+          {msnInputs.some((i) => i.seasonalityEnabled) && (
+            <div className="flex bg-gray-200 dark:bg-gray-700 rounded-md p-0.5">
+              {(['total', 'summer', 'winter'] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setSeasonFilter(f)}
+                  className={`px-1.5 py-0.5 text-[9px] font-semibold rounded transition-colors ${
+                    seasonFilter === f
+                      ? f === 'summer' ? 'bg-amber-500 text-white' : f === 'winter' ? 'bg-sky-500 text-white' : 'bg-indigo-600 text-white'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:text-gray-200'
+                  }`}
+                >
+                  {f === 'total' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <div className="px-2 py-1.5 text-[10px] font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider text-right">
           Monthly
