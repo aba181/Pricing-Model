@@ -6,7 +6,7 @@ import type { EprMatrixRow, MsnInput } from '@/stores/pricing-store'
 import { computePeriodMonths, generateMonthRange } from '@/stores/pricing-store'
 import { useCrewConfigStore } from '@/stores/crew-config-store'
 import { useCostsConfigStore } from '@/stores/costs-config-store'
-import { fmt, fmtRate } from '@/lib/format'
+import { fmt } from '@/lib/format'
 import { interpolateEpr } from '@/lib/pnl-engine'
 import { buildMonthDayInfos } from '@/lib/pnl-proration'
 
@@ -603,7 +603,7 @@ export function SummaryTable() {
     { label: 'FH - Actual', perMonth: fmt(activeMsn.fh, 0), totalProject: fmt(totalProjectFh, 0) },
     { label: 'FC', perMonth: fmt(activeMsn.fc, 0), totalProject: fmt(totalProjectFc, 0) },
     { label: '', perMonth: '', totalProject: '', isSeparator: true },
-    { label: 'ACMI Rate', perMonth: fmtRate(activeMsn.acmiRate), totalProject: numAc === 1 ? fmtRate(filteredMsnData[0].acmiRate) : '-', isRate: true },
+    { label: 'ACMI Rate', perMonth: fmt(activeMsn.acmiRate, 0), totalProject: numAc === 1 ? fmt(filteredMsnData[0].acmiRate, 0) : '-', isRate: true },
     { label: 'Total Revenue', ...fmtV(activeMsn.revenuePerMonth, totalProjectRevenue), isBold: true, colorClass: 'text-green-400' },
     { label: '', perMonth: '', totalProject: '', isSeparator: true },
     { label: 'Aircraft', ...fmtV(activeMsn.aircraft, tAircraftAbs) },
