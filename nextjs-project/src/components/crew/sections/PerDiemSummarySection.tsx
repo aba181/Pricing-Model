@@ -79,7 +79,7 @@ export function PerDiemSummarySection({
               </td>
               <td className={`${tdComputed} border-l border-gray-200/60 dark:border-gray-800/60`}>{fmtInt(perDiem.pilotFD)}</td>
               <td className={`${tdBase} text-right font-mono`}>
-                <span className="px-2 py-0.5 rounded bg-emerald-900/25 border border-emerald-700/30 text-emerald-300">
+                <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/25 border border-emerald-300 dark:border-emerald-700/30 text-emerald-700 dark:text-emerald-300">
                   {fmtInt(perDiem.bhBonusFD)}
                 </span>
               </td>
@@ -95,7 +95,7 @@ export function PerDiemSummarySection({
               </td>
               <td className={`${tdComputed} border-l border-gray-200/60 dark:border-gray-800/60`}>{fmtInt(perDiem.pilotNFD)}</td>
               <td className={`${tdBase} text-right font-mono`}>
-                <span className="px-2 py-0.5 rounded bg-emerald-900/25 border border-emerald-700/30 text-emerald-300">
+                <span className="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/25 border border-emerald-300 dark:border-emerald-700/30 text-emerald-700 dark:text-emerald-300">
                   {fmtInt(perDiem.bhBonusNFD)}
                 </span>
               </td>
