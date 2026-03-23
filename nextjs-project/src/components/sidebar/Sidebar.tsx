@@ -48,7 +48,7 @@ export function Sidebar({ userRole = 'user' }: SidebarProps) {
     <aside
       className={`${
         collapsed ? 'w-16' : 'w-64'
-      } transition-all duration-300 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 h-screen flex flex-col shrink-0`}
+      } transition-all duration-300 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 h-screen hidden md:flex flex-col shrink-0`}
     >
       {/* Header with toggle */}
       <div className="flex items-center h-14 px-4 border-b border-gray-200 dark:border-gray-800">

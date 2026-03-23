@@ -1,5 +1,6 @@
 import { Sidebar } from '@/components/sidebar/Sidebar'
 import { TopBar } from '@/components/layout/TopBar'
+import { BottomTabBar } from '@/components/navigation/BottomTabBar'
 import { getSession } from '@/lib/session'
 import { redirect } from 'next/navigation'
 
@@ -37,8 +38,9 @@ export default async function DashboardLayout({
       <Sidebar userRole={userRole} />
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar />
-        <main className="flex-1 overflow-auto p-6">{children}</main>
+        <main className="flex-1 overflow-auto p-4 md:p-6 pb-18 md:pb-6">{children}</main>
       </div>
+      <BottomTabBar userRole={userRole} />
     </div>
   )
 }
