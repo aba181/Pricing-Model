@@ -18,6 +18,7 @@ interface SummaryRow {
   isBold?: boolean
   isRate?: boolean
   colorClass?: string
+  colorClassTotal?: string
 }
 
 /** Compute all monthly cost components for a single MSN (mirrors PnlTable.computeForMsn) */
@@ -604,7 +605,7 @@ export function SummaryTable() {
     { label: 'FC', perMonth: fmt(activeMsn.fc, 0), totalProject: fmt(totalProjectFc, 0) },
     { label: '', perMonth: '', totalProject: '', isSeparator: true },
     { label: 'ACMI Rate', perMonth: fmt(activeMsn.acmiRate, 0), totalProject: numAc === 1 ? fmt(filteredMsnData[0].acmiRate, 0) : '-', isRate: true },
-    { label: 'Total Revenue', ...fmtV(activeMsn.revenuePerMonth, totalProjectRevenue), isBold: true, colorClass: 'text-green-400' },
+    { label: 'Total Revenue', ...fmtV(activeMsn.revenuePerMonth, totalProjectRevenue), isBold: true, colorClass: 'text-green-400', colorClassTotal: 'text-green-400' },
     { label: '', perMonth: '', totalProject: '', isSeparator: true },
     { label: 'Aircraft', ...fmtV(activeMsn.aircraft, tAircraftAbs) },
     { label: 'Crew', ...fmtV(activeMsn.crew, tCrewAbs) },
@@ -614,9 +615,9 @@ export function SummaryTable() {
     { label: 'ACMI Cost', ...fmtV(activeMsn.acmiCost, tAcmiCostAbs), isBold: true },
     { label: '', perMonth: '', totalProject: '', isSeparator: true },
     { label: 'TOTAL Cost', ...fmtV(activeMsn.totalCost, totalProjectCost), isBold: true },
-    { label: 'Gross Profit', ...fmtV(aGrossProfit, totalProjectGrossProfit), isBold: true, colorClass: aGrossProfit >= 0 ? 'text-green-400' : 'text-red-400' },
+    { label: 'Gross Profit', ...fmtV(aGrossProfit, totalProjectGrossProfit), isBold: true, colorClass: aGrossProfit >= 0 ? 'text-green-400' : 'text-red-400', colorClassTotal: totalProjectGrossProfit >= 0 ? 'text-green-400' : 'text-red-400' },
     { label: 'Overhead', ...fmtV(activeMsn.overhead, tOverheadAbs) },
-    { label: 'Net Profit', ...fmtV(aNetProfit, totalProjectNetProfit), isBold: true, colorClass: aNetProfit >= 0 ? 'text-green-400' : 'text-red-400' },
+    { label: 'Net Profit', ...fmtV(aNetProfit, totalProjectNetProfit), isBold: true, colorClass: aNetProfit >= 0 ? 'text-green-400' : 'text-red-400', colorClassTotal: totalProjectNetProfit >= 0 ? 'text-green-400' : 'text-red-400' },
   ]
 
   return (
@@ -711,7 +712,7 @@ export function SummaryTable() {
               <div className={`px-2 py-[3px] text-xs text-right font-mono ${row.colorClass ?? (row.isBold ? 'text-gray-900 dark:text-gray-100 font-semibold' : 'text-gray-800 dark:text-gray-200')}`}>
                 {row.perMonth}
               </div>
-              <div className={`px-2 py-[3px] text-xs text-right font-mono ${row.colorClass ?? (row.isBold ? 'text-gray-900 dark:text-gray-100 font-semibold' : 'text-gray-800 dark:text-gray-200')}`}>
+              <div className={`px-2 py-[3px] text-xs text-right font-mono ${(row.colorClassTotal ?? row.colorClass) ?? (row.isBold ? 'text-gray-900 dark:text-gray-100 font-semibold' : 'text-gray-800 dark:text-gray-200')}`}>
                 {row.totalProject}
               </div>
             </div>
