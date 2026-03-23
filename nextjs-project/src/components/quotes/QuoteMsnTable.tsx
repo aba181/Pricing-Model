@@ -33,7 +33,8 @@ export function QuoteMsnTable({ msnSnapshots, msnSummaries }: QuoteMsnTableProps
           MSN Breakdown
         </h2>
       </div>
-      <table className="w-full text-sm">
+      <div className="overflow-x-auto">
+      <table className="w-full text-sm min-w-[500px]">
         <thead>
           <tr className="border-b border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400">
             <th className="text-left px-4 py-2 font-medium">MSN</th>
@@ -109,6 +110,7 @@ export function QuoteMsnTable({ msnSnapshots, msnSummaries }: QuoteMsnTableProps
           )}
         </tbody>
       </table>
+      </div>
     </div>
   )
 }
