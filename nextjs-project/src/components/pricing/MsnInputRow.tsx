@@ -31,7 +31,7 @@ function SeasonFields({
   currencyLabel: string
 }) {
   return (
-    <div className="grid grid-cols-5 gap-x-1 gap-y-0.5">
+    <div className="grid grid-cols-3 sm:grid-cols-5 gap-x-1 gap-y-0.5">
       {/* MGH */}
       <div>
         <label className={labelCls}>MGH</label>
@@ -306,7 +306,7 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
           />
 
           {/* Shared fields below tabs */}
-          <div className="grid grid-cols-5 gap-x-1 gap-y-0.5 mt-0.5 pt-0.5 border-t border-gray-200 dark:border-gray-700/50">
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-x-1 gap-y-0.5 mt-0.5 pt-0.5 border-t border-gray-200 dark:border-gray-700/50">
             {/* Environment */}
             <div>
               <label className={labelCls}>Environment</label>
@@ -337,7 +337,7 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
         </>
       ) : (
         /* Non-seasonal: original flat input grid */
-        <div className="grid grid-cols-5 gap-x-1 gap-y-0.5">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-x-1 gap-y-0.5">
           {/* MGH */}
           <div>
             <label className={labelCls}>MGH</label>
@@ -469,7 +469,7 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
 
       {/* Fixed Cost Coverage inputs (shown when FC Coverage is toggled on) */}
       {input.fixedCostCoverageEnabled && (
-        <div className="grid grid-cols-5 gap-x-1 gap-y-0.5 mt-0.5 pt-0.5 border-t border-gray-200 dark:border-gray-700/50">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-x-1 gap-y-0.5 mt-0.5 pt-0.5 border-t border-gray-200 dark:border-gray-700/50">
           <div>
             <label className={labelCls}>Coverage %</label>
             <input
