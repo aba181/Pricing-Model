@@ -303,13 +303,14 @@ export function SummaryTable() {
 
   const numAc = msnInputs.length
 
-  // Auto-select first MSN when inputs change
+  // Auto-select first MSN when inputs change (but preserve null = Total view)
   useEffect(() => {
     if (numAc === 0) {
       setSelectedMsn(null)
       return
     }
-    if (selectedMsn === null || !msnInputs.some((i) => i.msn === selectedMsn)) {
+    // If the selected MSN was removed, fall back to first MSN
+    if (selectedMsn !== null && !msnInputs.some((i) => i.msn === selectedMsn)) {
       setSelectedMsn(msnInputs[0].msn)
     }
   }, [msnInputs, numAc, selectedMsn, setSelectedMsn])
@@ -510,9 +511,6 @@ export function SummaryTable() {
   const activeMsn = getFilteredMsn(activeRaw)
   const activeInput = msnInputs.find((i) => i.msn === activeMsn?.msn)
 
-  const aGrossProfit = activeMsn.revenuePerMonth - activeMsn.totalCost
-  const aNetProfit = aGrossProfit - activeMsn.overhead
-
   const activeCondition = activeInput
     ? activeInput.leaseType.charAt(0).toUpperCase() + activeInput.leaseType.slice(1) + ' Lease'
     : '-'
@@ -572,25 +570,27 @@ export function SummaryTable() {
 
   // ── EUR/BH helpers ──
   const isPerBh = displayMode === 'eurPerBh'
-  const activeBh = activeMsn.bhActual || 1 // avoid division by zero
+  const isTotalView = selectedMsn === null
+  const activeBh = isTotalView
+    ? (totalMgh || 1)
+    : (activeMsn.bhActual || 1)
 
-  // ── Display totals: per-MSN totals when a specific MSN is selected, project totals otherwise ──
-  const dRevenue = activeMsn.total.revenue
-  const dBhSold = activeMsn.total.bhSold
-  const dBhActual = activeMsn.total.bhActual
-  const dFh = activeMsn.total.fh
-  const dFc = activeMsn.total.fc
-  const dAircraft = activeMsn.total.aircraft
-  const dCrew = activeMsn.total.crew
-  const dMaint = activeMsn.total.maintenance
-  const dInsurance = activeMsn.total.insurance
-  const dDoc = activeMsn.total.doc
-  const dOtherCogs = activeMsn.total.otherCogs
-  const dAcmiCost = activeMsn.total.acmiCost
-  const dTotalCost = activeMsn.total.totalCost
-  const dOverhead = activeMsn.total.overhead
-  const dGrossProfit = dRevenue - dTotalCost
-  const dNetProfit = dGrossProfit - dOverhead
+  // ── Display totals: per-MSN totals when a specific MSN is selected, project totals when "Total" ──
+  const dRevenue = isTotalView ? totalProjectRevenue : activeMsn.total.revenue
+  const dBhSold = isTotalView ? totalProjectBhSold : activeMsn.total.bhSold
+  const dBhActual = isTotalView ? totalProjectBhActual : activeMsn.total.bhActual
+  const dFh = isTotalView ? totalProjectFh : activeMsn.total.fh
+  const dFc = isTotalView ? totalProjectFc : activeMsn.total.fc
+  const dAircraft = isTotalView ? tAircraftAbs : activeMsn.total.aircraft
+  const dCrew = isTotalView ? tCrewAbs : activeMsn.total.crew
+  const dMaint = isTotalView ? tMaintAbs : activeMsn.total.maintenance
+  const dInsurance = isTotalView ? tInsuranceAbs : activeMsn.total.insurance
+  const dDoc = isTotalView ? tDocAbs : activeMsn.total.doc
+  const dAcmiCost = isTotalView ? tAcmiCostAbs : activeMsn.total.acmiCost
+  const dTotalCost = isTotalView ? totalProjectCost : activeMsn.total.totalCost
+  const dOverhead = isTotalView ? tOverheadAbs : activeMsn.total.overhead
+  const dGrossProfit = isTotalView ? totalProjectGrossProfit : (dRevenue - dTotalCost)
+  const dNetProfit = isTotalView ? totalProjectNetProfit : (dGrossProfit - dOverhead)
   const dBhForPerBh = dBhActual || 1
 
   /** Format a monetary value — in EUR/BH mode divides by block hours */
@@ -607,35 +607,57 @@ export function SummaryTable() {
     }
   }
 
+  // ── Per-month values: use weighted average across MSNs in total view ──
+  const mMonthly = isTotalView
+    ? totalMgh / numAc  // average MGH per month across MSNs
+    : activeMsn.mgh
+  const mRevenue = isTotalView
+    ? filteredMsnData.reduce((s, d) => s + d.revenuePerMonth, 0)
+    : activeMsn.revenuePerMonth
+  const mAircraft = isTotalView ? filteredMsnData.reduce((s, d) => s + d.aircraft, 0) : activeMsn.aircraft
+  const mCrew = isTotalView ? filteredMsnData.reduce((s, d) => s + d.crew, 0) : activeMsn.crew
+  const mMaint = isTotalView ? filteredMsnData.reduce((s, d) => s + d.maintenance, 0) : activeMsn.maintenance
+  const mInsurance = isTotalView ? filteredMsnData.reduce((s, d) => s + d.insurance, 0) : activeMsn.insurance
+  const mDoc = isTotalView ? filteredMsnData.reduce((s, d) => s + d.doc, 0) : activeMsn.doc
+  const mAcmiCost = isTotalView ? filteredMsnData.reduce((s, d) => s + d.acmiCost, 0) : activeMsn.acmiCost
+  const mTotalCost = isTotalView ? filteredMsnData.reduce((s, d) => s + d.totalCost, 0) : activeMsn.totalCost
+  const mOverhead = isTotalView ? filteredMsnData.reduce((s, d) => s + d.overhead, 0) : activeMsn.overhead
+  const mGrossProfit = mRevenue - mTotalCost
+  const mNetProfit = mGrossProfit - mOverhead
+  const mBhSold = isTotalView ? filteredMsnData.reduce((s, d) => s + d.bhSold, 0) : activeMsn.bhSold
+  const mBhActual = isTotalView ? filteredMsnData.reduce((s, d) => s + d.bhActual, 0) : activeMsn.bhActual
+  const mFh = isTotalView ? filteredMsnData.reduce((s, d) => s + d.fh, 0) : activeMsn.fh
+  const mFc = isTotalView ? filteredMsnData.reduce((s, d) => s + d.fc, 0) : activeMsn.fc
+
   // ── Build rows ──
   const rows: SummaryRow[] = [
     { label: 'Customer', perMonth: projectName || 'Untitled', totalProject: projectName || 'Untitled' },
-    { label: 'Condition', perMonth: activeCondition, totalProject: totalCondition },
-    { label: 'MSN', perMonth: String(activeMsn.msn), totalProject: String(activeMsn.msn) },
-    { label: '# of AC', perMonth: '1', totalProject: '1' },
-    { label: 'MGH', perMonth: fmt(activeMsn.mgh, 0), totalProject: fmt(activeMsn.mgh * activeMsn.duration, 0) },
-    { label: 'Cycle Ratio', perMonth: activeMsn.cycleRatio.toFixed(1), totalProject: activeMsn.cycleRatio.toFixed(1) },
-    { label: 'Duration', perMonth: String(activeMsn.duration), totalProject: String(activeMsn.duration) },
+    { label: 'Condition', perMonth: isTotalView ? totalCondition : activeCondition, totalProject: isTotalView ? totalCondition : activeCondition },
+    { label: 'MSN', perMonth: isTotalView ? `All (${numAc})` : String(activeMsn.msn), totalProject: isTotalView ? `All (${numAc})` : String(activeMsn.msn) },
+    { label: '# of AC', perMonth: isTotalView ? String(numAc) : '1', totalProject: isTotalView ? String(numAc) : '1' },
+    { label: 'MGH', perMonth: fmt(isTotalView ? totalMgh : activeMsn.mgh, 0), totalProject: fmt(isTotalView ? totalMgh * totalProjectDuration : activeMsn.mgh * activeMsn.duration, 0) },
+    { label: 'Cycle Ratio', perMonth: isTotalView ? '-' : activeMsn.cycleRatio.toFixed(1), totalProject: isTotalView ? '-' : activeMsn.cycleRatio.toFixed(1) },
+    { label: 'Duration', perMonth: isTotalView ? String(totalProjectDuration) : String(activeMsn.duration), totalProject: isTotalView ? String(totalProjectDuration) : String(activeMsn.duration) },
     { label: '', perMonth: '', totalProject: '', isSeparator: true },
-    { label: 'BH - Sold', perMonth: fmt(activeMsn.bhSold, 0), totalProject: fmt(dBhSold, 0) },
-    { label: 'BH - Actual', perMonth: fmt(activeMsn.bhActual, 0), totalProject: fmt(dBhActual, 0) },
-    { label: 'FH - Actual', perMonth: fmt(activeMsn.fh, 0), totalProject: fmt(dFh, 0) },
-    { label: 'FC', perMonth: fmt(activeMsn.fc, 0), totalProject: fmt(dFc, 0) },
+    { label: 'BH - Sold', perMonth: fmt(mBhSold, 0), totalProject: fmt(dBhSold, 0) },
+    { label: 'BH - Actual', perMonth: fmt(mBhActual, 0), totalProject: fmt(dBhActual, 0) },
+    { label: 'FH - Actual', perMonth: fmt(mFh, 0), totalProject: fmt(dFh, 0) },
+    { label: 'FC', perMonth: fmt(mFc, 0), totalProject: fmt(dFc, 0) },
     { label: '', perMonth: '', totalProject: '', isSeparator: true },
-    { label: 'ACMI Rate', perMonth: fmt(activeMsn.acmiRate, 0), totalProject: fmt(activeMsn.acmiRate, 0), isRate: true },
-    { label: 'Total Revenue', ...fmtV(activeMsn.revenuePerMonth, dRevenue), isBold: true, colorClass: 'text-green-400', colorClassTotal: 'text-green-400' },
+    { label: 'ACMI Rate', perMonth: isTotalView ? '-' : fmt(activeMsn.acmiRate, 0), totalProject: isTotalView ? '-' : fmt(activeMsn.acmiRate, 0), isRate: true },
+    { label: 'Total Revenue', ...fmtV(mRevenue, dRevenue), isBold: true, colorClass: 'text-green-400', colorClassTotal: 'text-green-400' },
     { label: '', perMonth: '', totalProject: '', isSeparator: true },
-    { label: 'Aircraft', ...fmtV(activeMsn.aircraft, dAircraft) },
-    { label: 'Crew', ...fmtV(activeMsn.crew, dCrew) },
-    { label: 'Maintenance', ...fmtV(activeMsn.maintenance, dMaint) },
-    { label: 'Insurance', ...fmtV(activeMsn.insurance, dInsurance) },
-    { label: 'DOC', ...fmtV(activeMsn.doc, dDoc) },
-    { label: 'ACMI Cost', ...fmtV(activeMsn.acmiCost, dAcmiCost), isBold: true },
+    { label: 'Aircraft', ...fmtV(mAircraft, dAircraft) },
+    { label: 'Crew', ...fmtV(mCrew, dCrew) },
+    { label: 'Maintenance', ...fmtV(mMaint, dMaint) },
+    { label: 'Insurance', ...fmtV(mInsurance, dInsurance) },
+    { label: 'DOC', ...fmtV(mDoc, dDoc) },
+    { label: 'ACMI Cost', ...fmtV(mAcmiCost, dAcmiCost), isBold: true },
     { label: '', perMonth: '', totalProject: '', isSeparator: true },
-    { label: 'TOTAL Cost', ...fmtV(activeMsn.totalCost, dTotalCost), isBold: true },
-    { label: 'Gross Profit', ...fmtV(aGrossProfit, dGrossProfit), isBold: true, colorClass: aGrossProfit >= 0 ? 'text-green-400' : 'text-red-400', colorClassTotal: dGrossProfit >= 0 ? 'text-green-400' : 'text-red-400' },
-    { label: 'Overhead', ...fmtV(activeMsn.overhead, dOverhead) },
-    { label: 'Net Profit', ...fmtV(aNetProfit, dNetProfit), isBold: true, colorClass: aNetProfit >= 0 ? 'text-green-400' : 'text-red-400', colorClassTotal: dNetProfit >= 0 ? 'text-green-400' : 'text-red-400' },
+    { label: 'TOTAL Cost', ...fmtV(mTotalCost, dTotalCost), isBold: true },
+    { label: 'Gross Profit', ...fmtV(mGrossProfit, dGrossProfit), isBold: true, colorClass: mGrossProfit >= 0 ? 'text-green-400' : 'text-red-400', colorClassTotal: dGrossProfit >= 0 ? 'text-green-400' : 'text-red-400' },
+    { label: 'Overhead', ...fmtV(mOverhead, dOverhead) },
+    { label: 'Net Profit', ...fmtV(mNetProfit, dNetProfit), isBold: true, colorClass: mNetProfit >= 0 ? 'text-green-400' : 'text-red-400', colorClassTotal: dNetProfit >= 0 ? 'text-green-400' : 'text-red-400' },
   ]
 
   return (
@@ -644,6 +666,16 @@ export function SummaryTable() {
       {numAc > 1 && (
         <div className="flex items-center gap-1 px-2 py-1.5 bg-gray-100/40 dark:bg-gray-800/40 border-b border-gray-300 dark:border-gray-700">
           <span className="text-[10px] text-gray-400 dark:text-gray-500 mr-1">MSN:</span>
+          <button
+            onClick={() => setSelectedMsn(null)}
+            className={`px-2 py-0.5 text-[10px] rounded font-medium transition-colors ${
+              selectedMsn === null
+                ? 'bg-indigo-600 text-white'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-600 hover:text-gray-800 dark:text-gray-200'
+            }`}
+          >
+            Total
+          </button>
           {msnInputs.map((input) => (
             <button
               key={input.msn}
