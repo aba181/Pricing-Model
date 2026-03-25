@@ -573,14 +573,32 @@ export function SummaryTable() {
   // ── EUR/BH helpers ──
   const isPerBh = displayMode === 'eurPerBh'
   const activeBh = activeMsn.bhActual || 1 // avoid division by zero
-  const totalBh = totalProjectBhActual || 1
+
+  // ── Display totals: per-MSN totals when a specific MSN is selected, project totals otherwise ──
+  const dRevenue = activeMsn.total.revenue
+  const dBhSold = activeMsn.total.bhSold
+  const dBhActual = activeMsn.total.bhActual
+  const dFh = activeMsn.total.fh
+  const dFc = activeMsn.total.fc
+  const dAircraft = activeMsn.total.aircraft
+  const dCrew = activeMsn.total.crew
+  const dMaint = activeMsn.total.maintenance
+  const dInsurance = activeMsn.total.insurance
+  const dDoc = activeMsn.total.doc
+  const dOtherCogs = activeMsn.total.otherCogs
+  const dAcmiCost = activeMsn.total.acmiCost
+  const dTotalCost = activeMsn.total.totalCost
+  const dOverhead = activeMsn.total.overhead
+  const dGrossProfit = dRevenue - dTotalCost
+  const dNetProfit = dGrossProfit - dOverhead
+  const dBhForPerBh = dBhActual || 1
 
   /** Format a monetary value — in EUR/BH mode divides by block hours */
   const fmtV = (monthlyVal: number, totalVal: number, decimals = 0): { perMonth: string; totalProject: string } => {
     if (isPerBh) {
       return {
         perMonth: fmt(monthlyVal / activeBh, 0),
-        totalProject: fmt(totalVal / totalBh, 0),
+        totalProject: fmt(totalVal / dBhForPerBh, 0),
       }
     }
     return {
@@ -593,31 +611,31 @@ export function SummaryTable() {
   const rows: SummaryRow[] = [
     { label: 'Customer', perMonth: projectName || 'Untitled', totalProject: projectName || 'Untitled' },
     { label: 'Condition', perMonth: activeCondition, totalProject: totalCondition },
-    { label: 'MSN', perMonth: String(activeMsn.msn), totalProject: numAc === 1 ? String(msnInputs[0].msn) : `All (${numAc})` },
-    { label: '# of AC', perMonth: '1', totalProject: String(numAc) },
-    { label: 'MGH', perMonth: fmt(activeMsn.mgh, 0), totalProject: fmt(totalMgh, 0) },
-    { label: 'Cycle Ratio', perMonth: activeMsn.cycleRatio.toFixed(1), totalProject: numAc === 1 ? filteredMsnData[0].cycleRatio.toFixed(1) : '-' },
-    { label: 'Duration', perMonth: String(activeMsn.duration), totalProject: String(totalProjectDuration) },
+    { label: 'MSN', perMonth: String(activeMsn.msn), totalProject: String(activeMsn.msn) },
+    { label: '# of AC', perMonth: '1', totalProject: '1' },
+    { label: 'MGH', perMonth: fmt(activeMsn.mgh, 0), totalProject: fmt(activeMsn.mgh * activeMsn.duration, 0) },
+    { label: 'Cycle Ratio', perMonth: activeMsn.cycleRatio.toFixed(1), totalProject: activeMsn.cycleRatio.toFixed(1) },
+    { label: 'Duration', perMonth: String(activeMsn.duration), totalProject: String(activeMsn.duration) },
     { label: '', perMonth: '', totalProject: '', isSeparator: true },
-    { label: 'BH - Sold', perMonth: fmt(activeMsn.bhSold, 0), totalProject: fmt(totalProjectBhSold, 0) },
-    { label: 'BH - Actual', perMonth: fmt(activeMsn.bhActual, 0), totalProject: fmt(totalProjectBhActual, 0) },
-    { label: 'FH - Actual', perMonth: fmt(activeMsn.fh, 0), totalProject: fmt(totalProjectFh, 0) },
-    { label: 'FC', perMonth: fmt(activeMsn.fc, 0), totalProject: fmt(totalProjectFc, 0) },
+    { label: 'BH - Sold', perMonth: fmt(activeMsn.bhSold, 0), totalProject: fmt(dBhSold, 0) },
+    { label: 'BH - Actual', perMonth: fmt(activeMsn.bhActual, 0), totalProject: fmt(dBhActual, 0) },
+    { label: 'FH - Actual', perMonth: fmt(activeMsn.fh, 0), totalProject: fmt(dFh, 0) },
+    { label: 'FC', perMonth: fmt(activeMsn.fc, 0), totalProject: fmt(dFc, 0) },
     { label: '', perMonth: '', totalProject: '', isSeparator: true },
-    { label: 'ACMI Rate', perMonth: fmt(activeMsn.acmiRate, 0), totalProject: numAc === 1 ? fmt(filteredMsnData[0].acmiRate, 0) : '-', isRate: true },
-    { label: 'Total Revenue', ...fmtV(activeMsn.revenuePerMonth, totalProjectRevenue), isBold: true, colorClass: 'text-green-400', colorClassTotal: 'text-green-400' },
+    { label: 'ACMI Rate', perMonth: fmt(activeMsn.acmiRate, 0), totalProject: fmt(activeMsn.acmiRate, 0), isRate: true },
+    { label: 'Total Revenue', ...fmtV(activeMsn.revenuePerMonth, dRevenue), isBold: true, colorClass: 'text-green-400', colorClassTotal: 'text-green-400' },
     { label: '', perMonth: '', totalProject: '', isSeparator: true },
-    { label: 'Aircraft', ...fmtV(activeMsn.aircraft, tAircraftAbs) },
-    { label: 'Crew', ...fmtV(activeMsn.crew, tCrewAbs) },
-    { label: 'Maintenance', ...fmtV(activeMsn.maintenance, tMaintAbs) },
-    { label: 'Insurance', ...fmtV(activeMsn.insurance, tInsuranceAbs) },
-    { label: 'DOC', ...fmtV(activeMsn.doc, tDocAbs) },
-    { label: 'ACMI Cost', ...fmtV(activeMsn.acmiCost, tAcmiCostAbs), isBold: true },
+    { label: 'Aircraft', ...fmtV(activeMsn.aircraft, dAircraft) },
+    { label: 'Crew', ...fmtV(activeMsn.crew, dCrew) },
+    { label: 'Maintenance', ...fmtV(activeMsn.maintenance, dMaint) },
+    { label: 'Insurance', ...fmtV(activeMsn.insurance, dInsurance) },
+    { label: 'DOC', ...fmtV(activeMsn.doc, dDoc) },
+    { label: 'ACMI Cost', ...fmtV(activeMsn.acmiCost, dAcmiCost), isBold: true },
     { label: '', perMonth: '', totalProject: '', isSeparator: true },
-    { label: 'TOTAL Cost', ...fmtV(activeMsn.totalCost, totalProjectCost), isBold: true },
-    { label: 'Gross Profit', ...fmtV(aGrossProfit, totalProjectGrossProfit), isBold: true, colorClass: aGrossProfit >= 0 ? 'text-green-400' : 'text-red-400', colorClassTotal: totalProjectGrossProfit >= 0 ? 'text-green-400' : 'text-red-400' },
-    { label: 'Overhead', ...fmtV(activeMsn.overhead, tOverheadAbs) },
-    { label: 'Net Profit', ...fmtV(aNetProfit, totalProjectNetProfit), isBold: true, colorClass: aNetProfit >= 0 ? 'text-green-400' : 'text-red-400', colorClassTotal: totalProjectNetProfit >= 0 ? 'text-green-400' : 'text-red-400' },
+    { label: 'TOTAL Cost', ...fmtV(activeMsn.totalCost, dTotalCost), isBold: true },
+    { label: 'Gross Profit', ...fmtV(aGrossProfit, dGrossProfit), isBold: true, colorClass: aGrossProfit >= 0 ? 'text-green-400' : 'text-red-400', colorClassTotal: dGrossProfit >= 0 ? 'text-green-400' : 'text-red-400' },
+    { label: 'Overhead', ...fmtV(activeMsn.overhead, dOverhead) },
+    { label: 'Net Profit', ...fmtV(aNetProfit, dNetProfit), isBold: true, colorClass: aNetProfit >= 0 ? 'text-green-400' : 'text-red-400', colorClassTotal: dNetProfit >= 0 ? 'text-green-400' : 'text-red-400' },
   ]
 
   return (
