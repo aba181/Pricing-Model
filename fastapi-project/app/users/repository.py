@@ -7,9 +7,9 @@ class UserRepository(BaseRepository):
     """Repository for users table operations."""
 
     async def fetch_by_email(self, email: str) -> dict | None:
-        """Fetch an active user by email address."""
+        """Fetch an active user by email address (case-insensitive)."""
         return await self.fetch_one(
-            "SELECT * FROM users WHERE email = $1 AND is_active = TRUE", email
+            "SELECT * FROM users WHERE LOWER(email) = LOWER($1) AND is_active = TRUE", email
         )
 
     async def fetch_by_azure_id(self, azure_id: str) -> dict | None:
