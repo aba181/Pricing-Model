@@ -7,6 +7,7 @@ const AZURE_ERRORS: Record<string, string> = {
   token_failed: 'Failed to authenticate with Azure',
   missing_claims: 'Azure account is missing required information',
   api_failed: 'Failed to create account. Contact your administrator.',
+  not_allowed: 'You do not have access to this application. Please ask an administrator to invite you.',
 }
 
 export default function LoginPage() {

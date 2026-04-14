@@ -67,6 +67,9 @@ export async function GET(req: NextRequest) {
     if (!apiRes.ok) {
       const err = await apiRes.text()
       console.error('[azure-callback] API call failed:', apiRes.status, err)
+      if (apiRes.status === 403) {
+        return NextResponse.redirect(new URL('/login?error=not_allowed', req.url))
+      }
       return NextResponse.redirect(new URL('/login?error=api_failed', req.url))
     }
 

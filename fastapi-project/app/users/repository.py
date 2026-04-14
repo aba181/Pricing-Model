@@ -21,7 +21,7 @@ class UserRepository(BaseRepository):
     async def create_azure_user(
         self,
         email: str,
-        azure_id: str,
+        azure_id: str | None,
         full_name: str | None = None,
         role: str = "user",
     ) -> dict:

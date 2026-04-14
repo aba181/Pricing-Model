@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncpg
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, HTTPException, Response
 
 from app.config import settings
 from app.db.database import get_db
@@ -37,11 +37,10 @@ async def azure_login(
             # Link existing email user to Azure
             user = await user_repo.update_user(user["id"], azure_id=body.azure_id)
         else:
-            # Create new Azure user
-            user = await user_repo.create_azure_user(
-                email=body.email,
-                azure_id=body.azure_id,
-                full_name=body.full_name,
+            # Email not in allowlist — reject
+            raise HTTPException(
+                status_code=403,
+                detail="not_allowlisted",
             )
 
     token = create_access_token(user["id"], user["role"])

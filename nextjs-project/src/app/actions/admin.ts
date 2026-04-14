@@ -65,12 +65,10 @@ export async function createUserAction(
   }
 
   const email = (formData.get('email') as string)?.trim()
-  const password = formData.get('password') as string
   const fullName = (formData.get('full_name') as string)?.trim() || null
   const role = (formData.get('role') as string) || 'user'
 
   if (!email) return { error: 'Email is required' }
-  if (!password || password.length < 8) return { error: 'Password must be at least 8 characters' }
 
   try {
     const res = await fetch(`${API_URL}/admin/users`, {
@@ -79,7 +77,7 @@ export async function createUserAction(
         'Content-Type': 'application/json',
         Cookie: `access_token=${token}`,
       },
-      body: JSON.stringify({ email, password, full_name: fullName, role }),
+      body: JSON.stringify({ email, full_name: fullName, role }),
     })
 
     if (!res.ok) {

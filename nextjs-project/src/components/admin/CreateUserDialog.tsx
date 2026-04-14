@@ -47,7 +47,7 @@ export function CreateUserDialog() {
         className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-indigo-600 text-white rounded-md hover:bg-indigo-500 transition-colors"
       >
         <UserPlus size={15} />
-        Create User
+        Invite User
       </button>
 
       <dialog
@@ -60,7 +60,7 @@ export function CreateUserDialog() {
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Create User
+                Invite User
               </h2>
               <button
                 onClick={closeDialog}
@@ -73,7 +73,7 @@ export function CreateUserDialog() {
             {/* Success banner */}
             {state.success && (
               <div className="mb-4 px-3 py-2 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded text-green-700 dark:text-green-300 text-sm">
-                User created successfully
+                User invited successfully
               </div>
             )}
 
@@ -105,21 +105,7 @@ export function CreateUserDialog() {
                   type="email"
                   name="email"
                   required
-                  placeholder="user@example.com"
-                  className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-700 dark:text-gray-300 mb-1">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  name="password"
-                  required
-                  minLength={8}
-                  placeholder="Min 8 characters"
+                  placeholder="colleague@company.com"
                   className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
@@ -150,7 +136,7 @@ export function CreateUserDialog() {
                   disabled={isPending}
                   className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 disabled:text-gray-400 text-white font-medium rounded-md transition-colors"
                 >
-                  {isPending ? 'Creating...' : 'Create User'}
+                  {isPending ? 'Inviting...' : 'Invite'}
                 </button>
                 <button
                   type="button"

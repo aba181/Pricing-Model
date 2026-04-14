@@ -27,13 +27,23 @@ async def create_user(
     if existing:
         raise HTTPException(status_code=409, detail="Email already registered")
 
-    hashed = hash_password(body.password)
-    user = await user_repo.create_user(
-        email=body.email,
-        hashed_password=hashed,
-        role=body.role,
-        full_name=body.full_name,
-    )
+    if body.password:
+        # Password-based user
+        hashed = hash_password(body.password)
+        user = await user_repo.create_user(
+            email=body.email,
+            hashed_password=hashed,
+            role=body.role,
+            full_name=body.full_name,
+        )
+    else:
+        # Azure SSO invite (no password)
+        user = await user_repo.create_azure_user(
+            email=body.email,
+            azure_id=None,
+            full_name=body.full_name,
+            role=body.role,
+        )
     return user
 
 

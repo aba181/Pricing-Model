@@ -7,7 +7,7 @@ from pydantic import BaseModel, EmailStr
 
 class CreateUserRequest(BaseModel):
     email: EmailStr
-    password: str
+    password: str | None = None
     role: Literal["admin", "user", "viewer"] = "user"
     full_name: str | None = None
 
