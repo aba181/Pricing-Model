@@ -15,29 +15,38 @@ print(f"[startup] Module loaded. DATABASE_URL host: {settings.database_url.split
 
 
 async def run_migrations(pool: asyncpg.Pool) -> None:
-    """Run SQL migration files in order on startup."""
+    """Run SQL migration files in order on startup.
+
+    Uses a PostgreSQL advisory lock to prevent race conditions when
+    multiple gunicorn workers start simultaneously.
+    """
     migrations_dir = pathlib.Path(__file__).parent.parent / "migrations"
     if not migrations_dir.exists():
         print("[startup] No migrations directory found", flush=True)
         return
 
     async with pool.acquire() as conn:
-        await conn.execute("""
-            CREATE TABLE IF NOT EXISTS _migrations (
-                filename TEXT PRIMARY KEY,
-                applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-            )
-        """)
+        # Advisory lock prevents multiple workers from running migrations concurrently
+        await conn.execute("SELECT pg_advisory_lock(1)")
+        try:
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS _migrations (
+                    filename TEXT PRIMARY KEY,
+                    applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                )
+            """)
 
-        applied = {row["filename"] for row in await conn.fetch("SELECT filename FROM _migrations")}
+            applied = {row["filename"] for row in await conn.fetch("SELECT filename FROM _migrations")}
 
-        for sql_file in sorted(migrations_dir.glob("*.sql")):
-            if sql_file.name not in applied:
-                print(f"[startup] Running migration: {sql_file.name}", flush=True)
-                sql = sql_file.read_text()
-                async with conn.transaction():
-                    await conn.execute(sql)
-                    await conn.execute("INSERT INTO _migrations (filename) VALUES ($1)", sql_file.name)
+            for sql_file in sorted(migrations_dir.glob("*.sql")):
+                if sql_file.name not in applied:
+                    print(f"[startup] Running migration: {sql_file.name}", flush=True)
+                    sql = sql_file.read_text()
+                    async with conn.transaction():
+                        await conn.execute(sql)
+                        await conn.execute("INSERT INTO _migrations (filename) VALUES ($1)", sql_file.name)
+        finally:
+            await conn.execute("SELECT pg_advisory_unlock(1)")
 
     print("[startup] Migrations complete", flush=True)
 
