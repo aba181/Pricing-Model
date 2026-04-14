@@ -8,6 +8,12 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class AzureLoginRequest(BaseModel):
+    email: EmailStr
+    full_name: str | None = None
+    azure_id: str
+
+
 class UserResponse(BaseModel):
     id: int
     email: str

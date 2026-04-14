@@ -12,6 +12,30 @@ class UserRepository(BaseRepository):
             "SELECT * FROM users WHERE email = $1 AND is_active = TRUE", email
         )
 
+    async def fetch_by_azure_id(self, azure_id: str) -> dict | None:
+        """Fetch an active user by Azure AD object ID."""
+        return await self.fetch_one(
+            "SELECT * FROM users WHERE azure_id = $1 AND is_active = TRUE", azure_id
+        )
+
+    async def create_azure_user(
+        self,
+        email: str,
+        azure_id: str,
+        full_name: str | None = None,
+        role: str = "user",
+    ) -> dict:
+        """Create a user authenticated via Azure AD (no password)."""
+        return await self.fetch_one(
+            """INSERT INTO users (email, hashed_password, azure_id, role, full_name)
+               VALUES ($1, NULL, $2, $3, $4)
+               RETURNING *""",
+            email,
+            azure_id,
+            role,
+            full_name,
+        )
+
     async def fetch_by_id(self, user_id: int) -> dict | None:
         """Fetch a user by primary key (regardless of active status)."""
         return await self.fetch_one(
