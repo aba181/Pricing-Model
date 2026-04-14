@@ -92,6 +92,39 @@ export async function createUserAction(
   }
 }
 
+/* ─── Update Role ─── */
+
+export async function updateRoleAction(
+  userId: number,
+  role: string,
+): Promise<{ success?: boolean; error?: string }> {
+  const cookieStore = await cookies()
+  const token = cookieStore.get('access_token')?.value
+
+  if (!token) return { error: 'Not authenticated' }
+
+  try {
+    const res = await fetch(`${API_URL}/admin/users/${userId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: `access_token=${token}`,
+      },
+      body: JSON.stringify({ role }),
+    })
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({ detail: 'Failed to update role' }))
+      return { error: data.detail ?? 'Failed to update role' }
+    }
+
+    revalidatePath('/admin')
+    return { success: true }
+  } catch {
+    return { error: 'Network error — could not reach API' }
+  }
+}
+
 /* ─── Reset Password ─── */
 
 export interface ResetPasswordState {
