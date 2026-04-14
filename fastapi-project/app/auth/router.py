@@ -1,47 +1,16 @@
 from __future__ import annotations
 
 import asyncpg
-from fastapi import APIRouter, Depends, HTTPException, Response
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi import APIRouter, Depends, Response
 
 from app.config import settings
 from app.db.database import get_db
 from app.auth.schemas import AzureLoginRequest, UserResponse
-from app.auth.service import create_access_token, verify_password
+from app.auth.service import create_access_token
 from app.auth.dependencies import get_current_user
 from app.users.repository import UserRepository
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-
-
-@router.post("/login")
-async def login(
-    response: Response,
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: asyncpg.Connection = Depends(get_db),
-):
-    """Authenticate user with email/password and set httpOnly JWT cookie."""
-    user_repo = UserRepository(db)
-    user = await user_repo.fetch_by_email(form_data.username)
-
-    if not user:
-        raise HTTPException(status_code=401, detail="Email not found")
-
-    if not verify_password(form_data.password, user["hashed_password"]):
-        raise HTTPException(status_code=401, detail="Wrong password")
-
-    token = create_access_token(user["id"], user["role"])
-
-    response.set_cookie(
-        key="access_token",
-        value=token,
-        httponly=True,
-        secure=settings.cookie_secure,
-        samesite="lax",
-        max_age=7 * 24 * 3600,  # 7 days in seconds
-        path="/",
-    )
-    return {"message": "Logged in"}
 
 
 @router.post("/logout")
