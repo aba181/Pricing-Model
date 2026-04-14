@@ -1,6 +1,7 @@
 import pathlib
 import subprocess
 import sys
+import traceback
 from contextlib import asynccontextmanager
 
 import asyncpg
@@ -10,11 +11,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.db.database import create_pool
 
+print(f"[startup] Module loaded. DATABASE_URL host: {settings.database_url.split('@')[-1] if '@' in settings.database_url else 'no-auth-in-url'}", flush=True)
+
 
 async def run_migrations(pool: asyncpg.Pool) -> None:
     """Run SQL migration files in order on startup."""
     migrations_dir = pathlib.Path(__file__).parent.parent / "migrations"
     if not migrations_dir.exists():
+        print("[startup] No migrations directory found", flush=True)
         return
 
     async with pool.acquire() as conn:
@@ -29,10 +33,13 @@ async def run_migrations(pool: asyncpg.Pool) -> None:
 
         for sql_file in sorted(migrations_dir.glob("*.sql")):
             if sql_file.name not in applied:
+                print(f"[startup] Running migration: {sql_file.name}", flush=True)
                 sql = sql_file.read_text()
                 async with conn.transaction():
                     await conn.execute(sql)
                     await conn.execute("INSERT INTO _migrations (filename) VALUES ($1)", sql_file.name)
+
+    print("[startup] Migrations complete", flush=True)
 
 
 def run_seed_script() -> None:
@@ -47,17 +54,26 @@ def run_seed_script() -> None:
             timeout=60,
         )
     except Exception as e:
-        print(f"Seed script warning: {e}")
+        print(f"[startup] Seed script warning: {e}", flush=True)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifecycle: create DB pool on startup, close on shutdown."""
-    app.state.pool = await create_pool(settings.database_url)
-    await run_migrations(app.state.pool)
-    run_seed_script()
+    app.state.pool = None
+    try:
+        print(f"[startup] Connecting to database...", flush=True)
+        app.state.pool = await create_pool(settings.database_url)
+        print("[startup] Database pool created", flush=True)
+        await run_migrations(app.state.pool)
+        run_seed_script()
+        print("[startup] Ready", flush=True)
+    except Exception as e:
+        print(f"[startup] ERROR during startup: {e}", flush=True)
+        traceback.print_exc()
     yield
-    await app.state.pool.close()
+    if app.state.pool:
+        await app.state.pool.close()
 
 
 app = FastAPI(
@@ -84,7 +100,7 @@ app.add_middleware(
 @app.get("/health")
 async def health_check():
     """Basic health check endpoint."""
-    return {"status": "ok"}
+    return {"status": "ok", "db": "connected" if app.state.pool else "unavailable"}
 
 
 # Router includes
