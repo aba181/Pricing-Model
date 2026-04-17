@@ -21,7 +21,7 @@ class PricingInputs(BaseModel):
     environment: str            # "benign" or "hot"
     period_months: int = 12     # Contract period in months
     lease_type: str = "wet"     # "wet", "damp", or "moist"
-    crew_sets: int = 4          # Number of crew sets
+    crew_sets: float = 4         # Number of crew sets (supports decimals e.g. 3.5)
 
 
 class CalculateRequest(BaseModel):
@@ -155,7 +155,7 @@ class MsnInputResponse(BaseModel):
     environment: str
     period_months: int
     lease_type: str
-    crew_sets: int
+    crew_sets: float
 
 
 class ProjectResponse(BaseModel):
@@ -184,4 +184,4 @@ class AddMsnInputRequest(BaseModel):
     environment: str
     period_months: int = 12
     lease_type: str = "wet"
-    crew_sets: int = 4
+    crew_sets: float = 4

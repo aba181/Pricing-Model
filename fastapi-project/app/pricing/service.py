@@ -225,7 +225,7 @@ def _calc_aircraft(
 def _calc_crew(
     aircraft_type: str,
     lease_type: str,
-    crew_sets: int,
+    crew_sets: float,
     crew_config: CrewConfig,
     mgh: Decimal,
     average_active_fleet: Decimal,
