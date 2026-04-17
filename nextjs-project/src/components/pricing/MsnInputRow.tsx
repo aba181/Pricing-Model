@@ -124,9 +124,10 @@ function SeasonFields({
         <label className={labelCls}>Crew</label>
         <input
           type="number"
-          min={1}
+          min={0.5}
+          step="0.1"
           value={data.crewSets}
-          onChange={(e) => onFieldChange('crewSets', parseInt(e.target.value) || 1)}
+          onChange={(e) => onFieldChange('crewSets', parseFloat(e.target.value) || 1)}
           className={inputCls}
         />
       </div>
@@ -444,9 +445,10 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
             <label className={labelCls}>Crew</label>
             <input
               type="number"
-              min={1}
+              min={0.5}
+              step="0.1"
               value={input.crewSets}
-              onChange={(e) => onUpdate(input.msn, 'crewSets', parseInt(e.target.value) || 1)}
+              onChange={(e) => onUpdate(input.msn, 'crewSets', parseFloat(e.target.value) || 1)}
               className={inputCls}
             />
           </div>
