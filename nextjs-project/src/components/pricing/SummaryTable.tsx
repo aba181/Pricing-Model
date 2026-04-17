@@ -507,6 +507,13 @@ export function SummaryTable() {
   }
 
   // ── Active MSN (Per Month column) — uses season filter ──
+  if (perMsnData.length === 0) {
+    return (
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4 text-center">
+        <p className="text-xs text-gray-400 dark:text-gray-500">Calculating...</p>
+      </div>
+    )
+  }
   const activeRaw = perMsnData.find((d) => d.msn === selectedMsn) ?? perMsnData[0]
   const activeMsn = getFilteredMsn(activeRaw)
   const activeInput = msnInputs.find((i) => i.msn === activeMsn?.msn)
