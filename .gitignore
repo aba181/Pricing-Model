@@ -14,3 +14,5 @@ nextjs-project/.ds-css/
 
 # SDD scratch (progress ledger, task briefs)
 .superpowers/
+.vercel
+.env*.local
