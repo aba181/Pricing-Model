@@ -10,7 +10,11 @@
 
 services:
   db:
-    image: postgres:16-alpine
+    # Matches Railway production (Debian, Postgres 18.x) so pg_dump/pg_restore
+    # work in both directions when cloning prod data locally. Deliberately NOT
+    # the -alpine variant: musl has no locale collation, so en_US.utf8 silently
+    # degrades to byte ordering and text ORDER BY diverges from production.
+    image: postgres:18
     environment:
       POSTGRES_DB: acmi_platform
       POSTGRES_USER: postgres
@@ -20,7 +24,9 @@ services:
       # In-network traffic (api -> db:5432) is unaffected by this mapping.
       - "5433:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      # Postgres 18+ images store data in a major-version subdirectory, so the
+      # mount goes at /var/lib/postgresql (not .../data as on 16 and earlier).
+      - pgdata:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d acmi_platform"]
       interval: 2s
