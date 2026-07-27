@@ -836,8 +836,8 @@ export function SummaryTable({
 
   return (
     <div className={`flex flex-col gap-[18px] transition-opacity ${isCalculating ? 'opacity-60' : ''}`}>
-      {/* ── Verdict strip: metrics card + verdict card, split like .av-duo ── */}
-      <div className={canViewCosts ? 'av-duo' : undefined}>
+      {/* ── Verdict strip: metrics card over verdict card, 2:1 vertical split ── */}
+      <div className={canViewCosts ? 'av-verdict-stack' : undefined}>
       <div className="av-strip">
         {canViewCosts && (
           <div className="m">

@@ -291,26 +291,30 @@ export function DashboardSummary({ aircraftList, isViewer = false, onSaved, sand
         )}
       </div>
 
-      {/* Ticket deck (inputs, full width) above live results */}
-      {activeInput ? (
-        <MsnInputRow
-          key={activeInput.msn}
-          input={activeInput}
-          onUpdate={updateMsnInput}
-          onRemove={removeMsnInput}
-          aircraftList={aircraftList}
-          usedMsns={msnInputs.map((i) => i.msn)}
-        />
-      ) : (
-        <div className="av-panel">
-          <p className="text-xs text-center py-10" style={{ color: 'var(--muted)' }}>
-            No aircraft added yet. Select an aircraft above to begin pricing.
-          </p>
+      {/* Ticket deck as a left rail (≥1280) beside live results; stacks below. */}
+      <div className="av-workspace">
+        <div className="av-rail">
+          {activeInput ? (
+            <MsnInputRow
+              key={activeInput.msn}
+              input={activeInput}
+              onUpdate={updateMsnInput}
+              onRemove={removeMsnInput}
+              aircraftList={aircraftList}
+              usedMsns={msnInputs.map((i) => i.msn)}
+            />
+          ) : (
+            <div className="av-panel">
+              <p className="text-xs text-center py-10" style={{ color: 'var(--muted)' }}>
+                No aircraft added yet. Select an aircraft above to begin pricing.
+              </p>
+            </div>
+          )}
         </div>
-      )}
 
-      <div className="min-w-0">
-        <SummaryTable aircraftList={aircraftList} editable={!isViewer} />
+        <div className="min-w-0">
+          <SummaryTable aircraftList={aircraftList} editable={!isViewer} />
+        </div>
       </div>
 
       {/* Save Quote Dialog */}
