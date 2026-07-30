@@ -124,6 +124,7 @@ async function buildDashboard(token: string): Promise<DashboardData> {
       if (!/^\d{4}-\d{2}$/.test(start) || !/^\d{4}-\d{2}$/.test(end)) continue
       const msnFin = fin?.msns.find((m) => m.msn === snap.msn)
       calendar.push({
+        quoteId: p.id,
         msn: snap.msn,
         aircraftType: snap.aircraft_type ?? null,
         client: p.name,

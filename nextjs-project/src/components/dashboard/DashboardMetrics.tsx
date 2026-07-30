@@ -345,7 +345,7 @@ function ProjectDetail({ p, canViewCosts }: { p: DashboardProject; canViewCosts:
             <Link href={`/quotes/${p.id}`} className="av-btn av-btn-ghost !py-1 !px-2.5 !text-[12px]">
               <Calculator size={13} /> Open
             </Link>
-            <Link href={`/quotes/${p.id}?go=pnl`} className="av-btn av-btn-ghost !py-1 !px-2.5 !text-[12px]">
+            <Link href={`/pnl?quote=${p.id}`} className="av-btn av-btn-ghost !py-1 !px-2.5 !text-[12px]">
               <TrendingUp size={13} /> P&amp;L
             </Link>
           </div>

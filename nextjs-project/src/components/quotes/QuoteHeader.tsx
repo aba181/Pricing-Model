@@ -9,6 +9,8 @@ interface QuoteHeaderProps {
   clientName: string
   status: string
   createdAt: string
+  /** Target for the "Go to P&L" button (e.g. /pnl?quote=12). Defaults to /pnl. */
+  pnlHref?: string
   /** Opens the in-place edit dialog. Omit (e.g. for viewers) to hide Edit. */
   onEdit?: () => void
 }
@@ -27,7 +29,7 @@ function formatDate(dateStr: string): string {
   }
 }
 
-export function QuoteHeader({ quoteNumber, clientName, status, createdAt, onEdit }: QuoteHeaderProps) {
+export function QuoteHeader({ quoteNumber, clientName, status, createdAt, pnlHref = '/pnl', onEdit }: QuoteHeaderProps) {
   const router = useRouter()
 
   return (
@@ -56,7 +58,7 @@ export function QuoteHeader({ quoteNumber, clientName, status, createdAt, onEdit
           </button>
           <button
             type="button"
-            onClick={() => router.push('/pnl')}
+            onClick={() => router.push(pnlHref)}
             className="av-btn av-btn-ghost"
           >
             <TrendingUp size={14} />

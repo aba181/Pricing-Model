@@ -143,11 +143,11 @@ const BASIS_OPTS = [
   { value: 'naked', label: 'Naked' },
 ]
 
-function startDateValue(v: string | null | undefined) {
+export function startDateValue(v: string | null | undefined) {
   if (!v) return ''
   return v.length === 7 ? `${v}-01` : v
 }
-function endDateValue(v: string | null | undefined) {
+export function endDateValue(v: string | null | undefined) {
   if (!v) return ''
   if (v.length > 7) return v
   const [y, m] = v.split('-').map(Number)
@@ -158,7 +158,7 @@ function endDateValue(v: string | null | undefined) {
 
 /** Human-readable term length, e.g. "365 days · 12.0 months". Em dash when dates
  *  are incomplete or inverted. Days are inclusive; months = days / 30.4375. */
-function durationText(start: string | null | undefined, end: string | null | undefined): string {
+export function durationText(start: string | null | undefined, end: string | null | undefined): string {
   const s = startDateValue(start)
   const e = endDateValue(end)
   if (s.length < 10 || e.length < 10) return '—'

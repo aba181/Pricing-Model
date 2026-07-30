@@ -13,6 +13,7 @@ import { ALL_DATA_KEYS as ALL_KEYS_IMPORT } from '@/lib/pnl-row-defs'
 import { deriveCrewValues, deriveCostsValues, computeMsnConfig } from '@/lib/pnl-msn-config'
 import type { CrewDerivedValues, CostsDerivedValues } from '@/lib/pnl-msn-config'
 import { interpolateEpr } from '@/lib/pnl-engine'
+import type { CrewStoreData, CostsStoreData } from '@/lib/pnl-engine'
 import { pickAircraftRates } from '@/lib/aircraft-rate-basis'
 import { buildMonthDayInfos } from '@/lib/pnl-proration'
 import { periodBhWeightsFromStrings } from '@/lib/mgh-distribution'
@@ -236,37 +237,62 @@ interface PopoverState {
   y: number
 }
 
-export function PnlTable() {
+/**
+ * Explicit data source for a standalone P&L (e.g. the P&L page rendering a
+ * saved quote). When provided, the table computes entirely from it and never
+ * reads the workspace stores.
+ */
+export interface PnlSource {
+  msnInputs: MsnInput[]
+  crew: CrewStoreData
+  costs: CostsStoreData
+  exchangeRate: number
+  selectedMsn: number | null
+}
+
+export function PnlTable({ source }: { source?: PnlSource } = {}) {
   const canViewCosts = useCanViewCosts()
   const canViewNaked = useCanViewNaked()
-  const selectedMsn = usePricingStore((s) => s.selectedMsn)
-  const msnResults = usePricingStore((s) => s.msnResults)
-  const totalResult = usePricingStore((s) => s.totalResult)
-  const isCalculating = usePricingStore((s) => s.isCalculating)
-  const msnInputs = usePricingStore((s) => s.msnInputs)
+  // Store reads run unconditionally (rules of hooks); an explicit source
+  // overrides every one of them below.
+  const storeSelectedMsn = usePricingStore((s) => s.selectedMsn)
+  const storeMsnResults = usePricingStore((s) => s.msnResults)
+  const storeIsCalculating = usePricingStore((s) => s.isCalculating)
+  const storeMsnInputs = usePricingStore((s) => s.msnInputs)
+  const rateBasis = usePricingStore((s) => s.rateBasis)
+  const storeExchangeRate = usePricingStore((s) => s.exchangeRate)
+
+  const selectedMsn = source ? source.selectedMsn : storeSelectedMsn
+  const msnResults = source ? [] : storeMsnResults
+  const isCalculating = source ? false : storeIsCalculating
+  const msnInputs = source ? source.msnInputs : storeMsnInputs
   // Total-project scope excludes drafts (uncommitted dropdown selections).
   const committedInputs = msnInputs.filter((i) => !i.isDraft)
-  const rateBasis = usePricingStore((s) => s.rateBasis)
-  const exchangeRate = parseFloat(usePricingStore((s) => s.exchangeRate) || '0.85')
+  const exchangeRate = source
+    ? source.exchangeRate
+    : parseFloat(storeExchangeRate || '0.85')
   // Match the Summary's cost basis: naked only when permitted + selected.
-  const useNaked = canViewNaked && rateBasis === 'naked'
+  // Saved-quote sources always show the current basis the snapshot priced.
+  const useNaked = source ? false : canViewNaked && rateBasis === 'naked'
 
   // -- Crew config store --
-  const crewPayroll = useCrewConfigStore((s) => s.payroll)
-  const crewOtherCost = useCrewConfigStore((s) => s.otherCost)
-  const crewTraining = useCrewConfigStore((s) => s.training)
-  const crewAvgAC = useCrewConfigStore((s) => s.averageAC)
-  const crewFdDays = useCrewConfigStore((s) => s.fdDays)
-  const crewNfdDays = useCrewConfigStore((s) => s.nfdDays)
+  const storeCrew = useCrewConfigStore()
+  const crewPayroll = source ? source.crew.payroll : storeCrew.payroll
+  const crewOtherCost = source ? source.crew.otherCost : storeCrew.otherCost
+  const crewTraining = source ? source.crew.training : storeCrew.training
+  const crewAvgAC = source ? source.crew.averageAC : storeCrew.averageAC
+  const crewFdDays = source ? source.crew.fdDays : storeCrew.fdDays
+  const crewNfdDays = source ? source.crew.nfdDays : storeCrew.nfdDays
 
   // -- Costs config store --
-  const costsMaintPersonnel = useCostsConfigStore((s) => s.maintPersonnel)
-  const costsMaintCosts = useCostsConfigStore((s) => s.maintCosts)
-  const costsInsurance = useCostsConfigStore((s) => s.insurance)
-  const costsDoc = useCostsConfigStore((s) => s.doc)
-  const costsOtherCogs = useCostsConfigStore((s) => s.otherCogs)
-  const costsOverhead = useCostsConfigStore((s) => s.overhead)
-  const costsAvgAc = useCostsConfigStore((s) => s.avgAc)
+  const storeCosts = useCostsConfigStore()
+  const costsMaintPersonnel = source ? source.costs.maintPersonnel : storeCosts.maintPersonnel
+  const costsMaintCosts = source ? source.costs.maintCosts : storeCosts.maintCosts
+  const costsInsurance = source ? source.costs.insurance : storeCosts.insurance
+  const costsDoc = source ? source.costs.doc : storeCosts.doc
+  const costsOtherCogs = source ? source.costs.otherCogs : storeCosts.otherCogs
+  const costsOverhead = source ? source.costs.overhead : storeCosts.overhead
+  const costsAvgAc = source ? source.costs.avgAc : storeCosts.avgAc
 
   // -- Cost detail popover state --
   const [popover, setPopover] = useState<PopoverState | null>(null)

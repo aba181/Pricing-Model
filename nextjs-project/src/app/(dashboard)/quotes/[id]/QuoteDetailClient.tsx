@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuoteHydration } from '@/components/quotes/hooks/useQuoteHydration'
 import { QuoteHeader } from '@/components/quotes/QuoteHeader'
 import { NewQuoteModal } from '@/components/quotes/NewQuoteModal'
+import { QuoteParamsRail } from '@/components/quotes/QuoteParamsRail'
 import { SummaryTable } from '@/components/pricing/SummaryTable'
 import type { QuoteDetailResponse } from '@/app/actions/quotes'
 import type { AircraftOption } from '@/lib/api-converters'
@@ -20,23 +21,33 @@ export function QuoteDetailClient({ quote, aircraftList = [], isViewer = false }
   const { loaded } = useQuoteHydration(quote)
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [showEdit, setShowEdit] = useState(false)
+  // Deep-link from the dashboard fleet board: ?edit=1 opens the quote straight
+  // in the Pricing Workspace dialog (editors only).
+  const [showEdit, setShowEdit] = useState(!isViewer && searchParams.get('edit') === '1')
 
-  // Deep-link target (e.g. from the dashboard): once this quote's data is
-  // hydrated into the stores, forward to P&L to inspect it.
+  // Legacy deep-link (?go=pnl): the P&L page is standalone now and loads its
+  // own quote — forward there directly.
   const go = searchParams.get('go')
   useEffect(() => {
-    if (loaded && go === 'pnl') {
-      router.replace('/pnl')
+    if (go === 'pnl') {
+      router.replace(`/pnl?quote=${quote.id}`)
     }
-  }, [loaded, go, router])
+  }, [go, quote.id, router])
 
   if (go === 'pnl') {
     return (
       <div className="flex items-center justify-center py-20 text-sm" style={{ color: 'var(--muted)' }}>
-        Loading {quote.quote_number} into P&L…
+        Opening {quote.quote_number} in P&L…
       </div>
     )
+  }
+
+  // Closing the dialog also drops the ?edit=1 param so a refresh doesn't reopen it.
+  const closeEdit = () => {
+    setShowEdit(false)
+    if (searchParams.get('edit') === '1') {
+      router.replace(`/quotes/${quote.id}`, { scroll: false })
+    }
   }
 
   return (
@@ -46,13 +57,22 @@ export function QuoteDetailClient({ quote, aircraftList = [], isViewer = false }
         clientName={quote.client_name}
         status={quote.status}
         createdAt={quote.created_at}
+        pnlHref={`/pnl?quote=${quote.id}`}
         onEdit={!isViewer ? () => setShowEdit(true) : undefined}
       />
 
-      {/* Same summary cards as the Pricing Workspace (metrics, ACMI cost
-          build-up, cost breakdown), driven by the hydrated pricing store. */}
+      {/* Same view as the Pricing Workspace: deal-parameter rail (read-only)
+          beside the live results (metrics, ACMI cost build-up, sensitivity,
+          cost breakdown), all driven by the hydrated pricing store. */}
       {loaded ? (
-        <SummaryTable aircraftList={aircraftList} />
+        <div className="av-workspace">
+          <div className="av-rail">
+            <QuoteParamsRail />
+          </div>
+          <div className="min-w-0">
+            <SummaryTable aircraftList={aircraftList} editable={!isViewer} />
+          </div>
+        </div>
       ) : (
         <div className="flex items-center justify-center py-20 text-sm" style={{ color: 'var(--muted)' }}>
           Loading {quote.quote_number}…
@@ -61,19 +81,19 @@ export function QuoteDetailClient({ quote, aircraftList = [], isViewer = false }
 
       {/* Navigation hint */}
       <div className="text-xs" style={{ color: 'var(--muted)' }}>
-        Stores are loaded with this quote&apos;s data. Navigate to{' '}
-        <Link href="/pnl" className="av-link">
+        See this quote&apos;s full monthly statement on the{' '}
+        <Link href={`/pnl?quote=${quote.id}`} className="av-link">
           P&amp;L
-        </Link>
-        ,{' '}
+        </Link>{' '}
+        page. The{' '}
         <Link href="/crew" className="av-link">
           Crew
-        </Link>
-        , or{' '}
+        </Link>{' '}
+        and{' '}
         <Link href="/costs" className="av-link">
           Costs
         </Link>{' '}
-        to see full details from this quote.
+        pages show the config snapshot loaded with this quote.
       </div>
 
       {/* In-place edit dialog. After an update, router.refresh() re-fetches
@@ -82,10 +102,10 @@ export function QuoteDetailClient({ quote, aircraftList = [], isViewer = false }
       <NewQuoteModal
         isOpen={showEdit}
         editQuote={quote}
-        onClose={() => setShowEdit(false)}
+        onClose={closeEdit}
         aircraftList={aircraftList}
         onSaved={() => {
-          setShowEdit(false)
+          closeEdit()
           router.refresh()
         }}
       />

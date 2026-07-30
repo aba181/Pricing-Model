@@ -16,3 +16,6 @@ nextjs-project/.ds-css/
 .superpowers/
 .vercel
 .env*.local
+
+# local DB rescue dumps (contain real quote/user data)
+/pgdata-*.sql

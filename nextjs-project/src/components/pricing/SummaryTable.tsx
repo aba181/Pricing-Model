@@ -180,6 +180,7 @@ function computeMsnCosts(
   let tRevenue = 0, tAircraft = 0, tCrew = 0, tMaint = 0
   let tInsurance = 0, tDoc = 0, tOtherCogs = 0, tOverhead = 0
   let tBhSold = 0, tBhActual = 0, tFh = 0, tFc = 0
+  let tFixed = 0
 
   const _baseOverhead = costs.overheadPerMonth.reduce((s, v) => s + v, 0)
 
@@ -235,6 +236,14 @@ function computeMsnCosts(
     // Overhead: prorated by days. Scaling (_baseOverhead + MXC×fullBh) by df
     // prorates fixed personnel and charges MXC on the prorated BH (= monthBh).
     tOverhead += (_baseOverhead + costs.commissionMxcRate * totalBh) * df
+
+    // Fixed share of ACMI cost (P&L "TOTAL FIXED COST", excl. overhead) — the
+    // C1 contribution line derives variable cost as acmiCost − fixed.
+    tFixed += (dryLease + maintReservesFixed) * df
+      + crewFixed * df
+      + maintFixed * df
+      + insurance * df
+      + (costs.technicalVal + costs.otherFixedVal) * df
   }
 
   const tAcmiCost = tAircraft + tCrew + tMaint + tInsurance + tDoc + tOtherCogs
@@ -325,6 +334,7 @@ function computeMsnCosts(
       acmiCost: tAcmiCost,
       totalCost: tAcmiCost,
       overhead: tOverhead,
+      fixedCost: tFixed,
     },
   }
 }
@@ -622,6 +632,7 @@ export function SummaryTable({
           acmiCost: s.total.acmiCost + w.total.acmiCost,
           totalCost: s.total.acmiCost + w.total.acmiCost,
           overhead: s.total.overhead + w.total.overhead,
+          fixedCost: s.total.fixedCost + w.total.fixedCost,
         },
         // Keep separate season data for filtering
         summerData: s,
@@ -699,6 +710,10 @@ export function SummaryTable({
   const mDoc = perMo(totOf((t) => t.doc))
   const mAcmiCost = perMo(totOf((t) => t.acmiCost))
   const mOverhead = perMo(totOf((t) => t.overhead))
+  // C1 contribution = revenue − variable cost (variable = ACMI cost − fixed
+  // share), mirroring the P&L's GROSS PROFIT - CONTRIBUTION I line.
+  const mAcmiFixed = perMo(totOf((t) => t.fixedCost))
+  const mC1 = mRevenue - (mAcmiCost - mAcmiFixed)
   const mGrossProfit = mRevenue - mAcmiCost
   const mNetProfit = mGrossProfit - mOverhead
   const mBhActual = perMo(totOf((t) => t.bhActual))
@@ -1009,6 +1024,19 @@ export function SummaryTable({
                   <td className="r av-num">{fmtProjectTotal(mAcmiCost)}</td>
                   <td className="r av-num">{fmtPerBh(mAcmiCost)}</td>
                   <td className="pct av-num">{fmtPctRev(mAcmiCost)}</td>
+                </tr>
+              )}
+
+              {/* C1 contribution = revenue − variable cost (naked cost) */}
+              {canViewCosts && (
+                <tr>
+                  <td>
+                    <span className="cat"><span className="sw" style={{ background: 'var(--cyan)' }} />C1 contribution</span>
+                  </td>
+                  <td className={`r av-num ${mC1 < 0 ? 'av-neg' : 'av-pos'}`}>{fmtMonth(mC1)}</td>
+                  <td className={`r av-num ${mC1 < 0 ? 'av-neg' : 'av-pos'}`}>{fmtProjectTotal(mC1)}</td>
+                  <td className={`r av-num ${mC1 < 0 ? 'av-neg' : 'av-pos'}`}>{fmtPerBh(mC1)}</td>
+                  <td className="pct av-num">{fmtPctRev(mC1)}</td>
                 </tr>
               )}
 

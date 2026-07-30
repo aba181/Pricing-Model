@@ -415,10 +415,13 @@ body {
    Below 1280 the two stack (deck above results) and .av-deck-grid keeps its
    own 6→2→1 column behaviour from the responsive section. */
 .av-workspace { display: grid; gap: 18px; min-width: 0; }
+/* the rail column must never show the app sidebar gradient .av-rail carries */
+.av-workspace .av-rail { background: none; }
 @media (min-width: 1280px) {
-  .av-workspace { grid-template-columns: 340px minmax(0, 1fr); align-items: start; }
-  /* main (or the quote dialog body) is the scroll port; the rail tracks it. */
-  .av-workspace .av-rail { position: sticky; top: 0; }
+  .av-workspace { grid-template-columns: 340px minmax(0, 1fr); }
+  /* the deck card stretches to match the results column's full height */
+  .av-workspace .av-rail { display: flex; flex-direction: column; }
+  .av-workspace .av-rail .av-deck { flex: 1; }
   .av-workspace .av-deck-grid { grid-template-columns: 1fr; }
   .av-workspace .av-cluster { border-right: 0; border-bottom: 1px solid var(--line-2); }
   .av-workspace .av-cluster:last-child { border-bottom: 0; }

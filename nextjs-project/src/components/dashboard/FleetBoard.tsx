@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   LineDetailPopover,
   type BreakdownItem,
@@ -10,6 +11,8 @@ import { useCanViewCosts } from '@/providers/CostVisibilityProvider'
 
 /** One MSN's occupation by a client over a YYYY-MM..YYYY-MM span. */
 export interface CalendarSegment {
+  /** Quote id backing this deal — click-through opens its pricing workspace. */
+  quoteId?: number
   msn: number
   aircraftType: string | null
   client: string
@@ -84,6 +87,7 @@ export function FleetBoard({
   today: string // YYYY-MM-DD, fixed on the server so SSR and hydration agree
 }) {
   const canViewCosts = useCanViewCosts()
+  const router = useRouter()
   const [hover, setHover] = useState<{ seg: CalendarSegment; x: number; y: number } | null>(null)
   const [y0, mo0, d0] = today.split('-').map(Number)
   const monthIndex = (ym: string) => {
@@ -169,17 +173,30 @@ export function FleetBoard({
               <div className="av-fb-today" style={{ left: `${todayLeft}%` }}>
                 {row === rows[0] && <i>today</i>}
               </div>
-              {row.segs.map((s) => (
-                <div
-                  key={s.key}
-                  className={`av-fb-seg ${COMMITTED.has(s.status) ? s.status : 'sent'}`}
-                  style={{ left: pct(s.m0), width: pct(s.m1 - s.m0) }}
-                  onMouseEnter={(e) => setHover({ seg: s.src, x: e.clientX, y: e.clientY })}
-                  onMouseLeave={() => setHover(null)}
-                >
-                  {s.label}
-                </div>
-              ))}
+              {row.segs.map((s) => {
+                const href = s.src.quoteId != null ? `/quotes/${s.src.quoteId}` : null
+                return (
+                  <div
+                    key={s.key}
+                    role={href ? 'button' : undefined}
+                    tabIndex={href ? 0 : undefined}
+                    title={href ? `Open ${s.src.client}'s quote` : undefined}
+                    className={`av-fb-seg ${COMMITTED.has(s.status) ? s.status : 'sent'}`}
+                    style={{ left: pct(s.m0), width: pct(s.m1 - s.m0), cursor: href ? 'pointer' : undefined }}
+                    onMouseEnter={(e) => setHover({ seg: s.src, x: e.clientX, y: e.clientY })}
+                    onMouseLeave={() => setHover(null)}
+                    onClick={href ? () => router.push(href) : undefined}
+                    onKeyDown={href ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        router.push(href)
+                      }
+                    } : undefined}
+                  >
+                    {s.label}
+                  </div>
+                )
+              })}
             </div>
             <div className="av-fb-util av-num">
               {row.util !== null ? (
