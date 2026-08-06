@@ -181,6 +181,9 @@ function computeMsnCosts(
   let tInsurance = 0, tDoc = 0, tOtherCogs = 0, tOverhead = 0
   let tBhSold = 0, tBhActual = 0, tFh = 0, tFc = 0
   let tFixed = 0
+  // Fixed share per category (prorated) — lets the C1 popover derive the
+  // variable cost of each category as (category total − category fixed).
+  let tFixAircraft = 0, tFixCrew = 0, tFixMaint = 0, tFixInsurance = 0, tFixDoc = 0
 
   const _baseOverhead = costs.overheadPerMonth.reduce((s, v) => s + v, 0)
 
@@ -239,12 +242,14 @@ function computeMsnCosts(
 
     // Fixed share of ACMI cost (P&L "TOTAL FIXED COST", excl. overhead) — the
     // C1 contribution line derives variable cost as acmiCost − fixed.
-    tFixed += (dryLease + maintReservesFixed) * df
-      + crewFixed * df
-      + maintFixed * df
-      + insurance * df
-      + (costs.technicalVal + costs.otherFixedVal) * df
+    tFixAircraft += (dryLease + maintReservesFixed) * df
+    tFixCrew += crewFixed * df
+    tFixMaint += maintFixed * df
+    tFixInsurance += insurance * df
+    tFixDoc += (costs.technicalVal + costs.otherFixedVal) * df
   }
+
+  tFixed = tFixAircraft + tFixCrew + tFixMaint + tFixInsurance + tFixDoc
 
   const tAcmiCost = tAircraft + tCrew + tMaint + tInsurance + tDoc + tOtherCogs
 
@@ -335,6 +340,13 @@ function computeMsnCosts(
       totalCost: tAcmiCost,
       overhead: tOverhead,
       fixedCost: tFixed,
+      fixedByCat: {
+        aircraft: tFixAircraft,
+        crew: tFixCrew,
+        maintenance: tFixMaint,
+        insurance: tFixInsurance,
+        doc: tFixDoc,
+      },
     },
   }
 }
@@ -633,6 +645,13 @@ export function SummaryTable({
           totalCost: s.total.acmiCost + w.total.acmiCost,
           overhead: s.total.overhead + w.total.overhead,
           fixedCost: s.total.fixedCost + w.total.fixedCost,
+          fixedByCat: {
+            aircraft: s.total.fixedByCat.aircraft + w.total.fixedByCat.aircraft,
+            crew: s.total.fixedByCat.crew + w.total.fixedByCat.crew,
+            maintenance: s.total.fixedByCat.maintenance + w.total.fixedByCat.maintenance,
+            insurance: s.total.fixedByCat.insurance + w.total.fixedByCat.insurance,
+            doc: s.total.fixedByCat.doc + w.total.fixedByCat.doc,
+          },
         },
         // Keep separate season data for filtering
         summerData: s,
@@ -721,6 +740,14 @@ export function SummaryTable({
 
   const mOtherCogs = perMo(totOf((t) => t.otherCogs))
 
+  // Variable cost per category = category total − its prorated fixed share.
+  // These sum to (ACMI cost − fixed), the exact quantity C1 deducts from revenue.
+  const vAircraft = mAircraft - perMo(totOf((t) => t.fixedByCat.aircraft))
+  const vCrew = mCrew - perMo(totOf((t) => t.fixedByCat.crew))
+  const vMaint = mMaint - perMo(totOf((t) => t.fixedByCat.maintenance))
+  const vInsurance = mInsurance - perMo(totOf((t) => t.fixedByCat.insurance))
+  const vDoc = mDoc - perMo(totOf((t) => t.fixedByCat.doc))
+
   // Sub-component build-up for the active scope (summed across MSNs in Total view).
   const scopeParts: Record<string, Record<string, number>> = (() => {
     if (!isTotalView) return activeMsn.parts
@@ -735,7 +762,9 @@ export function SummaryTable({
   })()
 
   // Build drill-down popover content for a category, honouring currency + /BH mode.
-  const buildDrill = (catKey: string): { title: string; items: BreakdownItem[] } | null => {
+  const buildDrill = (
+    catKey: string,
+  ): { title: string; items: BreakdownItem[]; totalLabel?: string } | null => {
     const pv = (v: number) => (isPerBh ? (v * curFactor) / activeBh : v * curFactor)
     if (catKey === 'acmiCost') {
       return {
@@ -747,6 +776,42 @@ export function SummaryTable({
           { label: 'Insurance', value: pv(mInsurance) },
           { label: 'DOC', value: pv(mDoc) },
           { label: 'Other COGS', value: pv(mOtherCogs) },
+        ],
+      }
+    }
+    // C1 = revenue − variable cost. Each cost line is the variable share only
+    // (category total − its fixed share), so the items sum exactly to C1.
+    if (catKey === 'c1') {
+      const variableLines: BreakdownItem[] = [
+        { label: 'Aircraft — variable', value: -pv(vAircraft), formula: 'Maint. reserves — variable (EPR, LLP, APU)' },
+        { label: 'Crew — variable', value: -pv(vCrew), formula: 'Per diems, BH bonus, accommodation & travel' },
+        { label: 'Maintenance — variable', value: -pv(vMaint), formula: 'Spare parts, tires/wheels, personnel per diems' },
+        { label: 'Insurance — variable', value: -pv(vInsurance), formula: 'Insurance is fully fixed' },
+        { label: 'DOC — variable', value: -pv(vDoc), formula: 'Fuel, handling, navigation, airport charges' },
+        { label: 'Other COGS — variable', value: -pv(mOtherCogs), formula: 'Third-party commissions' },
+      ]
+      return {
+        title: 'C1 - Contribution',
+        totalLabel: 'C1 - Contribution',
+        items: [
+          { label: 'Total revenue', value: pv(mRevenue), formula: 'ACMI rate × MGH + excess BH × excess rate' },
+          ...variableLines.filter((l) => l.value !== 0),
+        ],
+      }
+    }
+    // C2 = revenue − full ACMI cost (fixed + variable).
+    if (catKey === 'grossProfit') {
+      return {
+        title: 'C2 - Gross Profit',
+        totalLabel: 'C2 - Gross Profit',
+        items: [
+          { label: 'Total revenue', value: pv(mRevenue), formula: 'ACMI rate × MGH + excess BH × excess rate' },
+          { label: 'Aircraft', value: -pv(mAircraft), formula: 'Dry lease + maint. reserves (fixed + variable)' },
+          { label: 'Crew', value: -pv(mCrew), formula: 'Salaries, uniform, training, per diems, travel' },
+          { label: 'Maintenance', value: -pv(mMaint), formula: 'Line, base, C-check, personnel, spare parts' },
+          { label: 'Insurance', value: -pv(mInsurance), formula: 'Hull & liability premium' },
+          { label: 'DOC', value: -pv(mDoc), formula: 'Fuel, handling, navigation, airport, technical, other fixed' },
+          { label: 'Other COGS', value: -pv(mOtherCogs), formula: 'Third-party commissions' },
         ],
       }
     }
@@ -1029,9 +1094,12 @@ export function SummaryTable({
 
               {/* C1 contribution = revenue − variable cost (naked cost) */}
               {canViewCosts && (
-                <tr>
+                <tr
+                  onMouseEnter={(e) => setDrill({ cat: 'c1', x: e.clientX, y: e.clientY })}
+                  onMouseLeave={() => setDrill(null)}
+                >
                   <td>
-                    <span className="cat"><span className="sw" style={{ background: 'var(--cyan)' }} />C1 contribution</span>
+                    <span className="cat"><span className="sw" style={{ background: 'var(--cyan)' }} />C1 - Contribution</span>
                   </td>
                   <td className={`r av-num ${mC1 < 0 ? 'av-neg' : 'av-pos'}`}>{fmtMonth(mC1)}</td>
                   <td className={`r av-num ${mC1 < 0 ? 'av-neg' : 'av-pos'}`}>{fmtProjectTotal(mC1)}</td>
@@ -1042,9 +1110,12 @@ export function SummaryTable({
 
               {/* Gross profit (naked cost) */}
               {canViewCosts && (
-                <tr>
+                <tr
+                  onMouseEnter={(e) => setDrill({ cat: 'grossProfit', x: e.clientX, y: e.clientY })}
+                  onMouseLeave={() => setDrill(null)}
+                >
                   <td>
-                    <span className="cat"><span className="sw" style={{ background: 'var(--pos)' }} />Gross profit</span>
+                    <span className="cat"><span className="sw" style={{ background: 'var(--pos)' }} />C2 - Gross Profit</span>
                   </td>
                   <td className={`r av-num ${mGrossProfit < 0 ? 'av-neg' : 'av-pos'}`}>{fmtMonth(mGrossProfit)}</td>
                   <td className={`r av-num ${mGrossProfit < 0 ? 'av-neg' : 'av-pos'}`}>{fmtProjectTotal(mGrossProfit)}</td>
@@ -1071,7 +1142,7 @@ export function SummaryTable({
               {/* Net profit (naked cost) */}
               {canViewCosts && (
                 <tr className="total">
-                  <td>Net profit</td>
+                  <td>C3 - Net Profit</td>
                   <td className={`r av-num ${mNetProfit < 0 ? 'av-neg' : 'av-pos'}`}>{fmtMonth(mNetProfit)}</td>
                   <td className={`r av-num ${mNetProfit < 0 ? 'av-neg' : 'av-pos'}`}>{fmtProjectTotal(mNetProfit)}</td>
                   <td className={`r av-num ${mNetProfit < 0 ? 'av-neg' : 'av-pos'}`}>{fmtPerBh(mNetProfit)}</td>
@@ -1092,6 +1163,7 @@ export function SummaryTable({
             title={cfg.title}
             monthLabel={`Per month${isPerBh ? ' · per BH' : ''}${currency === 'usd' ? ' · USD' : ''}`}
             items={cfg.items}
+            totalLabel={cfg.totalLabel}
             cursor={{ x: drill.x, y: drill.y }}
           />
         )

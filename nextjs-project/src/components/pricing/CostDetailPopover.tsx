@@ -20,6 +20,9 @@ interface LineDetailPopoverProps {
   monthLabel: string
   items: BreakdownItem[]
   params?: ParamItem[]
+  /** Label for the summing footer row. Defaults to "Total"; derived lines
+   *  (C1/C2) name the result instead, since the sum is a profit figure. */
+  totalLabel?: string
   /** Cursor position (clientX/clientY) at hover start; the popover then
    *  follows the cursor itself via a document mousemove listener. */
   cursor: { x: number; y: number }
@@ -39,6 +42,7 @@ export function LineDetailPopover({
   monthLabel,
   items,
   params,
+  totalLabel = 'Total',
   cursor,
 }: LineDetailPopoverProps) {
   const ref = useRef<HTMLDivElement>(null)
@@ -101,7 +105,7 @@ export function LineDetailPopover({
           className="pt-1.5 flex justify-between items-center font-semibold"
           style={{ borderTop: '1px solid var(--line)' }}
         >
-          <span style={{ color: 'var(--ink)' }}>Total</span>
+          <span style={{ color: 'var(--ink)' }}>{totalLabel}</span>
           <span className="av-num" style={{ color: 'var(--ink)' }}>{fmt(total, 0)}</span>
         </div>
       </div>
