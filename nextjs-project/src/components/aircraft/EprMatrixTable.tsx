@@ -121,7 +121,7 @@ export function EprMatrixTable({ eprMatrix, msn, canEdit }: EprMatrixTableProps)
           <input type="hidden" name="rows" value={JSON.stringify(editRows)} />
 
           <div className="overflow-x-auto">
-            <table className="av-tbl">
+            <table className="av-tbl min-w-[420px]">
               <thead>
                 <tr>
                   <th className="av-th">Cycle Ratio</th>

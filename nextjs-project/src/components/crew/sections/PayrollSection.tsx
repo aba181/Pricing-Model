@@ -31,7 +31,7 @@ export function PayrollSection({
         </span>
       </div>
       <div className="overflow-x-auto">
-        <table className="av-tbl">
+        <table className="av-tbl av-tbl-sticky min-w-[720px]">
           <thead>
             <tr>
               <th className="av-th">Position</th>

@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useRef, useEffect, useActionState } from 'react'
+import { useState, useEffect, useActionState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, X } from 'lucide-react'
+import { Plus } from 'lucide-react'
+import { MobileSheet } from '@/components/ui/MobileSheet'
 import {
   createAircraftAction,
   type CreateAircraftState,
@@ -29,7 +30,6 @@ const ESCALATION_FIELDS = [
 
 export function CreateAircraftDialog() {
   const [isOpen, setIsOpen] = useState(false)
-  const dialogRef = useRef<HTMLDialogElement>(null)
   const router = useRouter()
 
   const [state, formAction, isPending] = useActionState(createAircraftAction, {})
@@ -38,51 +38,48 @@ export function CreateAircraftDialog() {
   useEffect(() => {
     if (state.success && state.msn) {
       setIsOpen(false)
-      dialogRef.current?.close()
       router.push(`/aircraft/${state.msn}`)
     }
   }, [state.success, state.msn, router])
 
-  const openDialog = () => {
-    setIsOpen(true)
-    dialogRef.current?.showModal()
-  }
-
-  const closeDialog = () => {
-    setIsOpen(false)
-    dialogRef.current?.close()
-  }
+  const closeDialog = () => setIsOpen(false)
 
   return (
     <>
-      <button onClick={openDialog} className="av-btn av-btn-cyan">
+      <button onClick={() => setIsOpen(true)} className="av-btn av-btn-cyan">
         <Plus size={16} />
         Add Aircraft
       </button>
 
-      <dialog
-        ref={dialogRef}
-        className="p-0 w-full max-w-lg backdrop:bg-black/60"
-        style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 'var(--radius)', color: 'var(--ink)' }}
-        onClose={() => setIsOpen(false)}
+      <MobileSheet
+        isOpen={isOpen}
+        onClose={closeDialog}
+        title="Add New Aircraft"
+        maxWidth="max-w-lg"
+        closeOnScrim={false}
+        footer={
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              form="create-aircraft-form"
+              disabled={isPending}
+              className="av-btn av-btn-cyan disabled:opacity-60"
+            >
+              {isPending ? 'Creating...' : 'Create Aircraft'}
+            </button>
+            <button
+              type="button"
+              onClick={closeDialog}
+              disabled={isPending}
+              className="av-btn av-btn-ghost disabled:opacity-60"
+            >
+              Cancel
+            </button>
+          </div>
+        }
       >
         {isOpen && (
           <div className="p-6">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-[17px] font-bold" style={{ color: 'var(--brand)' }}>
-                Add New Aircraft
-              </h2>
-              <button
-                onClick={closeDialog}
-                className="p-1 rounded-md transition-colors"
-                style={{ color: 'var(--muted)' }}
-                aria-label="Close dialog"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
             {/* Error banner */}
             {state.error && (
               <div
@@ -93,7 +90,7 @@ export function CreateAircraftDialog() {
               </div>
             )}
 
-            <form action={formAction} className="space-y-5">
+            <form id="create-aircraft-form" action={formAction} className="space-y-5">
               {/* Aircraft Identity */}
               <div>
                 <h3 className="text-[10.5px] font-bold uppercase tracking-[0.09em] mb-3" style={{ color: 'var(--muted)' }}>
@@ -109,7 +106,7 @@ export function CreateAircraftDialog() {
                       name="msn"
                       required
                       placeholder="e.g. 3055"
-                      className="av-input av-num !py-1.5 !text-[13px]"
+                      className="av-input av-num !py-1.5 md:!text-[13px]"
                     />
                   </div>
                   <div>
@@ -119,7 +116,7 @@ export function CreateAircraftDialog() {
                     <select
                       name="aircraft_type"
                       defaultValue="A320"
-                      className="av-input !py-1.5 !text-[13px]"
+                      className="av-input !py-1.5 md:!text-[13px]"
                     >
                       <option value="A320">A320</option>
                       <option value="A321">A321</option>
@@ -133,7 +130,7 @@ export function CreateAircraftDialog() {
                       type="text"
                       name="registration"
                       placeholder="e.g. TC-UNA"
-                      className="av-input !py-1.5 !text-[13px]"
+                      className="av-input !py-1.5 md:!text-[13px]"
                     />
                   </div>
                 </div>
@@ -147,25 +144,10 @@ export function CreateAircraftDialog() {
 
               {/* Escalation Rates */}
               <RateFieldGroup title="Escalation Rates" fields={ESCALATION_FIELDS} />
-
-              {/* Actions */}
-              <div className="flex gap-2 pt-2">
-                <button type="submit" disabled={isPending} className="av-btn av-btn-cyan disabled:opacity-60">
-                  {isPending ? 'Creating...' : 'Create Aircraft'}
-                </button>
-                <button
-                  type="button"
-                  onClick={closeDialog}
-                  disabled={isPending}
-                  className="av-btn av-btn-ghost disabled:opacity-60"
-                >
-                  Cancel
-                </button>
-              </div>
             </form>
           </div>
         )}
-      </dialog>
+      </MobileSheet>
     </>
   )
 }
@@ -192,7 +174,7 @@ function RateFieldGroup({
               step="any"
               name={field}
               placeholder="0.00"
-              className="av-input av-num text-right !py-1.5 !text-[13px]"
+              className="av-input av-num text-right !py-1.5 md:!text-[13px]"
             />
           </div>
         ))}

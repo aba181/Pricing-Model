@@ -46,13 +46,17 @@ export default async function DashboardLayout({
 
   return (
     <CostVisibilityProvider value={{ canViewCosts, canViewNaked }}>
-      <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg)' }}>
+      {/* h-dvh (not h-screen/100vh) so the shell tracks the real viewport as the
+          iOS Safari URL bar collapses. Only <main> scrolls; the BottomTabBar is
+          an in-flow sibling below it, so scroll content ends above the bar
+          instead of hiding behind a fixed overlay. */}
+      <div className="flex h-dvh overflow-hidden" style={{ background: 'var(--bg)' }}>
         <Sidebar userEmail={userEmail} userRole={userRole} />
         <div className="flex-1 flex flex-col min-w-0">
           <TopBar userEmail={userEmail} userRole={userRole} />
-          <main className="flex-1 overflow-auto p-4 md:p-6 pb-18 md:pb-6">{children}</main>
+          <main className="flex-1 overflow-auto p-4 lg:p-6">{children}</main>
+          <BottomTabBar userRole={userRole} />
         </div>
-        <BottomTabBar userRole={userRole} />
       </div>
     </CostVisibilityProvider>
   )

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { X } from 'lucide-react'
+import { MobileSheet } from '@/components/ui/MobileSheet'
 import {
   snapshotWorkspaceStores,
   restoreWorkspaceStores,
@@ -76,36 +76,25 @@ export function NewQuoteModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div
-        className="av-panel flex flex-col overflow-hidden"
-        style={{ width: '75vw', height: '80vh', boxShadow: '0 20px 50px rgba(0,0,0,.3)' }}
-      >
-        {/* Header */}
-        <div className="av-panel-h shrink-0">
-          <h2>
-            {editQuote
-              ? `Edit ${editQuote.quote_number} — Pricing Workspace`
-              : 'New Quote — Pricing Workspace'}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close dialog"
-            className="transition-colors"
-            style={{ color: 'var(--muted)' }}
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Workspace body */}
-        <div className="flex-1 overflow-y-auto p-[18px]">
-          {ready && (
-            <DashboardSummary aircraftList={aircraftList} isViewer={false} onSaved={onSaved} />
-          )}
-        </div>
+    <MobileSheet
+      isOpen={isOpen}
+      onClose={onClose}
+      title={
+        editQuote
+          ? `Edit ${editQuote.quote_number} — Pricing Workspace`
+          : 'New Quote — Pricing Workspace'
+      }
+      closeOnScrim={false}
+      escapeCloses={false} // own handler above guards the nested Save dialog
+      fullScreen
+      desktopClassName="overflow-hidden"
+      desktopStyle={{ width: '75vw', height: '80vh', maxHeight: '80vh' }}
+    >
+      <div className="p-[18px]">
+        {ready && (
+          <DashboardSummary aircraftList={aircraftList} isViewer={false} onSaved={onSaved} />
+        )}
       </div>
-    </div>
+    </MobileSheet>
   )
 }

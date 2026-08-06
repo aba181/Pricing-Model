@@ -17,7 +17,7 @@ export function DocSection({ data, perMonth, onUpdate }: DocSectionProps) {
         <h2>DOC (Direct Operating Cost)</h2>
       </div>
       <div className="overflow-x-auto">
-        <table className="av-tbl">
+        <table className="av-tbl av-tbl-sticky min-w-[480px]">
           <thead>
             <tr>
               <th className="av-th" style={{ width: 260 }}>Name</th>

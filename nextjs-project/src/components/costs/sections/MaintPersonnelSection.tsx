@@ -23,7 +23,7 @@ export function MaintPersonnelSection({
         <h2>Maintenance personnel cost</h2>
       </div>
       <div className="overflow-x-auto">
-        <table className="av-tbl">
+        <table className="av-tbl av-tbl-sticky min-w-[560px]">
           <thead>
             <tr>
               <th className="av-th" style={{ width: 260 }}>Name</th>

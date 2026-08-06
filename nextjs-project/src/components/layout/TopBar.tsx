@@ -29,7 +29,7 @@ export function TopBar({ userEmail, userRole = 'user' }: TopBarProps) {
 
   return (
     <header
-      className="h-[62px] flex items-center gap-4 px-6 shrink-0 sticky top-0 z-30"
+      className="h-[62px] flex items-center gap-4 px-4 lg:px-6 shrink-0 sticky top-0 z-30"
       style={{ background: 'var(--card)', borderBottom: '1px solid var(--line)' }}
     >
       {/* Breadcrumb */}
@@ -43,8 +43,8 @@ export function TopBar({ userEmail, userRole = 'user' }: TopBarProps) {
 
       <div className="flex-1" />
 
-      {/* User — mobile only; on md+ this lives in the sidebar footer */}
-      <div className="flex md:hidden items-center gap-2.5 pl-4" style={{ borderLeft: '1px solid var(--line)' }}>
+      {/* User — mobile/tablet only; at lg+ this lives in the sidebar footer */}
+      <div className="flex lg:hidden items-center gap-2.5 pl-4" style={{ borderLeft: '1px solid var(--line)' }}>
         <div
           className="w-8 h-8 rounded-full grid place-items-center text-[12px] font-bold text-white"
           style={{ background: 'var(--navy)' }}
@@ -59,10 +59,10 @@ export function TopBar({ userEmail, userRole = 'user' }: TopBarProps) {
             {ROLE_LABEL[userRole] ?? 'Pricing'}
           </div>
         </div>
-        <form action={logoutAction} className="ml-1">
+        <form action={logoutAction}>
           <button
             type="submit"
-            className="flex items-center gap-1.5 text-[13px] transition-colors"
+            className="grid place-items-center w-11 h-11 -my-2 -mr-1 touch-manip transition-colors"
             style={{ color: 'var(--muted)' }}
             aria-label="Sign out"
           >

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import "./globals.css";
@@ -17,6 +17,15 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Avora · ACMI Pricing",
   description: "ACMI aircraft pricing and quote management",
+};
+
+// viewportFit: "cover" is required for env(safe-area-inset-*) to be non-zero —
+// without it the bottom tab bar sits under the iPhone home indicator.
+// Do NOT set maximumScale or userScalable: false — pinch-zoom must stay enabled.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

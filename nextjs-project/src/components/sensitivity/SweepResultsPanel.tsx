@@ -40,7 +40,7 @@ export function SweepResultsPanel({ result, stale }: SweepResultsPanelProps) {
             <span className="av-hint">{result.scopeLabel} · figures in EUR</span>
           </div>
           <div className="overflow-x-auto">
-            <table className="av-tbl w-full">
+            <table className="av-tbl w-full av-tbl-sticky min-w-[560px]">
               <thead>
                 <tr>
                   <th className="av-th">Step</th>

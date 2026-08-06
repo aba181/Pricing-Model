@@ -163,11 +163,14 @@ body {
 }
 .av-btn svg { width: 15px; height: 15px; }
 .av-btn-primary { background: var(--navy); color: #fff; }
-.av-btn-primary:hover { background: var(--navy-700); }
 .av-btn-cyan { background: var(--cyan); color: #fff; box-shadow: 0 4px 12px rgba(0,123,242,.3); }
-.av-btn-cyan:hover { filter: brightness(1.05); }
 .av-btn-ghost { background: var(--card); color: var(--ink-2); border-color: var(--line); }
-.av-btn-ghost:hover { border-color: var(--muted-2); background: var(--hover); }
+/* hover-gated: touch devices fire :hover on tap, leaving stuck highlights */
+@media (hover: hover) {
+  .av-btn-primary:hover { background: var(--navy-700); }
+  .av-btn-cyan:hover { filter: brightness(1.05); }
+  .av-btn-ghost:hover { border-color: var(--muted-2); background: var(--hover); }
+}
 
 /* ---------- Cards / panels ---------- */
 .av-panel, .av-card {
@@ -211,7 +214,9 @@ body {
 .av-th.r, .av-td.r { text-align: right; }
 .av-td { padding: 13px 14px; border-bottom: 1px solid var(--line-2); font-size: 13.5px; }
 .av-tbl tbody tr { transition: .12s; }
-.av-tbl tbody tr:hover { background: var(--hover); }
+@media (hover: hover) {
+  .av-tbl tbody tr:hover { background: var(--hover); }
+}
 .av-tbl tbody tr:last-child .av-td { border-bottom: none; }
 
 /* ---------- Badges / pills ---------- */
@@ -240,7 +245,9 @@ body {
   background: var(--line-2); border: 1px solid var(--line); color: var(--ink-2); margin-right: 4px;
 }
 .av-link, .tlink { color: var(--cyan-ink); font-weight: 700; cursor: pointer; }
-.av-link:hover, .tlink:hover { text-decoration: underline; }
+@media (hover: hover) {
+  .av-link:hover, .tlink:hover { text-decoration: underline; }
+}
 
 /* ---------- Fleet deployment board (dashboard signature) ---------- */
 .av-fb { padding: 6px 16px 16px; min-width: 720px; }
@@ -314,11 +321,15 @@ body {
 /* aircraft tabs */
 .av-ac-tabs { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .av-ac-tab { display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 13px; border-radius: 8px; background: var(--card); border: 1px solid var(--line); font-size: 12.5px; font-weight: 600; color: var(--ink-2); transition: .15s; cursor: pointer; }
-.av-ac-tab:hover { border-color: var(--muted-2); }
+@media (hover: hover) {
+  .av-ac-tab:hover { border-color: var(--muted-2); }
+}
 .av-ac-tab.active { background: var(--navy); color: #fff; border-color: var(--navy); }
 .av-ac-tab .ty { font-size: 10.5px; opacity: .7; font-weight: 600; }
 .av-ac-add { display: flex; align-items: center; gap: 6px; padding: 9px 13px; border-radius: 10px; border: 1px dashed var(--muted-2); color: var(--muted); font-size: 13px; font-weight: 600; background: var(--card-2); cursor: pointer; }
-.av-ac-add:hover { border-color: var(--cyan); color: var(--cyan); }
+@media (hover: hover) {
+  .av-ac-add:hover { border-color: var(--cyan); color: var(--cyan); }
+}
 
 /* draft aircraft tab — selected from the dropdown but not yet added */
 .av-ac-tab.draft { border-style: dashed; border-color: var(--amber); }
@@ -381,7 +392,9 @@ body {
 .av-rail { background: linear-gradient(180deg, var(--rail-top) 0%, var(--rail-bot) 100%); color: var(--rail-ink); }
 .av-rail-bd { border-color: var(--rail-line) !important; }
 .av-rail-link { color: var(--rail-ink); border: 1px solid transparent; }
-.av-rail-link:hover { background: rgba(255,255,255,.06); color: #fff; }
+@media (hover: hover) {
+  .av-rail-link:hover { background: rgba(255,255,255,.06); color: #fff; }
+}
 .av-rail-link.active { background: rgba(0,123,242,.20); color: #fff; }
 .av-rail-link.active .av-rail-ico { color: var(--cyan); opacity: 1; }
 .av-rail-label { color: var(--rail-muted); }
@@ -492,6 +505,11 @@ body {
 @media (max-width: 640px) {
   .av-kpi-row { grid-template-columns: 1fr; }
   .av-detail-stats { grid-template-columns: repeat(2, 1fr); }
+  /* Detail stat tiles: smaller non-wrapping figures + tighter padding so
+     values like "14,428,903 €" stay on one line in a half-width tile */
+  .av-dstat { padding: 11px 12px; }
+  .av-dstat .v { font-size: 13.5px; white-space: nowrap; }
+  .av-detail-inner { padding: 14px; }
   .av-hbar-row { grid-template-columns: 84px 1fr 64px; gap: 8px; }
   /* Waterfall: let the 8 bars scroll horizontally instead of crushing */
   .av-wf { height: 180px; gap: 6px; padding: 12px 10px 0; overflow-x: auto; }
@@ -500,8 +518,122 @@ body {
      than crushing their columns unreadably. */
   .av-bd-tbl { min-width: 560px; }
   .av-deck-grid { grid-template-columns: 1fr; }
-  .av-strip { flex-direction: column; }
-  .av-strip .m { flex: initial; border-right: 0; border-bottom: 1px solid var(--line-2); }
-  .av-strip .m:last-child { border-bottom: 0; }
-  .av-strip .scope { border-left: 0; flex-direction: row; }
+}
+
+/* Verdict strip below lg: explicit tile grid instead of flex-wrap. The old
+   flex-column fallback wrapped into clipped side columns whenever the
+   av-verdict-stack 2fr/1fr rows squeezed the strip's height — a grid with
+   auto rows can't clip. 1px gaps over a line-colored background draw the
+   cell borders (same trick as .av-detail-stats). */
+@media (max-width: 1023px) {
+  .av-verdict-stack { grid-template-rows: auto auto; }
+  .av-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 1px;
+    background: var(--line-2);
+  }
+  .av-strip .m { border-right: 0; background: var(--card); min-width: 0; }
+  .av-strip .scope { border-left: 0; }
+}
+/* Phones: fixed 2-up metric tiles; an odd last tile spans the full row so
+   no empty track shows through. Slightly smaller figures so values like
+   "1,854,500 EUR" fit a half-width tile without wrapping. */
+@media (max-width: 640px) {
+  .av-strip { grid-template-columns: 1fr 1fr; }
+  .av-strip > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .av-strip .m { padding: 12px 14px; }
+  .av-strip .m .v { font-size: 18px; }
+}
+
+/* ============================================================
+   Mobile foundation — utilities, sheet motion, sticky table
+   columns, touch-sized form controls. See docs/responsive.md.
+   ============================================================ */
+
+/* touch-action: manipulation drops the 300ms double-tap delay */
+.touch-manip { touch-action: manipulation; }
+/* safe-area padding for chrome pinned to the bottom edge (home indicator);
+   requires viewportFit: "cover" in the root layout's viewport export */
+.safe-pb { padding-bottom: env(safe-area-inset-bottom, 0); }
+
+/* Bottom-sheet slide-up (iOS-style drawer curve) */
+@keyframes avSheetUp {
+  from { transform: translateY(24px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.av-sheet-up { animation: avSheetUp .28s cubic-bezier(0.32, 0.72, 0, 1); }
+@media (prefers-reduced-motion: reduce) {
+  .av-sheet-up { animation: none; }
+}
+
+/* Horizontal waterfall fills (mobile ACMI cost build-up) — the vertical
+   .av-wf-bar gradients rotated for left-to-right bars */
+.av-wfh-track { height: 22px; border-radius: 6px; background: var(--line-2); position: relative; overflow: hidden; }
+.av-wfh-fill { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 6px; min-width: 2px; }
+.av-wfh-fill.rev  { background: linear-gradient(90deg, var(--navy-500), var(--navy)); }
+.av-wfh-fill.cost { background: linear-gradient(90deg, #f0b5b5, #e08a8a); }
+.av-wfh-fill.net  { background: linear-gradient(90deg, #2cc39c, var(--pos)); }
+.av-wfh-fill.net.isneg { background: linear-gradient(90deg, #f08a8a, var(--neg)); }
+
+/* An overflow-x-auto region inside a table cell (dashboard expanded project
+   detail) makes the cell adopt the region's full content width, blowing the
+   outer table past the viewport. width:0 removes the div's intrinsic-width
+   contribution; min-width:100% then renders it at the cell's real width. */
+@media (max-width: 1023px) {
+  .av-detail-inner { width: 0; min-width: 100%; }
+}
+
+/* Sticky label column for wide numeric matrices (P&L months, cost breakdown,
+   EPR matrix, crew/costs sections). The first column stays pinned while the
+   value columns pan under it. Gated below lg so the desktop layout is
+   untouched; the inset shadow separates the pinned column while panning. */
+@media (max-width: 1023px) {
+  .av-tbl-sticky th:first-child,
+  .av-tbl-sticky td:first-child {
+    position: sticky; left: 0; z-index: 1;
+    background: var(--card);
+    box-shadow: inset -1px 0 0 var(--line);
+  }
+  .av-tbl-sticky thead th:first-child { background: var(--card-2); z-index: 2; }
+  .av-tbl-sticky tr.head td:first-child,
+  .av-tbl-sticky tr.total td:first-child { background: var(--card-2); }
+}
+
+/* Touch-sized form controls below md: ≥16px font (anything smaller triggers
+   iOS auto-zoom on focus) and ≥44px height. Desktop density is unchanged. */
+@media (max-width: 767px) {
+  .av-input, .av-field input, .av-field select,
+  .av-nf input, .av-nf select, .av-ro {
+    font-size: 16px; min-height: 44px;
+  }
+  .av-nf label { font-size: 10.5px; }
+  .av-seg button { min-height: 40px; font-size: 13px; }
+  .av-nf .av-seg { height: auto; }
+  .av-nf .av-seg button { min-height: 38px; }
+  /* Inline mini-toggles (slider labels, panel headers) must stay compact —
+     the 40px form-seg bump above blows them out of their label rows. They
+     carry inline height/font styles, hence the !important overrides. */
+  .av-sf label .av-seg, .av-panel-h .av-seg { height: 26px !important; }
+  .av-sf label .av-seg button, .av-panel-h .av-seg button {
+    min-height: 0; font-size: 11px !important;
+  }
+  /* Date inputs have a large intrinsic min-width; without min-width:0 the
+     Start/End pair blows the 2-col grid past the card edge. */
+  .av-gd2 > * { min-width: 0; }
+  .av-nf input { min-width: 0; }
+  .av-sf .chip { width: 80px; height: 32px; font-size: 16px; }
+  .av-tb-rate input { width: 84px; height: 44px; font-size: 16px; }
+  .av-ac-tab { min-height: 44px; }
+  .av-ac-add { min-height: 44px; }
+  .av-chip-t { padding: 7px 12px; font-size: 11px; }
+  .av-btn { min-height: 44px; }
+  /* larger slider thumbs for touch */
+  .av-sf input[type="range"]::-webkit-slider-thumb { width: 22px; height: 22px; }
+  .av-sf input[type="range"]::-moz-range-thumb { width: 22px; height: 22px; }
+  .av-deck-seasons { overflow-x: auto; }
+  .av-deck-seasons button { min-height: 42px; white-space: nowrap; }
+  /* add-aircraft picker: 16px select (iOS zoom guard) + 44px height */
+  .av-addgrp { height: 44px; }
+  .av-addgrp select { font-size: 16px; }
 }

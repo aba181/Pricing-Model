@@ -7,6 +7,7 @@ import { Search, Trash2, Plus, Pencil } from 'lucide-react'
 import { NewQuoteModal } from './NewQuoteModal'
 import type { AircraftOption } from '@/lib/api-converters'
 import { StatusBadge } from './StatusBadge'
+import { useIsMobile } from '@/lib/hooks/useIsMobile'
 import { listQuotesAction, updateQuoteStatusAction, deleteQuoteAction, getQuoteAction } from '@/app/actions/quotes'
 import type { QuoteListItem, QuoteDetailResponse } from '@/app/actions/quotes'
 
@@ -44,6 +45,7 @@ export function QuoteList({ initialQuotes, financials = {}, isViewer = false, ai
   const [editQuote, setEditQuote] = useState<QuoteDetailResponse | null>(null)
   const [editLoadingId, setEditLoadingId] = useState<number | null>(null)
   const router = useRouter()
+  const isMobile = useIsMobile()
 
   const handleSort = (key: QuoteSortKey) => {
     if (key === sortKey) {
@@ -164,12 +166,12 @@ export function QuoteList({ initialQuotes, financials = {}, isViewer = false, ai
       )}
 
       <div className="av-panel">
-        <div className="av-panel-h">
+        <div className="av-panel-h flex-wrap gap-3">
           <div>
             <h2>Quotes</h2>
           </div>
-          <div className="flex items-center gap-2.5">
-            <div className="relative shrink-0">
+          <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
+            <div className="relative shrink-0 w-full sm:w-60">
               <Search
                 size={15}
                 className="absolute left-2.5 top-1/2 -translate-y-1/2"
@@ -181,16 +183,16 @@ export function QuoteList({ initialQuotes, financials = {}, isViewer = false, ai
                 onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder="Search client or quote no."
                 aria-label="Search client or quote number"
-                className="av-input"
-                style={{ width: 240, height: 40, paddingLeft: 32 }}
+                className="av-input w-full"
+                style={{ minHeight: 40, paddingLeft: 32 }}
               />
             </div>
             <select
               value={statusFilter}
               onChange={(e) => handleStatusFilterChange(e.target.value)}
               aria-label="Filter by status"
-              className="av-input"
-              style={{ width: 240, height: 40 }}
+              className="av-input flex-1 sm:flex-none sm:w-60"
+              style={{ minHeight: 40 }}
             >
               <option value="">All statuses</option>
               {STATUSES.map((s) => (
@@ -220,6 +222,90 @@ export function QuoteList({ initialQuotes, financials = {}, isViewer = false, ai
           <div className="px-4 py-12 text-center text-[13px]" style={{ color: 'var(--muted)' }}>
             No quotes found. Build a pricing calculation and save it as a quote.
           </div>
+        ) : isMobile ? (
+          /* Record cards below md (asset-app ResponsiveTable pattern):
+             primary = client, secondary = figures, actions in their own row */
+          <>
+            <div className="flex flex-col gap-3 p-3">
+              {sortedQuotes.map((q) => (
+                <div
+                  key={q.id}
+                  className="rounded-xl p-4"
+                  style={{ background: 'var(--card-2)', border: '1px solid var(--line)' }}
+                >
+                  <Link href={`/quotes/${q.id}`} className="block touch-manip">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="tlink av-num text-[14px]">{q.quote_number}</span>
+                      <StatusBadge status={q.status} />
+                    </div>
+                    <div className="text-[18px] font-semibold mt-1" style={{ color: 'var(--ink)' }}>
+                      {q.client_name}
+                    </div>
+                    {q.msn_list && q.msn_list.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {q.msn_list.slice(0, 4).map((m) => (
+                          <span key={m} className="av-msn">{m}</span>
+                        ))}
+                        {q.msn_list.length > 4 && (
+                          <span className="text-[11px] self-center" style={{ color: 'var(--muted)' }}>
+                            +{q.msn_list.length - 4}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    <div
+                      className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[13px] av-num"
+                      style={{ color: 'var(--muted)' }}
+                    >
+                      <span>MGH {fmtNum(financials[q.id]?.totalMgh)}</span>
+                      <span>€/BH {fmtNum(financials[q.id]?.eurPerBh)}</span>
+                      <span>{formatDate(q.created_at)}</span>
+                    </div>
+                  </Link>
+                  {!isViewer && (
+                    <div
+                      className="flex items-center gap-2 mt-3 pt-3"
+                      style={{ borderTop: '1px solid var(--line-2)' }}
+                    >
+                      <select
+                        value={q.status}
+                        onChange={(e) => handleStatusUpdate(q.id, e.target.value)}
+                        aria-label={`Status for ${q.quote_number}`}
+                        className="av-input flex-1 min-w-0"
+                      >
+                        {STATUSES.map((s) => (
+                          <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => handleEdit(q.id)}
+                        disabled={editLoadingId === q.id}
+                        aria-label={`Edit ${q.quote_number}`}
+                        className="grid place-items-center w-11 h-11 rounded-lg touch-manip disabled:opacity-50"
+                        style={{ color: 'var(--muted)', border: '1px solid var(--line)' }}
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(q.id, q.quote_number)}
+                        disabled={deletingId === q.id}
+                        aria-label={`Delete ${q.quote_number}`}
+                        className="grid place-items-center w-11 h-11 rounded-lg touch-manip disabled:opacity-50"
+                        style={{ color: 'var(--muted)', border: '1px solid var(--line)' }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="px-[18px] py-2.5 text-xs" style={{ color: 'var(--muted)', borderTop: '1px solid var(--line-2)' }}>
+              Showing {quotes.length} of {total} quotes
+            </div>
+          </>
         ) : (
           <>
             <div className="overflow-x-auto">

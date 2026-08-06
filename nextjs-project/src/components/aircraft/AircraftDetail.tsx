@@ -117,7 +117,7 @@ export function AircraftDetail({
               onChange={(e) => setRegValue(e.target.value)}
               placeholder="e.g. LZ-FSA (empty clears)"
               autoFocus
-              className="av-input !py-1 !text-[12.5px] w-[190px]"
+              className="av-input !py-1 md:!text-[12.5px] w-[190px]"
             />
             <button type="submit" disabled={regPending} className="av-btn av-btn-cyan !py-1 !px-2.5 !text-xs disabled:opacity-60">
               {regPending ? 'Saving…' : 'Save'}

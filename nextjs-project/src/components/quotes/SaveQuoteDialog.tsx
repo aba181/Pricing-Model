@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X } from 'lucide-react'
+import { MobileSheet } from '@/components/ui/MobileSheet'
 import { usePricingStore } from '@/stores/pricing-store'
 import { useCrewConfigStore } from '@/stores/crew-config-store'
 import { useCostsConfigStore } from '@/stores/costs-config-store'
@@ -150,27 +150,29 @@ export function SaveQuoteDialog({ isOpen, onClose, onSaved }: SaveQuoteDialogPro
   }
 
   return (
-    <div data-dialog="save-quote" className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div
-        className="av-panel w-full max-w-md"
-        style={{ boxShadow: '0 20px 50px rgba(0,0,0,.3)' }}
-      >
-        {/* Header */}
-        <div className="av-panel-h">
-          <h2>{isEditing ? `Update quote ${editingQuoteNumber ?? ''}` : 'Save as Quote'}</h2>
+    <MobileSheet
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isEditing ? `Update quote ${editingQuoteNumber ?? ''}` : 'Save as Quote'}
+      dataDialog="save-quote"
+      closeOnScrim={false}
+      footer={
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="av-btn av-btn-ghost">
+            Cancel
+          </button>
           <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close dialog"
-            className="transition-colors"
-            style={{ color: 'var(--muted)' }}
+            type="submit"
+            form="save-quote-form"
+            disabled={!nameValid || !codeValid || saving}
+            className="av-btn av-btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <X size={20} />
+            {saving ? 'Saving...' : isEditing ? 'Update Quote' : 'Save Quote'}
           </button>
         </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="av-card-b">
+      }
+    >
+      <form id="save-quote-form" onSubmit={handleSubmit} className="av-card-b">
           <div className="av-field">
             <div className="fl">
               <label htmlFor="quote-client-name">
@@ -218,25 +220,7 @@ export function SaveQuoteDialog({ isOpen, onClose, onSaved }: SaveQuoteDialogPro
               {error}
             </div>
           )}
-
-          <div className="flex justify-end gap-2 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="av-btn av-btn-ghost"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={!nameValid || !codeValid || saving}
-              className="av-btn av-btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {saving ? 'Saving...' : isEditing ? 'Update Quote' : 'Save Quote'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+      </form>
+    </MobileSheet>
   )
 }

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useIsMobile } from '@/lib/hooks/useIsMobile'
 
 export interface Aircraft {
   id: number
@@ -34,6 +35,7 @@ export function AircraftTable({ aircraft }: { aircraft: Aircraft[] }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('msn')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const isMobile = useIsMobile()
 
   const handleSort = (key: SortKey) => {
     if (key === sortKey) {
@@ -70,7 +72,7 @@ export function AircraftTable({ aircraft }: { aircraft: Aircraft[] }) {
           placeholder="Search by MSN or registration..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="av-input"
+          className="av-input w-full"
           style={{ maxWidth: 360 }}
         />
       </div>
@@ -81,6 +83,40 @@ export function AircraftTable({ aircraft }: { aircraft: Aircraft[] }) {
           <h2>Fleet reference data</h2>
           <span className="av-hint av-num">{sorted.length} aircraft</span>
         </div>
+        {isMobile ? (
+          /* Record cards below md: MSN + type primary, registration +
+             monthly lease rent secondary; card tap opens the detail page */
+          <div className="flex flex-col gap-3 p-3">
+            {sorted.length === 0 ? (
+              <div className="py-8 text-center text-[13px]" style={{ color: 'var(--muted)' }}>
+                No aircraft found
+              </div>
+            ) : (
+              sorted.map((a) => (
+                <Link
+                  key={a.id}
+                  href={`/aircraft/${a.msn}`}
+                  className="block rounded-xl p-4 touch-manip"
+                  style={{ background: 'var(--card-2)', border: '1px solid var(--line)', minHeight: 72 }}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-[18px] font-semibold av-num" style={{ color: 'var(--ink)' }}>
+                      MSN {a.msn}
+                    </span>
+                    <span className="chip">{a.aircraft_type}</span>
+                  </div>
+                  <div
+                    className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 text-[13px]"
+                    style={{ color: 'var(--muted)' }}
+                  >
+                    <span>{a.registration ?? 'No registration'}</span>
+                    <span className="av-num">Lease {formatRate(a.lease_rent_usd)} USD/mo</span>
+                  </div>
+                </Link>
+              ))
+            )}
+          </div>
+        ) : (
         <div className="overflow-x-auto">
           <table className="av-tbl min-w-[400px]">
             <thead>
@@ -129,6 +165,7 @@ export function AircraftTable({ aircraft }: { aircraft: Aircraft[] }) {
             </tbody>
           </table>
         </div>
+        )}
       </div>
     </div>
   )

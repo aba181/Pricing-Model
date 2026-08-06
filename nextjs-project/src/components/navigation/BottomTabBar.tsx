@@ -64,22 +64,31 @@ export function BottomTabBar({ userRole }: BottomTabBarProps) {
       {/* Backdrop */}
       {moreOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/20 md:hidden"
+          className="fixed inset-0 z-40 bg-black/20 lg:hidden"
           onClick={() => setMoreOpen(false)}
         />
       )}
 
-      {/* More sheet */}
+      {/* More sheet — anchored above the in-flow bar (56px + safe area) */}
       {moreOpen && (
-        <div className="fixed bottom-14 left-0 right-0 z-50 md:hidden pb-[env(safe-area-inset-bottom)]">
-          <div className="mx-2 mb-1 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-lg p-4">
+        <div className="fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom))] left-0 right-0 z-50 lg:hidden">
+          <div
+            className="mx-2 mb-1 rounded-xl p-4"
+            style={{
+              background: 'var(--card)',
+              border: '1px solid var(--line)',
+              boxShadow: 'var(--shadow-lg)',
+            }}
+          >
             <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              <span className="text-sm font-medium" style={{ color: 'var(--ink)' }}>
                 More
               </span>
               <button
                 onClick={() => setMoreOpen(false)}
-                className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md"
+                aria-label="Close menu"
+                className="grid place-items-center w-11 h-11 -m-2 rounded-md touch-manip"
+                style={{ color: 'var(--muted)' }}
               >
                 <X size={16} />
               </button>
@@ -92,11 +101,11 @@ export function BottomTabBar({ userRole }: BottomTabBarProps) {
                     key={href}
                     href={href}
                     onClick={() => setMoreOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-                      isActive
-                        ? 'text-indigo-600 dark:text-indigo-400 bg-gray-100 dark:bg-gray-800'
-                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-                    }`}
+                    className="flex items-center gap-3 px-3 py-3 rounded-lg touch-manip transition-colors"
+                    style={{
+                      color: isActive ? 'var(--cyan-ink)' : 'var(--ink-2)',
+                      background: isActive ? 'var(--cyan-soft)' : 'transparent',
+                    }}
                   >
                     <Icon size={18} className="shrink-0" />
                     <span className="text-sm font-medium">{label}</span>
@@ -104,8 +113,11 @@ export function BottomTabBar({ userRole }: BottomTabBarProps) {
                 )
               })}
             </div>
-            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between">
-              <span className="text-xs text-gray-500 dark:text-gray-400">
+            <div
+              className="mt-3 pt-3 flex items-center justify-between"
+              style={{ borderTop: '1px solid var(--line)' }}
+            >
+              <span className="text-xs" style={{ color: 'var(--muted)' }}>
                 Theme
               </span>
               <ThemeToggle />
@@ -114,37 +126,61 @@ export function BottomTabBar({ userRole }: BottomTabBarProps) {
         </div>
       )}
 
-      {/* Tab bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 pb-[env(safe-area-inset-bottom)]">
-        <div className="flex items-center justify-around h-14">
+      {/* Tab bar — in-flow flex child below <main>, NOT position:fixed: the
+          shell lays it out as a sibling so main's scroll area ends above the
+          bar instead of extending under it. safe-pb covers the home indicator. */}
+      <nav
+        className="lg:hidden z-50 shrink-0 safe-pb"
+        aria-label="Main navigation"
+        style={{ background: 'var(--card)', borderTop: '1px solid var(--line)' }}
+      >
+        <div className="flex items-stretch justify-around h-14">
           {visibleTabs.map(({ href, label, icon: Icon }) => {
             const isActive = pathname.startsWith(href)
             return (
               <Link
                 key={href}
                 href={href}
-                className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-                  isActive
-                    ? 'text-indigo-600 dark:text-indigo-400'
-                    : 'text-gray-500 dark:text-gray-400'
-                }`}
+                className="relative flex flex-col items-center justify-center flex-1 h-full min-w-11 touch-manip transition-colors"
+                style={{ color: isActive ? 'var(--cyan-ink)' : 'var(--muted)' }}
               >
-                <Icon size={20} />
-                <span className="text-[10px] mt-0.5 font-medium">{label}</span>
+                {/* 2px top accent indicator — dual cue alongside the color change */}
+                {isActive && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute top-0 left-[20%] right-[20%] h-0.5 rounded-full"
+                    style={{ background: 'var(--cyan)' }}
+                  />
+                )}
+                <Icon size={20} strokeWidth={isActive ? 2 : 1.5} />
+                <span className={`text-[10px] mt-0.5 ${isActive ? 'font-semibold' : 'font-medium'}`}>
+                  {label}
+                </span>
               </Link>
             )
           })}
           {showMore && (
             <button
               onClick={() => setMoreOpen((prev) => !prev)}
-              className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-                isMoreActive || moreOpen
-                  ? 'text-indigo-600 dark:text-indigo-400'
-                  : 'text-gray-500 dark:text-gray-400'
-              }`}
+              aria-label="More pages"
+              className="relative flex flex-col items-center justify-center flex-1 h-full min-w-11 touch-manip transition-colors"
+              style={{
+                color: isMoreActive || moreOpen ? 'var(--cyan-ink)' : 'var(--muted)',
+              }}
             >
-              <MoreHorizontal size={20} />
-              <span className="text-[10px] mt-0.5 font-medium">More</span>
+              {(isMoreActive || moreOpen) && (
+                <span
+                  aria-hidden="true"
+                  className="absolute top-0 left-[20%] right-[20%] h-0.5 rounded-full"
+                  style={{ background: 'var(--cyan)' }}
+                />
+              )}
+              <MoreHorizontal size={20} strokeWidth={isMoreActive || moreOpen ? 2 : 1.5} />
+              <span
+                className={`text-[10px] mt-0.5 ${isMoreActive || moreOpen ? 'font-semibold' : 'font-medium'}`}
+              >
+                More
+              </span>
             </button>
           )}
         </div>

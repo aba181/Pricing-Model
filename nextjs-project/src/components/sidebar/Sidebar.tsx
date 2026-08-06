@@ -60,7 +60,7 @@ export function Sidebar({ userEmail, userRole = 'user' }: SidebarProps) {
     <aside
       className={`${
         collapsed ? 'w-16' : 'w-[208px]'
-      } av-rail transition-all duration-300 h-screen hidden md:flex flex-col shrink-0 border-r av-rail-bd`}
+      } av-rail transition-all duration-300 h-full hidden lg:flex flex-col shrink-0 border-r av-rail-bd`}
     >
       {/* Brand */}
       <div className="flex items-center gap-2.5 h-[57px] px-4 border-b av-rail-bd">

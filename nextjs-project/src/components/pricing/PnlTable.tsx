@@ -21,6 +21,7 @@ import type { MsnInput } from '@/stores/pricing-store'
 import { LineDetailPopover } from './CostDetailPopover'
 import type { BreakdownItem, ParamItem } from './CostDetailPopover'
 import { useCanViewCosts, useCanViewNaked } from '@/providers/CostVisibilityProvider'
+import { useIsMobile } from '@/lib/hooks/useIsMobile'
 
 // ---- Clickable row definitions ----
 
@@ -296,6 +297,11 @@ export function PnlTable({ source }: { source?: PnlSource } = {}) {
 
   // -- Cost detail popover state --
   const [popover, setPopover] = useState<PopoverState | null>(null)
+
+  // Mobile: the statement shows one period at a time — a month index or the
+  // TOTAL column — picked via the chip row above the statement.
+  const isMobile = useIsMobile()
+  const [mobilePeriod, setMobilePeriod] = useState<number | 'total'>('total')
 
   // Collapsible groups — all collapsed by default for a compact statement.
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
@@ -648,9 +654,16 @@ export function PnlTable({ source }: { source?: PnlSource } = {}) {
     ? `MSN ${selectedMsn}`
     : 'Project Total'
 
-  // Column widths
-  const labelColWidth = 'min-w-[260px]'
+  // Column widths — slimmer pinned label column on phones so the month
+  // columns keep meaningful room while panning
+  const labelColWidth = 'min-w-[180px] md:min-w-[260px]'
   const dataColWidth = 'min-w-[100px]'
+
+  // Mobile period index: null = TOTAL column. Clamped so a shorter month
+  // range (after switching quotes) can't leave a stale out-of-range pick.
+  const mi = mobilePeriod === 'total' ? null : Math.min(mobilePeriod, Math.max(months.length - 1, 0))
+  const periodVal = (vals: number[] | undefined, tot: number): number =>
+    mi === null ? tot : (vals?.[mi] ?? 0)
 
   return (
     <div className={`av-panel overflow-hidden transition-opacity ${isCalculating ? 'opacity-60' : ''}`}>
@@ -666,7 +679,180 @@ export function PnlTable({ source }: { source?: PnlSource } = {}) {
         </button>
       </div>
 
-      {/* Scrollable table container */}
+      {isMobile ? (
+        /* ── Mobile: single-period statement ─────────────────────────────
+           A 12-month matrix can't read on a phone; instead the chips pick
+           one period (or TOTAL) and the statement renders as a list —
+           same rows, same collapsible groups as the desktop table. */
+        <>
+          {/* Period picker */}
+          <div
+            className="flex gap-1.5 px-3 py-2.5 overflow-x-auto"
+            style={{ borderBottom: '1px solid var(--line-2)' }}
+          >
+            {([['total', 'TOTAL'] as const, ...months.map((m, i) => [i, m.label] as const)]).map(
+              ([key, label]) => {
+                const active = key === 'total' ? mi === null : mi === key
+                return (
+                  <button
+                    key={String(key)}
+                    onClick={() => setMobilePeriod(key === 'total' ? 'total' : key)}
+                    className="shrink-0 px-3 rounded-full text-[11px] font-bold touch-manip"
+                    style={{
+                      minHeight: 32,
+                      background: active ? 'var(--navy)' : 'var(--card-2)',
+                      color: active ? '#fff' : 'var(--muted)',
+                      border: `1px solid ${active ? 'var(--navy)' : 'var(--line)'}`,
+                    }}
+                  >
+                    {label}
+                  </button>
+                )
+              },
+            )}
+          </div>
+          {/* Partial-month hint */}
+          {mi !== null && monthInfos?.[mi] && monthInfos[mi].activeDays < monthInfos[mi].totalDays && (
+            <div className="px-4 py-1.5 text-[10.5px]" style={{ color: 'var(--muted)', borderBottom: '1px solid var(--line-2)' }}>
+              {months[mi].label}: {monthInfos[mi].activeDays}/{monthInfos[mi].totalDays} active days (prorated)
+            </div>
+          )}
+
+          {/* Statement rows */}
+          <div className="text-xs">
+            {PNL_PLAN.map((p, idx) => {
+              if (p.t === 'section') {
+                const open = p.groupId ? expandedGroups.has(p.groupId) : false
+                return (
+                  <div
+                    key={idx}
+                    onClick={p.groupId ? () => toggleGroup(p.groupId!) : undefined}
+                    className={`px-4 py-2 text-[10.5px] uppercase tracking-[0.06em] font-semibold bg-[var(--card-2)] text-[var(--muted)] border-y border-[var(--line-2)] ${p.groupId ? 'cursor-pointer select-none touch-manip' : ''}`}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      {p.groupId ? (open ? <ChevronDown size={12} /> : <ChevronRight size={12} />) : null}
+                      {p.label}
+                    </span>
+                  </div>
+                )
+              }
+
+              if (p.t === 'group') {
+                const open = expandedGroups.has(p.groupId)
+                const { v, tot } = groupVals(p.keys)
+                const value = periodVal(v, tot)
+                return (
+                  <div
+                    key={idx}
+                    onClick={() => toggleGroup(p.groupId)}
+                    className="flex items-center justify-between gap-3 px-4 py-2 cursor-pointer select-none touch-manip border-b border-[var(--line-2)]"
+                  >
+                    <span className="inline-flex items-center gap-1 pl-2 font-medium text-[var(--ink)]">
+                      {open
+                        ? <ChevronDown size={12} style={{ color: 'var(--muted-2)' }} />
+                        : <ChevronRight size={12} style={{ color: 'var(--muted-2)' }} />}
+                      {p.label}
+                    </span>
+                    <span className={`av-num font-medium text-[var(--ink)] ${valColor(value)}`}>{fmt(value, 0)}</span>
+                  </div>
+                )
+              }
+
+              if (p.t === 'item') {
+                if (p.groupId && !expandedGroups.has(p.groupId)) return null
+                const value = periodVal(monthlyData[p.key], getTotal(p.key))
+                return (
+                  <div
+                    key={idx}
+                    className={`flex items-center justify-between gap-3 px-4 py-1.5 border-b border-[var(--line-2)] ${p.groupId ? 'pl-9' : 'pl-7'}`}
+                  >
+                    <span className="text-[var(--muted)]">{p.label}</span>
+                    <span className={`av-num text-[var(--ink-2)] ${valColor(value)}`}>{fmt(value, 0)}</span>
+                  </div>
+                )
+              }
+
+              if (p.t === 'total') {
+                const value = periodVal(monthlyData[p.key], getTotal(p.key))
+                return (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between gap-3 px-4 py-2 bg-[var(--card-2)] border-t border-b border-[var(--line-2)]"
+                  >
+                    <span className="font-semibold text-[var(--ink)]">{p.label}</span>
+                    <span className={`av-num font-semibold text-[var(--ink)] ${valColor(value)}`}>{fmt(value, 0)}</span>
+                  </div>
+                )
+              }
+
+              if (p.t === 'result') {
+                const value = periodVal(monthlyData[p.key], getTotal(p.key))
+                const isKey = p.key === 'ebitda' || p.key === 'netProfit'
+                return (
+                  <div
+                    key={idx}
+                    className={`flex items-center justify-between gap-3 px-4 py-2.5 ${
+                      isKey
+                        ? 'border-t-2 border-[var(--cyan)] bg-[var(--cyan-soft)]'
+                        : 'border-t border-[var(--line-2)] bg-[var(--card-2)]'
+                    }`}
+                  >
+                    <span className="font-bold text-[var(--ink)]">{p.label}</span>
+                    <span className={`av-num font-bold ${value < 0 ? 'av-neg' : 'av-pos'}`}>{fmt(value, 0)}</span>
+                  </div>
+                )
+              }
+
+              if (p.t === 'margin') {
+                const vals = monthlyData[p.key]
+                const avgMargin = months.length > 0
+                  ? (vals ?? []).reduce((s, v) => s + v, 0) / months.length
+                  : 0
+                const value = mi === null ? avgMargin : (vals?.[mi] ?? 0)
+                return (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between gap-3 px-4 py-1.5 italic text-[var(--muted)] border-b border-[var(--line-2)]"
+                  >
+                    <span>{p.label}</span>
+                    <span className="av-num">{fmtPct(value)}</span>
+                  </div>
+                )
+              }
+
+              if (p.t === 'kpiheader') {
+                return (
+                  <div
+                    key={idx}
+                    className="px-4 py-2 text-[10.5px] uppercase tracking-[0.06em] font-semibold bg-[var(--card-2)] text-[var(--muted)] border-y border-[var(--line-2)]"
+                  >
+                    {p.label}
+                  </div>
+                )
+              }
+
+              if (p.t === 'kpi') {
+                if (p.groupId && !expandedGroups.has(p.groupId)) return null
+                const isKpiDec = KPI_DECIMAL_KEYS.has(p.key)
+                const value = mi === null
+                  ? (isKpiDec ? getTotal(p.key) / Math.max(months.length, 1) : getTotal(p.key))
+                  : (monthlyData[p.key]?.[mi] ?? 0)
+                return (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between gap-3 px-4 py-1.5 text-[var(--ink-2)] border-b border-[var(--line-2)]"
+                  >
+                    <span>{p.label}</span>
+                    <span className="av-num">{isKpiDec ? fmtDec(value, 2) : fmt(value, 0)}</span>
+                  </div>
+                )
+              }
+
+              return null
+            })}
+          </div>
+        </>
+      ) : (
       <div className="overflow-x-auto">
         <table className="w-max min-w-full text-xs">
           {/* Month header row */}
@@ -908,6 +1094,7 @@ export function PnlTable({ source }: { source?: PnlSource } = {}) {
           </tbody>
         </table>
       </div>
+      )}
 
       <p className="px-4 py-3 text-[11px] border-t border-[var(--line-2)]" style={{ color: 'var(--muted)' }}>
         Partial months are prorated by active days — a project starting or ending mid-month bears its

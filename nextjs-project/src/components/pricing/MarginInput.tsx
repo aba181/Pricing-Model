@@ -106,7 +106,7 @@ export function MarginInput() {
   }
 
   return (
-    <div className="av-panel flex items-center gap-4 px-4 py-3">
+    <div className="av-panel flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
       <label className="text-sm whitespace-nowrap" style={{ color: 'var(--muted)' }}>Margin:</label>
       <input
         type="number"

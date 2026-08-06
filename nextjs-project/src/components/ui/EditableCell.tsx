@@ -70,6 +70,7 @@ export function EditableCell({
     return (
       <input
         type="number"
+        inputMode="decimal"
         step="any"
         autoFocus
         value={draft}
@@ -79,7 +80,7 @@ export function EditableCell({
           if (e.key === 'Enter') commit()
           if (e.key === 'Escape') setEditing(false)
         }}
-        className={`w-full rounded px-2 py-0.5 text-sm text-right av-num focus:outline-none ${className}`}
+        className={`w-full rounded px-2 py-2 md:py-0.5 text-[16px] md:text-sm text-right av-num focus:outline-none ${className}`}
         style={{
           background: 'var(--card)',
           border: '1px solid var(--cyan)',
@@ -93,7 +94,7 @@ export function EditableCell({
   return (
     <span
       onClick={startEdit}
-      className={`cursor-pointer px-2 py-0.5 rounded transition-colors av-num inline-block min-w-[60px] text-right ${className}`}
+      className={`cursor-pointer px-2 py-2 md:py-0.5 rounded transition-colors av-num inline-block min-w-[60px] text-right touch-manip ${className}`}
       style={{ background: 'var(--cyan-soft)', border: '1px solid var(--cyan)', color: 'var(--ink)' }}
       title="Click to edit"
     >

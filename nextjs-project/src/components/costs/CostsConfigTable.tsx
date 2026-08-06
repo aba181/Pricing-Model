@@ -94,7 +94,7 @@ export function CostsConfigTable() {
     <div className="space-y-[18px]">
       {/* Average AC - global input */}
       <div
-        className="flex items-center gap-3 px-4 py-3 rounded-xl"
+        className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 rounded-xl"
         style={{ background: 'var(--card)', border: '1px solid var(--line)' }}
       >
         <label className="text-[13px] whitespace-nowrap" style={{ color: 'var(--muted)' }}>Average A/C:</label>

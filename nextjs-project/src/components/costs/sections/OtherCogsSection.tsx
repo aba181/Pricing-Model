@@ -16,7 +16,7 @@ export function OtherCogsSection({ data, onUpdate }: OtherCogsSectionProps) {
         <h2>Other COGS</h2>
       </div>
       <div className="overflow-x-auto">
-        <table className="av-tbl">
+        <table className="av-tbl av-tbl-sticky min-w-[480px]">
           <thead>
             <tr>
               <th className="av-th" style={{ width: 260 }}>Name</th>

@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { Info } from 'lucide-react'
 import { usePricingStore } from '@/stores/pricing-store'
 import type { MsnInput } from '@/stores/pricing-store'
 import { computePeriodMonths, generateMonthRange } from '@/stores/pricing-store'
@@ -22,6 +23,8 @@ import { SensitivitySetupPanel } from '@/components/sensitivity/SensitivitySetup
 import { SweepResultsPanel } from '@/components/sensitivity/SweepResultsPanel'
 import type { CrewStoreData, CostsStoreData } from '@/lib/pnl-engine'
 import { useCanViewCosts, useCanViewNaked } from '@/providers/CostVisibilityProvider'
+import { useIsMobile } from '@/lib/hooks/useIsMobile'
+import { MobileSheet } from '@/components/ui/MobileSheet'
 import type { AircraftOption } from '@/lib/api-converters'
 
 
@@ -427,6 +430,53 @@ export function SummaryTable({
   const currency = displayCurrency
   const [seasonFilter, setSeasonFilter] = useState<'total' | 'summer' | 'winter'>('total')
   const [drill, setDrill] = useState<{ cat: string; x: number; y: number } | null>(null)
+  const isMobile = useIsMobile()
+  // Mobile cost-breakdown scope: which of the three value columns to show
+  const [bdScope, setBdScope] = useState<'month' | 'total' | 'bh'>('month')
+  // Mobile drill-down: press-and-hold a breakdown line opens its build-up
+  // in a bottom sheet (the desktop hover popover can't follow a finger).
+  // The hold is REGISTERED at 400ms (row highlights) but the sheet only
+  // opens on release — mounting a full-screen overlay under a still-held
+  // pointer confuses touch emulation layers (DevTools device mode) into a
+  // stuck "touch down" state that kills scrolling until a reload.
+  const [drillSheet, setDrillSheet] = useState<string | null>(null)
+  const [heldKey, setHeldKey] = useState<string | null>(null)
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const pressRef = useRef<{ key: string; startY: number; ready: boolean } | null>(null)
+  const cancelPress = () => {
+    if (pressTimer.current) {
+      clearTimeout(pressTimer.current)
+      pressTimer.current = null
+    }
+  }
+  const abortPress = () => {
+    cancelPress()
+    pressRef.current = null
+    setHeldKey(null)
+  }
+  const startPress = (e: React.PointerEvent, key: string) => {
+    abortPress()
+    // Capture keeps the whole gesture on this row, so pointerup reliably
+    // lands here no matter what renders meanwhile.
+    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+    pressRef.current = { key, startY: e.clientY, ready: false }
+    pressTimer.current = setTimeout(() => {
+      if (pressRef.current?.key === key) {
+        pressRef.current.ready = true
+        setHeldKey(key)
+      }
+    }, 400)
+  }
+  const movePress = (e: React.PointerEvent) => {
+    // A drag is a scroll, not a hold
+    if (pressRef.current && Math.abs(e.clientY - pressRef.current.startY) > 12) abortPress()
+  }
+  const endPress = () => {
+    const ready = pressRef.current?.ready ? pressRef.current.key : null
+    abortPress()
+    if (ready) setDrillSheet(ready)
+  }
+  useEffect(() => cancelPress, [])
   const sweep = useSensitivitySweep()
 
   const exchangeRate = parseFloat(globalExchangeRate || '0.85')
@@ -914,6 +964,38 @@ export function SummaryTable({
 
   const bdUnit = currency === 'usd' ? 'USD' : 'EUR'
 
+  // ── Mobile cost-breakdown rows — same lines as the desktop table, showing
+  //    one value column at a time (bdScope: monthly / project total / per BH).
+  type BdRow = {
+    label: string
+    v: number
+    sw?: string
+    kind: 'line' | 'sub' | 'total'
+    pn?: boolean
+    drillKey?: string
+  }
+  const bdMobileRows: BdRow[] = [
+    { label: 'Total revenue', v: mRevenue, sw: 'var(--navy)', kind: 'line' },
+    ...(canViewCosts
+      ? [
+          ...costLines.map((r): BdRow => ({ label: r.n, v: r.v, sw: r.sw, kind: 'sub', drillKey: r.drillKey })),
+          { label: 'ACMI cost', v: mAcmiCost, kind: 'total', drillKey: 'acmiCost' } as BdRow,
+          { label: 'C1 - Contribution', v: mC1, sw: 'var(--cyan)', kind: 'line', pn: true, drillKey: 'c1' } as BdRow,
+          { label: 'C2 - Gross Profit', v: mGrossProfit, sw: 'var(--pos)', kind: 'line', pn: true, drillKey: 'grossProfit' } as BdRow,
+          { label: 'Overhead', v: mOverhead, kind: 'sub', drillKey: 'overhead' } as BdRow,
+          { label: 'C3 - Net Profit', v: mNetProfit, kind: 'total', pn: true } as BdRow,
+        ]
+      : []),
+  ]
+  const bdScopeFmt = (v: number): string =>
+    bdScope === 'month' ? fmtMonth(v) : bdScope === 'total' ? fmtProjectTotal(v) : fmtPerBh(v)
+  const bdScopeHint =
+    bdScope === 'month'
+      ? `per month · ${bdUnit}`
+      : bdScope === 'total'
+        ? `project total (${periodMonths > 0 ? `${periodMonths} mo` : '—'}) · ${bdUnit}`
+        : `per block hour (${fmt(monthlyBh, 0)} BH / mo) · ${bdUnit}`
+
   return (
     <div className={`flex flex-col gap-[18px] transition-opacity ${isCalculating ? 'opacity-60' : ''}`}>
       {/* ── Verdict strip: metrics card over verdict card, 2:1 vertical split ── */}
@@ -988,6 +1070,29 @@ export function SummaryTable({
                 <span className="av-hint">Revenue → cost stack → net</span>
               </span>
             </div>
+            {isMobile ? (
+              /* Horizontal bars below md: full-width labels, no crushed
+                 columns, no horizontal scroll. Bar length reuses the same
+                 proportional scale as the desktop waterfall's bar height. */
+              <div className="px-4 py-3 flex flex-col gap-2">
+                {wfBars.map((s, i) => (
+                  <div key={i} className="grid grid-cols-[88px_1fr_64px] items-center gap-2.5">
+                    <span className="text-[11px] font-semibold truncate" style={{ color: 'var(--ink-2)' }}>
+                      {s.lab}
+                    </span>
+                    <div className="av-wfh-track">
+                      <div
+                        className={`av-wfh-fill ${s.cls}${s.neg ? ' isneg' : ''}`}
+                        style={{ width: `${Math.max(s.barH, 1)}%` }}
+                      />
+                    </div>
+                    <span className={`text-[11.5px] font-bold text-right av-num${s.neg ? ' av-neg' : ''}`}>
+                      {compact(s.v)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
             <div className="av-wf">
               {wfBars.map((s, i) => (
                 <div className="av-wf-col" key={i}>
@@ -1001,6 +1106,7 @@ export function SummaryTable({
                 </div>
               ))}
             </div>
+            )}
           </div>
 
           <SensitivitySetupPanel
@@ -1026,12 +1132,93 @@ export function SummaryTable({
       <div className="av-panel overflow-hidden">
         <div className="av-panel-h">
           <h2>Cost breakdown</h2>
-          <span className="av-hint">
-            monthly · project total ({periodMonths > 0 ? `${periodMonths} mo` : '—'}) · per block hour ({fmt(monthlyBh, 0)} BH)
-          </span>
+          {isMobile ? (
+            <span className="av-hint av-num">{bdScopeHint}</span>
+          ) : (
+            <span className="av-hint">
+              monthly · project total ({periodMonths > 0 ? `${periodMonths} mo` : '—'}) · per block hour ({fmt(monthlyBh, 0)} BH)
+            </span>
+          )}
         </div>
+        {isMobile ? (
+          /* Below md: one value column at a time behind a scope toggle —
+             no horizontal scroll, no wrapped labels */
+          <>
+            <div className="px-4 pt-3 pb-1">
+              <div className="av-seg">
+                {([
+                  ['month', 'Monthly'],
+                  ['total', 'Total'],
+                  ['bh', 'Per BH'],
+                ] as const).map(([key, label]) => (
+                  <button key={key} className={bdScope === key ? 'on' : ''} onClick={() => setBdScope(key)}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {canViewCosts && (
+              <div className="px-4 pb-1.5 text-[10.5px]" style={{ color: 'var(--muted)' }}>
+                Press and hold a line to see its build-up
+              </div>
+            )}
+            <div className="pb-1">
+              {bdMobileRows.map((r) => (
+                <div
+                  key={r.label}
+                  className={`flex items-center justify-between gap-3 px-4 select-none ${
+                    r.kind === 'total' ? 'py-2.5' : 'py-2'
+                  } ${r.kind === 'sub' ? 'pl-7' : ''}`}
+                  style={{
+                    borderTop: r.kind === 'total' ? '1.5px solid var(--line)' : '1px solid var(--line-2)',
+                    background:
+                      heldKey === r.drillKey && r.drillKey
+                        ? 'var(--cyan-soft)'
+                        : r.kind === 'total'
+                          ? 'var(--card-2)'
+                          : undefined,
+                    transition: 'background .15s',
+                    WebkitTouchCallout: 'none',
+                  }}
+                  onPointerDown={r.drillKey ? (e) => startPress(e, r.drillKey!) : undefined}
+                  onPointerMove={r.drillKey ? movePress : undefined}
+                  onPointerUp={r.drillKey ? endPress : undefined}
+                  onPointerLeave={r.drillKey ? abortPress : undefined}
+                  onPointerCancel={r.drillKey ? abortPress : undefined}
+                  onContextMenu={r.drillKey ? (e) => e.preventDefault() : undefined}
+                >
+                  <span
+                    className={`flex items-center gap-2 text-[12.5px] min-w-0 ${
+                      r.kind === 'total' ? 'font-extrabold' : r.kind === 'line' ? 'font-semibold' : 'font-medium'
+                    }`}
+                    style={{ color: r.kind === 'total' ? 'var(--brand)' : r.kind === 'sub' ? 'var(--ink-2)' : 'var(--ink)' }}
+                  >
+                    {r.sw && <span className="w-2 h-2 rounded-[2px] shrink-0" style={{ background: r.sw }} />}
+                    <span className="truncate">{r.label}</span>
+                    {r.drillKey && (
+                      <Info size={11} className="shrink-0" style={{ color: 'var(--muted-2)' }} aria-label="Hold for build-up" />
+                    )}
+                  </span>
+                  <span className="text-right shrink-0">
+                    <span
+                      className={`block av-num text-[13px] ${r.kind === 'total' ? 'font-extrabold' : 'font-semibold'} ${
+                        r.pn ? (r.v < 0 ? 'av-neg' : 'av-pos') : ''
+                      }`}
+                      style={!r.pn ? { color: r.kind === 'total' ? 'var(--brand)' : 'var(--ink)' } : undefined}
+                    >
+                      {bdScopeFmt(r.v)}
+                    </span>
+                    <span className="block av-num text-[10.5px]" style={{ color: 'var(--muted)' }}>
+                      {fmtPctRev(r.v)} rev
+                    </span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
         <div className="overflow-x-auto">
-          <table className="av-bd-tbl">
+          <table className="av-bd-tbl av-tbl-sticky">
             <colgroup>
               <col />
               <col style={{ width: 132 }} />
@@ -1152,9 +1339,10 @@ export function SummaryTable({
             </tbody>
           </table>
         </div>
+        )}
       </div>
 
-      {/* Drill-down build-up popover */}
+      {/* Drill-down build-up popover (desktop hover) */}
       {drill && (() => {
         const cfg = buildDrill(drill.cat)
         if (!cfg) return null
@@ -1166,6 +1354,44 @@ export function SummaryTable({
             totalLabel={cfg.totalLabel}
             cursor={{ x: drill.x, y: drill.y }}
           />
+        )
+      })()}
+
+      {/* Drill-down build-up sheet (mobile press-and-hold) */}
+      {drillSheet && (() => {
+        const cfg = buildDrill(drillSheet)
+        if (!cfg) return null
+        const sheetTotal = cfg.items.reduce((s, i) => s + i.value, 0)
+        return (
+          <MobileSheet isOpen onClose={() => setDrillSheet(null)} title={cfg.title}>
+            <div className="px-[18px] py-3">
+              <div className="text-[11px] mb-3" style={{ color: 'var(--muted)' }}>
+                Per month{isPerBh ? ' · per BH' : ''}{currency === 'usd' ? ' · USD' : ' · EUR'}
+              </div>
+              <div className="flex flex-col gap-2.5">
+                {cfg.items.map((item) => (
+                  <div key={item.label}>
+                    <div className="flex justify-between items-center gap-3 text-[13.5px]">
+                      <span style={{ color: 'var(--ink-2)' }}>{item.label}</span>
+                      <span className="av-num" style={{ color: 'var(--ink)' }}>{fmt(item.value, 0)}</span>
+                    </div>
+                    {item.formula && (
+                      <div className="text-[11px] av-num pl-2 mt-0.5" style={{ color: 'var(--muted)' }}>
+                        {item.formula}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                <div
+                  className="pt-2.5 flex justify-between items-center gap-3 font-semibold text-[14px]"
+                  style={{ borderTop: '1px solid var(--line)' }}
+                >
+                  <span style={{ color: 'var(--ink)' }}>{cfg.totalLabel ?? 'Total'}</span>
+                  <span className="av-num" style={{ color: 'var(--ink)' }}>{fmt(sheetTotal, 0)}</span>
+                </div>
+              </div>
+            </div>
+          </MobileSheet>
         )
       })()}
     </div>

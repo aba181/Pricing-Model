@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect, useActionState } from 'react'
-import { UserPlus, X } from 'lucide-react'
+import { UserPlus } from 'lucide-react'
+import { MobileSheet } from '@/components/ui/MobileSheet'
 import {
   createUserAction,
   type CreateUserState,
@@ -15,7 +16,6 @@ const ROLES = [
 
 export function CreateUserDialog() {
   const [isOpen, setIsOpen] = useState(false)
-  const dialogRef = useRef<HTMLDialogElement>(null)
   const formRef = useRef<HTMLFormElement>(null)
 
   const [state, formAction, isPending] = useActionState(createUserAction, {} as CreateUserState)
@@ -23,52 +23,48 @@ export function CreateUserDialog() {
   useEffect(() => {
     if (state.success) {
       formRef.current?.reset()
-      setTimeout(() => {
-        setIsOpen(false)
-        dialogRef.current?.close()
-      }, 1500)
+      setTimeout(() => setIsOpen(false), 1500)
     }
   }, [state.success])
 
-  const openDialog = () => {
-    setIsOpen(true)
-    dialogRef.current?.showModal()
-  }
-
-  const closeDialog = () => {
-    setIsOpen(false)
-    dialogRef.current?.close()
-  }
+  const closeDialog = () => setIsOpen(false)
 
   return (
     <>
-      <button onClick={openDialog} className="av-btn av-btn-primary">
+      <button onClick={() => setIsOpen(true)} className="av-btn av-btn-primary">
         <UserPlus size={15} />
         Invite User
       </button>
 
-      <dialog
-        ref={dialogRef}
-        className="av-panel p-0 w-full max-w-sm backdrop:bg-black/60"
-        onClose={() => setIsOpen(false)}
+      <MobileSheet
+        isOpen={isOpen}
+        onClose={closeDialog}
+        title="Invite User"
+        maxWidth="max-w-sm"
+        closeOnScrim={false}
+        footer={
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              form="create-user-form"
+              disabled={isPending}
+              className="av-btn av-btn-primary disabled:opacity-60"
+            >
+              {isPending ? 'Inviting...' : 'Invite'}
+            </button>
+            <button
+              type="button"
+              onClick={closeDialog}
+              disabled={isPending}
+              className="av-btn av-btn-ghost disabled:opacity-60"
+            >
+              Cancel
+            </button>
+          </div>
+        }
       >
         {isOpen && (
           <div className="p-6">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold" style={{ color: 'var(--ink)' }}>
-                Invite User
-              </h2>
-              <button
-                onClick={closeDialog}
-                aria-label="Close"
-                className="p-1 rounded-md transition-colors"
-                style={{ color: 'var(--muted)' }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
             {/* Success banner */}
             {state.success && (
               <div
@@ -97,7 +93,7 @@ export function CreateUserDialog() {
               </div>
             )}
 
-            <form ref={formRef} action={formAction} className="space-y-4">
+            <form id="create-user-form" ref={formRef} action={formAction} className="space-y-4">
               <div>
                 <label className="block text-sm mb-1" style={{ color: 'var(--ink-2)' }}>
                   Full Name
@@ -157,27 +153,10 @@ export function CreateUserDialog() {
                 </p>
               </div>
 
-              <div className="flex gap-2 pt-1">
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className="av-btn av-btn-primary disabled:opacity-60"
-                >
-                  {isPending ? 'Inviting...' : 'Invite'}
-                </button>
-                <button
-                  type="button"
-                  onClick={closeDialog}
-                  disabled={isPending}
-                  className="av-btn av-btn-ghost disabled:opacity-60"
-                >
-                  Cancel
-                </button>
-              </div>
             </form>
           </div>
         )}
-      </dialog>
+      </MobileSheet>
     </>
   )
 }

@@ -50,7 +50,7 @@ export function PerDiemSummarySection({
         <h2>Per diem summary</h2>
       </div>
       <div className="overflow-x-auto">
-        <table className="av-tbl">
+        <table className="av-tbl av-tbl-sticky min-w-[900px]">
           <thead>
             {/* Lease type header row */}
             <tr>

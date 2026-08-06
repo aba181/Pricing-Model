@@ -6,6 +6,7 @@ import { ChevronRight, Calculator, TrendingUp } from 'lucide-react'
 import { StatusBadge } from '@/components/quotes/StatusBadge'
 import { FleetBoard, type CalendarSegment, type FleetTail } from './FleetBoard'
 import { useCanViewCosts } from '@/providers/CostVisibilityProvider'
+import { useIsMobile } from '@/lib/hooks/useIsMobile'
 
 // ---- Types (mirror the dashboard payload) ----
 
@@ -286,7 +287,21 @@ function Metric({ label, value, cls = '' }: { label: string; value: string; cls?
   )
 }
 
+function MsnStat({ label, v, cls = '' }: { label: string; v: string; cls?: string }) {
+  return (
+    <div className="min-w-0">
+      <div className="text-[9.5px] uppercase tracking-[0.06em] font-bold" style={{ color: 'var(--muted)' }}>
+        {label}
+      </div>
+      <div className={`av-num text-[12px] font-semibold whitespace-nowrap ${cls}`} style={cls ? undefined : { color: 'var(--ink)' }}>
+        {v}
+      </div>
+    </div>
+  )
+}
+
 function ProjectDetail({ p, canViewCosts }: { p: DashboardProject; canViewCosts: boolean }) {
+  const isMobile = useIsMobile()
   return (
     <div className="av-detail-inner">
       <div className="av-detail-stats">
@@ -298,9 +313,39 @@ function ProjectDetail({ p, canViewCosts }: { p: DashboardProject; canViewCosts:
         {canViewCosts && <Metric label="Total profit" value={signed(p.total_profit)} cls={profitClass(p.total_profit)} />}
       </div>
 
-      {p.msns.length > 0 && (
+      {p.msns.length > 0 && isMobile ? (
+        /* Per-MSN mini-cards below md — the 10-column table can't fit a
+           phone, and a scroll region here reads as cut off */
+        <div className="flex flex-col gap-2.5">
+          {p.msns.map((m) => (
+            <div
+              key={m.msn}
+              className="rounded-lg p-3"
+              style={{ background: 'var(--card)', border: '1px solid var(--line)' }}
+            >
+              <div className="flex items-center gap-2">
+                <span className="av-msn">{m.msn}</span>
+                <span className="text-[12px]" style={{ color: 'var(--ink-2)' }}>{m.aircraft_type}</span>
+                <span className="text-[11px] capitalize ml-auto" style={{ color: 'var(--muted)' }}>
+                  {[m.environment, m.lease_type].filter(Boolean).join(' · ') || ''}
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-x-3 gap-y-2 mt-2.5">
+                <MsnStat label="MGH" v={num(m.mgh)} />
+                <MsnStat label="FH:FC" v={num(m.cycle_ratio, 2)} />
+                <MsnStat label="Crew" v={num(m.crew_sets, 1)} />
+                <MsnStat label="€/BH" v={num(m.eur_per_bh)} />
+                <MsnStat label="Rev / mo" v={eur(m.monthly_revenue)} />
+                {canViewCosts && (
+                  <MsnStat label="Profit / mo" v={signed(m.monthly_profit)} cls={profitClass(m.monthly_profit)} />
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : p.msns.length > 0 && (
         <div className="overflow-x-auto av-panel" style={{ boxShadow: 'none' }}>
-          <table className="av-tbl">
+          <table className="av-tbl av-tbl-sticky min-w-[720px]">
             <thead>
               <tr>
                 <th className="av-th">MSN</th>
@@ -363,6 +408,7 @@ function ProjectDetail({ p, canViewCosts }: { p: DashboardProject; canViewCosts:
 
 export function DashboardMetrics({ data }: { data: DashboardData }) {
   const canViewCosts = useCanViewCosts()
+  const isMobile = useIsMobile()
   const r = rollup(data)
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const toggle = (id: number) =>
@@ -401,6 +447,68 @@ export function DashboardMetrics({ data }: { data: DashboardData }) {
           <div className="px-4 py-12 text-center text-[13px]" style={{ color: 'var(--muted)' }}>
             No projects yet. Save a quote from the Pricing Workspace — its client becomes a project here.
           </div>
+        ) : isMobile ? (
+          /* Record cards below md — client + status + headline figures;
+             tap expands the same ProjectDetail as the desktop table row */
+          <div className="flex flex-col gap-3 p-3">
+            {data.projects.map((p) => {
+              const open = expanded.has(p.id)
+              return (
+                <div
+                  key={p.id}
+                  className="rounded-xl overflow-hidden"
+                  style={{ background: 'var(--card-2)', border: '1px solid var(--line)' }}
+                >
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => toggle(p.id)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') toggle(p.id) }}
+                    className="p-4 cursor-pointer touch-manip"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-[15px] truncate" style={{ color: 'var(--ink)' }}>
+                        {p.name}
+                      </span>
+                      <StatusBadge status={p.status} />
+                    </div>
+                    {p.quote && (
+                      <div className="av-num text-[10.5px] mt-0.5" style={{ color: 'var(--muted)' }}>
+                        {p.quote.quote_number}
+                      </div>
+                    )}
+                    <div
+                      className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[12.5px] av-num"
+                      style={{ color: 'var(--muted)' }}
+                    >
+                      <span>Rev {eur(p.monthly_revenue)}/mo</span>
+                      {canViewCosts && (
+                        <span className={profitClass(p.monthly_profit)}>
+                          Profit {signed(p.monthly_profit)}/mo
+                        </span>
+                      )}
+                      <span>{p.msn_count} MSN</span>
+                    </div>
+                    <div
+                      className="flex items-center gap-1 mt-2 text-[11px] font-semibold"
+                      style={{ color: 'var(--cyan-ink)' }}
+                    >
+                      <ChevronRight
+                        size={12}
+                        className={`transition-transform ${open ? 'rotate-90' : ''}`}
+                      />
+                      {open ? 'Hide detail' : 'Per-MSN detail'}
+                    </div>
+                  </div>
+                  {open && (
+                    <div style={{ borderTop: '1px solid var(--line-2)', background: 'var(--card)' }}>
+                      <ProjectDetail p={p} canViewCosts={canViewCosts} />
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="av-tbl">
@@ -409,13 +517,13 @@ export function DashboardMetrics({ data }: { data: DashboardData }) {
                   <th className="av-th" style={{ width: 28 }}></th>
                   <th className="av-th">Client</th>
                   <th className="av-th">Status</th>
-                  <th className="av-th r">MSN</th>
-                  <th className="av-th r">MGH</th>
-                  <th className="av-th r">€/BH</th>
+                  <th className="av-th r hidden md:table-cell">MSN</th>
+                  <th className="av-th r hidden md:table-cell">MGH</th>
+                  <th className="av-th r hidden md:table-cell">€/BH</th>
                   <th className="av-th r">Mo. revenue</th>
-                  {canViewCosts && <th className="av-th r">Mo. profit</th>}
-                  {canViewCosts && <th className="av-th r">Total profit</th>}
-                  <th className="av-th r">Created</th>
+                  {canViewCosts && <th className="av-th r hidden md:table-cell">Mo. profit</th>}
+                  {canViewCosts && <th className="av-th r hidden md:table-cell">Total profit</th>}
+                  <th className="av-th r hidden md:table-cell">Created</th>
                 </tr>
               </thead>
               <tbody>
@@ -443,13 +551,13 @@ function FragmentRow({ p, open, onToggle, canViewCosts }: { p: DashboardProject;
           {p.quote && <span className="av-num block text-[10.5px] mt-px" style={{ color: 'var(--muted)' }}>{p.quote.quote_number}</span>}
         </td>
         <td className="av-td"><StatusBadge status={p.status} /></td>
-        <td className="av-td r av-num">{p.msn_count}</td>
-        <td className="av-td r av-num">{num(p.total_mgh)}</td>
-        <td className="av-td r av-num">{num(p.eur_per_bh)}</td>
+        <td className="av-td r av-num hidden md:table-cell">{p.msn_count}</td>
+        <td className="av-td r av-num hidden md:table-cell">{num(p.total_mgh)}</td>
+        <td className="av-td r av-num hidden md:table-cell">{num(p.eur_per_bh)}</td>
         <td className="av-td r av-num">{eur(p.monthly_revenue)}</td>
-        {canViewCosts && <td className={`av-td r av-num ${profitClass(p.monthly_profit)}`}>{signed(p.monthly_profit)}</td>}
-        {canViewCosts && <td className={`av-td r av-num ${profitClass(p.total_profit)}`}>{signed(p.total_profit)}</td>}
-        <td className="av-td r av-num whitespace-nowrap" style={{ color: 'var(--muted)' }}>{shortDate(p.created_at)}</td>
+        {canViewCosts && <td className={`av-td r av-num hidden md:table-cell ${profitClass(p.monthly_profit)}`}>{signed(p.monthly_profit)}</td>}
+        {canViewCosts && <td className={`av-td r av-num hidden md:table-cell ${profitClass(p.total_profit)}`}>{signed(p.total_profit)}</td>}
+        <td className="av-td r av-num whitespace-nowrap hidden md:table-cell" style={{ color: 'var(--muted)' }}>{shortDate(p.created_at)}</td>
       </tr>
       {open && (
         <tr>

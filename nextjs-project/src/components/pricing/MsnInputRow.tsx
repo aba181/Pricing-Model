@@ -320,7 +320,7 @@ export function MsnInputRow({ input, onUpdate, onRemove, aircraftList, usedMsns 
                 defaultValue={String(input.aircraftId)}
                 onChange={(e) => handleSwap(e.target.value)}
                 onBlur={() => setShowSwap(false)}
-                className="av-input !py-0.5 !text-[11px]"
+                className="av-input !py-0.5 md:!text-[11px]"
               >
                 {swapOptions.map((ac) => (
                   <option key={ac.id} value={ac.id}>

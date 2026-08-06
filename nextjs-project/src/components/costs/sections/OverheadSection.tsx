@@ -18,7 +18,7 @@ export function OverheadSection({ data, perMonth, totalPerMonth, onUpdate }: Ove
         <h2>Overhead</h2>
       </div>
       <div className="overflow-x-auto">
-        <table className="av-tbl">
+        <table className="av-tbl av-tbl-sticky min-w-[480px]">
           <thead>
             <tr>
               <th className="av-th" style={{ width: 300 }}>Name</th>

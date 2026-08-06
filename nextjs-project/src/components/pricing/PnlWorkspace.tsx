@@ -120,7 +120,7 @@ export function PnlWorkspace({
               )}
               <Link
                 href={`/quotes/${quoteDetail.id}`}
-                className="av-btn av-btn-ghost !h-[24px] !px-2.5 !py-0 !text-[11px]"
+                className="av-btn av-btn-ghost md:!h-[24px] !px-2.5 md:!py-0 md:!text-[11px]"
               >
                 Open quote
               </Link>

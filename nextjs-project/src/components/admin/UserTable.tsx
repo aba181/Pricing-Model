@@ -4,6 +4,7 @@ import { useTransition } from 'react'
 import type { User } from '@/app/actions/admin'
 import { updateRoleAction, updateCostAccessAction } from '@/app/actions/admin'
 import { ResetPasswordDialog } from './ResetPasswordDialog'
+import { useIsMobile } from '@/lib/hooks/useIsMobile'
 
 const ROLES = ['admin', 'user', 'viewer'] as const
 
@@ -93,6 +94,55 @@ function CostAccessToggle({ user }: { user: User }) {
 }
 
 export function UserTable({ users }: UserTableProps) {
+  const isMobile = useIsMobile()
+
+  if (isMobile) {
+    // Record cards below md: name + status primary, email secondary,
+    // role / cost-access / reset-password in a touch-sized actions row.
+    return (
+      <div className="flex flex-col gap-3">
+        {users.map((user) => (
+          <div
+            key={user.id}
+            className="rounded-xl p-4"
+            style={{ background: 'var(--card-2)', border: '1px solid var(--line)' }}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[16px] font-semibold truncate" style={{ color: 'var(--ink)' }}>
+                {user.full_name || '—'}
+              </span>
+              <span className={`av-pill ${user.is_active ? 'av-pill-active' : 'av-pill-rejected'}`}>
+                <span className="d" />
+                {user.is_active ? 'Active' : 'Inactive'}
+              </span>
+            </div>
+            <div className="text-[13px] mt-0.5 break-all" style={{ color: 'var(--muted)' }}>
+              {user.email}
+            </div>
+            <div
+              className="flex flex-wrap items-center gap-2 mt-3 pt-3"
+              style={{ borderTop: '1px solid var(--line-2)' }}
+            >
+              <RoleSelect user={user} />
+              <CostAccessToggle user={user} />
+              <span className="ml-auto">
+                <ResetPasswordDialog
+                  userId={user.id}
+                  userName={user.full_name || user.email}
+                />
+              </span>
+            </div>
+          </div>
+        ))}
+        {users.length === 0 && (
+          <div className="text-center py-8 text-sm" style={{ color: 'var(--muted)' }}>
+            No users found
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="overflow-x-auto">
       <table className="av-tbl">
