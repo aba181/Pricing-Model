@@ -110,6 +110,28 @@ function monthsCount(start: string, end: string): number {
   return Math.max(1, (ey - sy) * 12 + (em - sm) + 1)
 }
 
+/** MGH for display. Seasonal quotes keep a stale top-level mgh, so blend the
+ *  seasons' MGH weighted by season duration — the same weighting the workspace
+ *  SummaryTable applies to per-month figures. */
+function effectiveMgh(input: MsnInput): number {
+  if (input.seasonalityEnabled && input.summer && input.winter) {
+    // Season periods can be absent on quote-loaded MSNs — fall back to the
+    // MSN's top-level period, mirroring computeMsnPnlSummarySeasonal.
+    const sMonths = monthsCount(
+      input.summer.periodStart || input.periodStart,
+      input.summer.periodEnd || input.periodEnd,
+    )
+    const wMonths = monthsCount(
+      input.winter.periodStart || input.periodStart,
+      input.winter.periodEnd || input.periodEnd,
+    )
+    const s = parseFloat(input.summer.mgh) || 0
+    const w = parseFloat(input.winter.mgh) || 0
+    return (s * sMonths + w * wMonths) / (sMonths + wMonths)
+  }
+  return parseFloat(input.mgh) || 0
+}
+
 export interface MsnFinancials {
   msn: number
   aircraft_type: string
@@ -214,7 +236,7 @@ export function computeQuoteFinancials(quote: QuoteDetailResponse): QuoteFinanci
     const months = monthsCount(input.periodStart, input.periodEnd)
     maxMonths = Math.max(maxMonths, months)
 
-    const mgh = parseFloat(input.mgh) || 0
+    const mgh = effectiveMgh(input)
     const monthlyRev = summary.totalRevenue / months
     const monthlyCost = summary.totalCost / months
     const monthlyProfit = summary.netProfit / months
