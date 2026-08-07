@@ -87,7 +87,9 @@ export function SensitivitySetupPanel({
                   aria-label={`${p.label} interval${p.unit ? ` (${p.unit})` : ''}`}
                   className="av-input av-num text-right w-full !py-1 disabled:opacity-40 disabled:pointer-events-none"
                 />
-                {p.unit && <span className="shrink-0">{p.unit}</span>}
+                {/* Fixed-width unit slot (even when empty) so every row's input
+                    box gets the same width and their edges align. */}
+                <span className="shrink-0 w-[30px]">{p.unit}</span>
               </label>
             </div>
           )

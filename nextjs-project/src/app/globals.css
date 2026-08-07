@@ -135,6 +135,11 @@ body {
 .dark .f2s-logo-dark  { display: block; }
 
 .av-num { font-variant-numeric: tabular-nums; }
+/* Numeric fields are compact and right-aligned — the native spinners overlap
+   and clip the last digit on hover/focus, so hide them. */
+input[type="number"].av-num { -moz-appearance: textfield; appearance: textfield; }
+input[type="number"].av-num::-webkit-outer-spin-button,
+input[type="number"].av-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .av-pos, .pos { color: var(--pos); }
 .av-neg, .neg { color: var(--neg); }
 .av-accent-bg { background: var(--cyan); }
