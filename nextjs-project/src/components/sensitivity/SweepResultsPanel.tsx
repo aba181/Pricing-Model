@@ -37,7 +37,11 @@ export function SweepResultsPanel({ result, stale }: SweepResultsPanelProps) {
         <div className="av-panel overflow-hidden">
           <div className="av-panel-h">
             <h2>Sweep · {paramLabel}</h2>
-            <span className="av-hint">{result.scopeLabel} · figures in EUR</span>
+            <span className="av-hint">
+              {result.scopeLabel} · figures in EUR
+              {result.coverageTotal > 0 &&
+                ` · incl. FC Coverage ${fmt(result.coverageTotal, 0)}`}
+            </span>
           </div>
           <div className="overflow-x-auto">
             <table className="av-tbl w-full av-tbl-sticky min-w-[560px]">

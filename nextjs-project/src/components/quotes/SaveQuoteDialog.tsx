@@ -110,6 +110,7 @@ export function SaveQuoteDialog({ isOpen, onClose, onSaved }: SaveQuoteDialogPro
                 monthlyCost: result.monthlyCost,
                 monthlyRevenue: result.monthlyRevenue,
                 monthlyPnl: result.monthlyPnl,
+                coverageCost: result.coverageCost,
               }
             : {},
         }

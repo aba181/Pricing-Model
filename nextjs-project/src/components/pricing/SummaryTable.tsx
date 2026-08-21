@@ -759,6 +759,42 @@ export function SummaryTable({
       : pick(activeMsn.total)
   const perMo = (v: number) => (periodMonths > 0 ? v / periodMonths : 0)
 
+  // ── Fixed Cost Coverage: per-MSN coverage% × monthly fixed cost × months ──
+  // Term-level cost add-on for summer-covers-winter deals. Uses each MSN's
+  // combined (season-blended) monthly fixedCosts as the basis, so it only
+  // applies in the 'total' season view.
+  const zeroCov = { aircraft: 0, crew: 0, maintenance: 0, insurance: 0, doc: 0, overhead: 0 }
+  const covPerMsn = msnInputs.map((inp, idx) => {
+    if (seasonFilter !== 'total' || !inp.fixedCostCoverageEnabled) return zeroCov
+    const pct = (parseFloat(inp.fixedCostCoveragePercent) || 0) / 100
+    const months = parseFloat(inp.fixedCostCoverageMonths) || 0
+    const f = perMsnData[idx].fixedCosts
+    return {
+      aircraft: f.aircraft * pct * months,
+      crew: f.crew * pct * months,
+      maintenance: f.maintenance * pct * months,
+      insurance: f.insurance * pct * months,
+      doc: f.doc * pct * months,
+      overhead: f.overhead * pct * months,
+    }
+  })
+  // Scoped like totOf: committed MSNs in Total view, the active MSN otherwise.
+  const activeCovIdx = msnInputs.findIndex((i) => i.msn === activeRaw.msn)
+  const covOf = (pick: (c: typeof zeroCov) => number): number =>
+    isTotalView0
+      ? covPerMsn.reduce((s, c, i) => (draftMsnSet.has(msnInputs[i].msn) ? s : s + pick(c)), 0)
+      : pick(covPerMsn[activeCovIdx] ?? zeroCov)
+  const covAircraft = covOf((c) => c.aircraft)
+  const covCrew = covOf((c) => c.crew)
+  const covMaint = covOf((c) => c.maintenance)
+  const covInsurance = covOf((c) => c.insurance)
+  const covDoc = covOf((c) => c.doc)
+  const covOverhead = covOf((c) => c.overhead)
+  // ACMI-side coverage (excl. overhead). Added to both the cost totals and the
+  // fixed share below, so C1 (revenue − variable cost) is unaffected —
+  // coverage is by definition a fixed cost.
+  const covAcmi = covAircraft + covCrew + covMaint + covInsurance + covDoc
+
   // ── EUR/BH helpers ──
   // Per-BH display toggle removed; cost figures are always shown as monthly
   // totals (the cost breakdown already has a dedicated per-BH column).
@@ -772,16 +808,16 @@ export function SummaryTable({
   // (Average monthly over the term; matches P&L because monthly × months uses
   //  the same day-prorated totals. Full-month projects are unchanged.)
   const mRevenue = perMo(totOf((t) => t.revenue))
-  const mAircraft = perMo(totOf((t) => t.aircraft))
-  const mCrew = perMo(totOf((t) => t.crew))
-  const mMaint = perMo(totOf((t) => t.maintenance))
-  const mInsurance = perMo(totOf((t) => t.insurance))
-  const mDoc = perMo(totOf((t) => t.doc))
-  const mAcmiCost = perMo(totOf((t) => t.acmiCost))
-  const mOverhead = perMo(totOf((t) => t.overhead))
+  const mAircraft = perMo(totOf((t) => t.aircraft) + covAircraft)
+  const mCrew = perMo(totOf((t) => t.crew) + covCrew)
+  const mMaint = perMo(totOf((t) => t.maintenance) + covMaint)
+  const mInsurance = perMo(totOf((t) => t.insurance) + covInsurance)
+  const mDoc = perMo(totOf((t) => t.doc) + covDoc)
+  const mAcmiCost = perMo(totOf((t) => t.acmiCost) + covAcmi)
+  const mOverhead = perMo(totOf((t) => t.overhead) + covOverhead)
   // C1 contribution = revenue − variable cost (variable = ACMI cost − fixed
   // share), mirroring the P&L's GROSS PROFIT - CONTRIBUTION I line.
-  const mAcmiFixed = perMo(totOf((t) => t.fixedCost))
+  const mAcmiFixed = perMo(totOf((t) => t.fixedCost) + covAcmi)
   const mC1 = mRevenue - (mAcmiCost - mAcmiFixed)
   const mGrossProfit = mRevenue - mAcmiCost
   const mNetProfit = mGrossProfit - mOverhead
@@ -792,11 +828,12 @@ export function SummaryTable({
 
   // Variable cost per category = category total − its prorated fixed share.
   // These sum to (ACMI cost − fixed), the exact quantity C1 deducts from revenue.
-  const vAircraft = mAircraft - perMo(totOf((t) => t.fixedByCat.aircraft))
-  const vCrew = mCrew - perMo(totOf((t) => t.fixedByCat.crew))
-  const vMaint = mMaint - perMo(totOf((t) => t.fixedByCat.maintenance))
-  const vInsurance = mInsurance - perMo(totOf((t) => t.fixedByCat.insurance))
-  const vDoc = mDoc - perMo(totOf((t) => t.fixedByCat.doc))
+  // Coverage sits in both terms, so the variable share is unchanged by it.
+  const vAircraft = mAircraft - perMo(totOf((t) => t.fixedByCat.aircraft) + covAircraft)
+  const vCrew = mCrew - perMo(totOf((t) => t.fixedByCat.crew) + covCrew)
+  const vMaint = mMaint - perMo(totOf((t) => t.fixedByCat.maintenance) + covMaint)
+  const vInsurance = mInsurance - perMo(totOf((t) => t.fixedByCat.insurance) + covInsurance)
+  const vDoc = mDoc - perMo(totOf((t) => t.fixedByCat.doc) + covDoc)
 
   // Sub-component build-up for the active scope (summed across MSNs in Total view).
   const scopeParts: Record<string, Record<string, number>> = (() => {
@@ -871,9 +908,20 @@ export function SummaryTable({
       aircraft: 'Aircraft', crew: 'Crew', maintenance: 'Maintenance',
       doc: 'DOC', overhead: 'Overhead', insurance: 'Insurance',
     }
+    const covByCat: Record<string, number> = {
+      aircraft: covAircraft, crew: covCrew, maintenance: covMaint,
+      insurance: covInsurance, doc: covDoc, overhead: covOverhead,
+    }
+    const covLine = covByCat[catKey] ?? 0
     return {
       title: titles[catKey] ?? catKey,
-      items: Object.entries(obj).map(([label, v]) => ({ label, value: pv(v) })),
+      items: [
+        ...Object.entries(obj).map(([label, v]) => ({ label, value: pv(v) })),
+        // Fixed-cost coverage, spread over the term like the row figures.
+        ...(covLine > 0
+          ? [{ label: 'FC Coverage (avg / month)', value: pv(perMo(covLine)) }]
+          : []),
+      ],
     }
   }
 

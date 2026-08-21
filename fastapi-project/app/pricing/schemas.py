@@ -23,6 +23,11 @@ class PricingInputs(BaseModel):
     period_months: int = 12     # Contract period in months
     lease_type: str = "wet"     # "wet", "damp", or "moist"
     crew_sets: float = 4         # Number of crew sets (supports decimals e.g. 3.5)
+    # Fixed-cost coverage (summer-covers-winter deals): the client covers
+    # coverage_percent of this MSN's monthly fixed costs for coverage_months.
+    fixed_cost_coverage_enabled: bool = False
+    fixed_cost_coverage_percent: Decimal = Decimal("50")
+    fixed_cost_coverage_months: Decimal = Decimal("6")
 
 
 class CalculateRequest(BaseModel):
@@ -74,6 +79,10 @@ class MsnPnlResult(BaseModel):
     monthly_cost: Optional[Decimal] = None
     monthly_revenue: Decimal
     monthly_pnl: Optional[Decimal] = None
+    # Fixed-cost coverage for this MSN: absolute EUR over the coverage period.
+    # None when coverage is disabled or the user lacks cost access. Never folded
+    # into monthly_cost or the per-BH rates -- it is a term-level cost add-on.
+    coverage_cost: Optional[Decimal] = None
 
 
 class CalculateResponse(BaseModel):
@@ -81,6 +90,9 @@ class CalculateResponse(BaseModel):
 
     msn_results: list[MsnPnlResult]
     total: ComponentBreakdown | None = None
+    # Sum of per-MSN coverage_cost values. None when no MSN has coverage
+    # enabled or the user lacks cost access.
+    total_coverage_cost: Optional[Decimal] = None
 
 
 # ---- Config Responses ----

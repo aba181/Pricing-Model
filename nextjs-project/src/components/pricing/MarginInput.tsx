@@ -64,6 +64,9 @@ export function MarginInput() {
           period_months: computePeriodMonths(i.periodStart, i.periodEnd),
           lease_type: i.leaseType,
           crew_sets: i.crewSets,
+          fixed_cost_coverage_enabled: i.fixedCostCoverageEnabled ?? false,
+          fixed_cost_coverage_percent: i.fixedCostCoveragePercent ?? '50',
+          fixed_cost_coverage_months: i.fixedCostCoverageMonths ?? '6',
         })),
       })
 
@@ -79,6 +82,7 @@ export function MarginInput() {
         monthlyCost: r.monthly_cost ?? '0',
         monthlyRevenue: r.monthly_revenue ?? '0',
         monthlyPnl: r.monthly_pnl ?? '0',
+        coverageCost: r.coverage_cost ?? '0',
       }))
 
       const total = result.total ? mapBreakdown(result.total) : null

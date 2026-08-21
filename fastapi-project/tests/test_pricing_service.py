@@ -22,6 +22,7 @@ import pytest
 
 from app.pricing.service import (
     interpolate_epr,
+    calculate_fixed_cost_coverage,
     calculate_pricing,
     calculate_project_pnl,
     AircraftCosts,
@@ -35,6 +36,7 @@ from app.pricing.service import (
     _calc_doc,
     _calc_other_cogs,
     _calc_overhead,
+    _crew_fixed_monthly,
 )
 
 
@@ -618,3 +620,115 @@ class TestCalculateProjectPnl:
         assert isinstance(totals["total_monthly_cost"], Decimal)
         assert isinstance(totals["total_monthly_revenue"], Decimal)
         assert isinstance(totals["total_monthly_pnl"], Decimal)
+
+
+# ---------------------------------------------------------------------------
+# Fixed Cost Coverage
+# ---------------------------------------------------------------------------
+
+
+class TestCalculateFixedCostCoverage:
+    """Tests for calculate_fixed_cost_coverage (summer-covers-winter deals)."""
+
+    def _coverage(self, percent="50", months="6", crew_sets=4, lease_type="wet"):
+        return calculate_fixed_cost_coverage(
+            coverage_percent=Decimal(percent),
+            coverage_months=Decimal(months),
+            aircraft_type="A320",
+            lease_type=lease_type,
+            crew_sets=crew_sets,
+            aircraft_costs=_TEST_AIRCRAFT_COSTS,
+            pricing_config=_TEST_PRICING_CONFIG,
+            crew_config=_TEST_CREW_CONFIG,
+            exchange_rate=_TEST_EXCHANGE_RATE,
+        )
+
+    def test_category_amounts_match_formula(self):
+        """Each category = monthly fixed x percent/100 x months, exactly."""
+        cov = self._coverage(percent="50", months="6")
+        factor = Decimal("0.5") * Decimal("6")
+
+        aircraft_fixed = (
+            Decimal("185000.00") + Decimal("15413.95")
+            + Decimal("8418.19") + Decimal("4333.21")
+        ) * _TEST_EXCHANGE_RATE
+        assert cov.aircraft == aircraft_fixed * factor
+
+        # Crew fixed: (2 pilots x 12500 + 1 senior x 4500 + 3 regular x 3500) x 4 sets
+        # + training/fleet + uniform/fleet
+        salary = (Decimal("12500.00") * 2 + Decimal("4500.00") + Decimal("3500.00") * 3) * 4
+        crew_fixed = (
+            salary
+            + Decimal("55000.00") / Decimal("11.0")
+            + Decimal("22000.00") / Decimal("11.0")
+        )
+        assert cov.crew == crew_fixed * factor
+
+        maint_fixed = (
+            Decimal("35000.00") + Decimal("15000.00") + Decimal("25000.00")
+            + Decimal("18000.00") + Decimal("5500.00")
+        )
+        assert cov.maintenance == maint_fixed * factor
+
+        assert cov.insurance == Decimal("45000.00") * _TEST_EXCHANGE_RATE * factor
+        assert cov.doc == Decimal("110000.00") / Decimal("11.0") * factor
+        assert cov.overhead == Decimal("165000.00") / Decimal("11.0") * factor
+
+    def test_total_is_sum_of_categories(self):
+        cov = self._coverage()
+        assert cov.total == (
+            cov.aircraft + cov.crew + cov.maintenance
+            + cov.insurance + cov.doc + cov.overhead
+        )
+
+    def test_scales_linearly_with_percent_and_months(self):
+        """100% for 6 months = 2x the 50% amount; 50% for 12 months likewise."""
+        base = self._coverage(percent="50", months="6")
+        double_pct = self._coverage(percent="100", months="6")
+        double_months = self._coverage(percent="50", months="12")
+        assert double_pct.total == base.total * 2
+        assert double_months.total == base.total * 2
+
+    def test_zero_percent_or_months_is_zero(self):
+        assert self._coverage(percent="0").total == Decimal("0")
+        assert self._coverage(months="0").total == Decimal("0")
+
+    def test_excludes_usage_reserves_and_variable_costs(self):
+        """MGH-independent: EPR/LLP/APU reserves, per diems, spare parts excluded."""
+        high_usage = AircraftCosts(
+            lease_rent_usd=Decimal("185000.00"),
+            six_year_check_usd=Decimal("15413.95"),
+            twelve_year_check_usd=Decimal("8418.19"),
+            ldg_usd=Decimal("4333.21"),
+            apu_rate_usd=Decimal("999999"),
+            llp1_rate_usd=Decimal("999999"),
+            llp2_rate_usd=Decimal("999999"),
+            epr_rate=Decimal("999999"),
+        )
+        cov_base = self._coverage()
+        cov_high = calculate_fixed_cost_coverage(
+            coverage_percent=Decimal("50"),
+            coverage_months=Decimal("6"),
+            aircraft_type="A320",
+            lease_type="wet",
+            crew_sets=4,
+            aircraft_costs=high_usage,
+            pricing_config=_TEST_PRICING_CONFIG,
+            crew_config=_TEST_CREW_CONFIG,
+            exchange_rate=_TEST_EXCHANGE_RATE,
+        )
+        assert cov_high.aircraft == cov_base.aircraft
+
+    def test_crew_fixed_matches_crew_component_fixed_share(self):
+        """Coverage crew basis equals the fixed block _calc_crew uses."""
+        cov = self._coverage(percent="100", months="1")
+        expected = _crew_fixed_monthly(
+            "A320", "wet", 4, _TEST_CREW_CONFIG, Decimal("11.0")
+        )
+        assert cov.crew == expected
+
+    def test_result_values_are_decimal(self):
+        cov = self._coverage()
+        for v in (cov.aircraft, cov.crew, cov.maintenance,
+                  cov.insurance, cov.doc, cov.overhead, cov.total):
+            assert isinstance(v, Decimal)

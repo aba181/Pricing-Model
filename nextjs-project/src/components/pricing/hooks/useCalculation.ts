@@ -53,6 +53,11 @@ export function useCalculation(
 
       // Expand seasonal MSNs into two entries (one per season)
       const expandedInputs = msnInputs.flatMap((i) => {
+        const coverage = {
+          fixed_cost_coverage_enabled: i.fixedCostCoverageEnabled ?? false,
+          fixed_cost_coverage_percent: i.fixedCostCoveragePercent ?? '50',
+          fixed_cost_coverage_months: i.fixedCostCoverageMonths ?? '6',
+        }
         if (i.seasonalityEnabled && i.summer && i.winter) {
           return [
             {
@@ -63,6 +68,7 @@ export function useCalculation(
               period_months: computePeriodMonths(i.summer.periodStart, i.summer.periodEnd),
               lease_type: i.leaseType,
               crew_sets: i.summer.crewSets,
+              ...coverage,
             },
             {
               msn: i.msn,
@@ -72,6 +78,10 @@ export function useCalculation(
               period_months: computePeriodMonths(i.winter.periodStart, i.winter.periodEnd),
               lease_type: i.leaseType,
               crew_sets: i.winter.crewSets,
+              // Coverage is a per-MSN term-level amount; sending it on both
+              // season rows would double-count it in the engine's total.
+              ...coverage,
+              fixed_cost_coverage_enabled: false,
             },
           ]
         }
@@ -83,6 +93,7 @@ export function useCalculation(
           period_months: computePeriodMonths(i.periodStart, i.periodEnd),
           lease_type: i.leaseType,
           crew_sets: i.crewSets,
+          ...coverage,
         }]
       })
 
@@ -140,6 +151,11 @@ export function useCalculation(
           )
           existing.monthlyPnl = String(
             ((parseFloat(existing.monthlyPnl) * (count - 1)) + parseFloat(r.monthlyPnl)) / count
+          )
+          // Coverage is an absolute term amount (only the first season row
+          // carries it) — sum, never average.
+          existing.coverageCost = String(
+            parseFloat(existing.coverageCost || '0') + parseFloat(r.coverageCost || '0')
           )
         } else {
           mergedMap.set(r.msn, { ...r })

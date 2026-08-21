@@ -29,11 +29,15 @@ interface MsnPnlResultApi {
   monthly_cost: string | null
   monthly_revenue: string
   monthly_pnl: string | null
+  // Fixed-cost coverage for this MSN (absolute EUR over the coverage period).
+  // Null when coverage is disabled or for users without cost access.
+  coverage_cost: string | null
 }
 
 export interface CalculateResponse {
   msn_results: MsnPnlResultApi[]
   total: ComponentBreakdownApi | null
+  total_coverage_cost: string | null
 }
 
 export interface PricingConfigData {
@@ -121,6 +125,9 @@ export async function calculatePnlAction(inputs: {
     period_months: number
     lease_type: string
     crew_sets: number
+    fixed_cost_coverage_enabled?: boolean
+    fixed_cost_coverage_percent?: string
+    fixed_cost_coverage_months?: string
   }[]
 }): Promise<CalculateResponse | { error: string }> {
   const token = await getToken()

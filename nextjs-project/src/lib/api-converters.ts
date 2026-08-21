@@ -84,5 +84,6 @@ export function toStoreMsnResult(api: CalculateResponse['msn_results'][number]):
     monthlyCost: api.monthly_cost ?? '0',
     monthlyRevenue: api.monthly_revenue ?? '0',
     monthlyPnl: api.monthly_pnl ?? '0',
+    coverageCost: api.coverage_cost ?? '0',
   }
 }

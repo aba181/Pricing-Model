@@ -134,6 +134,9 @@ export interface MsnPnlResult {
   monthlyCost: string
   monthlyRevenue: string
   monthlyPnl: string
+  // Engine-computed fixed-cost coverage (absolute EUR over the coverage
+  // period). '0' when coverage is disabled or redacted.
+  coverageCost: string
 }
 
 interface PricingStore {

@@ -28,6 +28,7 @@ from app.pricing.service import (
     AircraftCosts,
     CrewConfig,
     PricingConfig,
+    calculate_fixed_cost_coverage,
     calculate_pricing,
     calculate_project_pnl,
     interpolate_epr,
@@ -84,6 +85,7 @@ async def calculate(
     want_naked = body.rate_basis == "naked" and user_can_view_naked(current_user)
 
     msn_results = []
+    total_coverage_cost: Decimal | None = None
 
     for msn_input in body.msn_inputs:
         # Fetch aircraft with rates
@@ -166,6 +168,24 @@ async def calculate(
         monthly_revenue = breakdown.final_rate_per_bh * msn_input.mgh
         monthly_pnl = monthly_revenue - monthly_cost
 
+        # Fixed-cost coverage: term-level cost add-on (coverage% x monthly fixed
+        # costs x months). Kept out of monthly figures and per-BH rates.
+        coverage_cost: Decimal | None = None
+        if msn_input.fixed_cost_coverage_enabled:
+            coverage = calculate_fixed_cost_coverage(
+                coverage_percent=msn_input.fixed_cost_coverage_percent,
+                coverage_months=msn_input.fixed_cost_coverage_months,
+                aircraft_type=aircraft["aircraft_type"],
+                lease_type=msn_input.lease_type,
+                crew_sets=msn_input.crew_sets,
+                aircraft_costs=ac,
+                pricing_config=config,
+                crew_config=crew_cfg,
+                exchange_rate=body.exchange_rate,
+            )
+            coverage_cost = coverage.total
+            total_coverage_cost = (total_coverage_cost or Decimal("0")) + coverage.total
+
         # Convert service ComponentBreakdown to Pydantic schema
         breakdown_schema = ComponentBreakdownSchema(
             aircraft_eur_per_bh=breakdown.aircraft_eur_per_bh,
@@ -189,6 +209,7 @@ async def calculate(
                 monthly_cost=monthly_cost,
                 monthly_revenue=monthly_revenue,
                 monthly_pnl=monthly_pnl,
+                coverage_cost=coverage_cost,
             )
         )
 
@@ -222,7 +243,11 @@ async def calculate(
                 final_rate_per_bh=agg.get("weighted_avg_rate_per_bh", Decimal("0")),
             )
 
-    response = CalculateResponse(msn_results=msn_results, total=total)
+    response = CalculateResponse(
+        msn_results=msn_results,
+        total=total,
+        total_coverage_cost=total_coverage_cost,
+    )
     # Server-side naked-cost gate: strip cost/profit/margin for users without
     # permission. Revenue and the EUR/BH sell rate are preserved.
     payload = response.model_dump()

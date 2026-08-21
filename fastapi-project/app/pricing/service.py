@@ -18,8 +18,10 @@ Module-level CREW_COMPOSITION dict maps (aircraft_type, lease_type) to crew coun
 Exports:
   - calculate_pricing: Orchestrates all 7 components + margin calculation
   - calculate_project_pnl: Aggregates multiple MSN results into project totals
+  - calculate_fixed_cost_coverage: Fixed-cost coverage for summer-covers-winter deals
   - interpolate_epr: EPR matrix interpolation with boundary clamping
   - AircraftCosts, PricingConfig, CrewConfig: Dataclasses for structured inputs
+  - FixedCostCoverage: Per-category coverage cost result
   - CREW_COMPOSITION: Crew count lookup table
 """
 from __future__ import annotations
@@ -112,6 +114,24 @@ class ComponentBreakdown:
     revenue_per_bh: Decimal
     margin_percent: Decimal
     final_rate_per_bh: Decimal
+
+
+@dataclass
+class FixedCostCoverage:
+    """Fixed-cost coverage amounts per category (absolute EUR over the coverage period).
+
+    Coverage = coverage% x monthly fixed cost x coverage months, per category.
+    Used for summer-covers-winter deals where the client covers a share of the
+    fixed cost base for months outside the flying period. It is a term-level
+    cost add-on: it does not alter per-BH rates or the final billing rate.
+    """
+    aircraft: Decimal
+    crew: Decimal
+    maintenance: Decimal
+    insurance: Decimal
+    doc: Decimal
+    overhead: Decimal
+    total: Decimal
 
 
 # ---------------------------------------------------------------------------
@@ -222,6 +242,28 @@ def _calc_aircraft(
     return total_eur / mgh
 
 
+def _crew_fixed_monthly(
+    aircraft_type: str,
+    lease_type: str,
+    crew_sets: float,
+    crew_config: CrewConfig,
+    average_active_fleet: Decimal,
+) -> Decimal:
+    """Monthly fixed crew cost (EUR): salaries * crew_sets + training + uniform per AC."""
+    comp = CREW_COMPOSITION[(aircraft_type, lease_type)]
+    crew_sets_d = Decimal(str(crew_sets))
+
+    salary_cost = (
+        crew_config.pilot_salary_monthly * Decimal(str(comp["pilots"]))
+        + crew_config.senior_attendant_salary_monthly * Decimal(str(comp["senior"]))
+        + crew_config.regular_attendant_salary_monthly * Decimal(str(comp["regular"]))
+    ) * crew_sets_d
+
+    training_per_ac = crew_config.training_total_budget / average_active_fleet
+    uniform_per_ac = crew_config.uniform_total_budget / average_active_fleet
+    return salary_cost + training_per_ac + uniform_per_ac
+
+
 def _calc_crew(
     aircraft_type: str,
     lease_type: str,
@@ -240,22 +282,12 @@ def _calc_crew(
       Result = (Fixed + Variable) / MGH
     """
     comp = CREW_COMPOSITION[(aircraft_type, lease_type)]
-    pilots = comp["pilots"]
-    senior = comp["senior"]
-    regular = comp["regular"]
-    total_crew = pilots + senior + regular
+    total_crew = comp["pilots"] + comp["senior"] + comp["regular"]
     crew_sets_d = Decimal(str(crew_sets))
 
-    # Fixed costs
-    salary_cost = (
-        crew_config.pilot_salary_monthly * Decimal(str(pilots))
-        + crew_config.senior_attendant_salary_monthly * Decimal(str(senior))
-        + crew_config.regular_attendant_salary_monthly * Decimal(str(regular))
-    ) * crew_sets_d
-
-    training_per_ac = crew_config.training_total_budget / average_active_fleet
-    uniform_per_ac = crew_config.uniform_total_budget / average_active_fleet
-    fixed = salary_cost + training_per_ac + uniform_per_ac
+    fixed = _crew_fixed_monthly(
+        aircraft_type, lease_type, crew_sets, crew_config, average_active_fleet
+    )
 
     # Variable costs
     per_diem_cost = crew_config.per_diem_rate * Decimal(str(total_crew)) * crew_sets_d
@@ -263,6 +295,17 @@ def _calc_crew(
     variable = per_diem_cost + accommodation_per_ac
 
     return (fixed + variable) / mgh
+
+
+def _maintenance_fixed_monthly(config: PricingConfig) -> Decimal:
+    """Monthly fixed maintenance cost (EUR): line + base + personnel + c_check + training."""
+    return (
+        config.line_maintenance_monthly
+        + config.base_maintenance_monthly
+        + config.personnel_salary_monthly
+        + config.c_check_monthly
+        + config.maintenance_training_monthly
+    )
 
 
 def _calc_maintenance(
@@ -277,13 +320,7 @@ def _calc_maintenance(
       Variable = spare_parts_rate * MGH + maintenance_per_diem
       Result = (Fixed + Variable) / MGH
     """
-    fixed = (
-        config.line_maintenance_monthly
-        + config.base_maintenance_monthly
-        + config.personnel_salary_monthly
-        + config.c_check_monthly
-        + config.maintenance_training_monthly
-    )
+    fixed = _maintenance_fixed_monthly(config)
     variable = config.spare_parts_rate * mgh + config.maintenance_per_diem
     return (fixed + variable) / mgh
 
@@ -421,6 +458,71 @@ def calculate_pricing(
         revenue_per_bh=revenue,
         margin_percent=margin_percent,
         final_rate_per_bh=final_rate,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Fixed Cost Coverage
+# ---------------------------------------------------------------------------
+
+
+def calculate_fixed_cost_coverage(
+    coverage_percent: Decimal,
+    coverage_months: Decimal,
+    aircraft_type: str,
+    lease_type: str,
+    crew_sets: float,
+    aircraft_costs: AircraftCosts,
+    pricing_config: PricingConfig,
+    crew_config: CrewConfig,
+    exchange_rate: Decimal,
+) -> FixedCostCoverage:
+    """Calculate fixed-cost coverage for a single MSN.
+
+    coverage_cat = monthly_fixed_cat x (coverage_percent / 100) x coverage_months
+
+    The monthly fixed cost per category mirrors each component's fixed share:
+      Aircraft:    lease rent + 6Y/12Y checks + LDG (usage reserves are variable)
+      Crew:        salaries x crew_sets + training/fleet + uniform/fleet
+      Maintenance: line + base + personnel + c_check + training
+      Insurance:   insurance_usd x exchange_rate
+      DOC:         doc_total_budget / average_active_fleet
+      Overhead:    overhead_total_budget / average_active_fleet
+    """
+    factor = (coverage_percent / Decimal("100")) * coverage_months
+
+    aircraft_fixed = (
+        aircraft_costs.lease_rent_usd
+        + aircraft_costs.six_year_check_usd
+        + aircraft_costs.twelve_year_check_usd
+        + aircraft_costs.ldg_usd
+    ) * exchange_rate
+    crew_fixed = _crew_fixed_monthly(
+        aircraft_type, lease_type, crew_sets, crew_config,
+        pricing_config.average_active_fleet,
+    )
+    maintenance_fixed = _maintenance_fixed_monthly(pricing_config)
+    insurance_fixed = pricing_config.insurance_usd * exchange_rate
+    doc_fixed = pricing_config.doc_total_budget / pricing_config.average_active_fleet
+    overhead_fixed = (
+        pricing_config.overhead_total_budget / pricing_config.average_active_fleet
+    )
+
+    aircraft = aircraft_fixed * factor
+    crew = crew_fixed * factor
+    maintenance = maintenance_fixed * factor
+    insurance = insurance_fixed * factor
+    doc = doc_fixed * factor
+    overhead = overhead_fixed * factor
+
+    return FixedCostCoverage(
+        aircraft=aircraft,
+        crew=crew,
+        maintenance=maintenance,
+        insurance=insurance,
+        doc=doc,
+        overhead=overhead,
+        total=aircraft + crew + maintenance + insurance + doc + overhead,
     )
 
 

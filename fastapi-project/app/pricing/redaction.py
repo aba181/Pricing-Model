@@ -33,6 +33,7 @@ BREAKDOWN_COST_KEYS = (
 MSN_RESULT_COST_KEYS = (
     "monthly_cost",
     "monthly_pnl",
+    "coverage_cost",
 )
 
 # Quote MSN snapshot cost/profit keys (revenue preserved).
@@ -71,6 +72,7 @@ def redact_calculate_response(payload: dict[str, Any], allowed: bool) -> dict[st
         _null_keys(result, MSN_RESULT_COST_KEYS)
 
     redact_component_breakdown(payload.get("total"))
+    _null_keys(payload, ("total_coverage_cost",))
     return payload
 
 
@@ -130,5 +132,6 @@ def _redact_dashboard_state(state: dict[str, Any]) -> dict[str, Any]:
         if isinstance(r, dict):
             redact_component_breakdown(r.get("breakdown"))
             redact_component_breakdown(r)
-            _null_keys(r, ("monthly_cost", "monthly_pnl", "monthlyCost", "monthlyPnl"))
+            _null_keys(r, ("monthly_cost", "monthly_pnl", "monthlyCost", "monthlyPnl",
+                           "coverage_cost", "coverageCost"))
     return state

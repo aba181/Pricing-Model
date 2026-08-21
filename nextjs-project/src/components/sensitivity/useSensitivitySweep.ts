@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import {
+  computeFixedCostCoverage,
   computeMsnPnlSummarySeasonal,
   type CrewStoreData,
   type CostsStoreData,
@@ -42,6 +43,8 @@ export interface SweepResult {
   params: SweepParam[]
   scopeLabel: string
   fingerprint: string
+  /** Fixed-cost coverage included in every row's figures (EUR over the term). */
+  coverageTotal: number
 }
 
 /** Everything the sweep math depends on — also the staleness fingerprint. */
@@ -147,8 +150,16 @@ export function useSensitivitySweep() {
     const bases = Object.fromEntries(
       params.map((p) => [p.key, paramBase(args.inputs, p.key)]),
     )
+    // Fixed-cost coverage (coverage% × monthly fixed × months) does not depend
+    // on any sweepable parameter, so it is one constant per scope — but it must
+    // be folded into every row for the Base row to match the workspace summary.
+    const coverageTotal = args.inputs.reduce(
+      (s, m) => s + computeFixedCostCoverage(
+        overlayBasis(m, args.useNaked), args.crew, args.costs, args.exchangeRate),
+      0,
+    )
     const rows: SweepRow[] = OFFSETS.map((k) => {
-      let cost = 0, bh = 0, net = 0, rev = 0
+      let cost = coverageTotal, bh = 0, net = -coverageTotal, rev = 0
       for (const m of args.inputs) {
         let clone = overlayBasis(m, args.useNaked)
         for (const p of params) {
@@ -176,6 +187,7 @@ export function useSensitivitySweep() {
       params,
       scopeLabel: args.scopeLabel,
       fingerprint: fingerprintOf(args),
+      coverageTotal,
     })
   }
 

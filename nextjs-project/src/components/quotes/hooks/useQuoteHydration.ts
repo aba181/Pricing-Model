@@ -92,6 +92,7 @@ export function hydrateStoresFromQuote(
       monthlyCost: mp.monthlyCost ?? '0',
       monthlyRevenue: mp.monthlyRevenue ?? '0',
       monthlyPnl: mp.monthlyPnl ?? '0',
+      coverageCost: mp.coverageCost ?? '0',
     }
   })
 

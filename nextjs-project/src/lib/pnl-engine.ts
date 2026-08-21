@@ -7,7 +7,7 @@
  * 400+ lines of inline logic.
  */
 
-import { generateMonthRange } from '@/stores/pricing-store'
+import { computePeriodMonths, generateMonthRange } from '@/stores/pricing-store'
 import { buildMonthDayInfos } from './pnl-proration'
 import { periodBhWeightsFromStrings } from './mgh-distribution'
 import type { MsnInput, EprMatrixRow } from '@/stores/pricing-store'
@@ -402,6 +402,123 @@ export function computeMsnPnlSummary(
     netProfit,
     totalBh: totalBhAll,
   }
+}
+
+// ---- Fixed-cost coverage ----
+
+/**
+ * Per-month fixed cost of an MSN by category — the fixed-cost coverage basis.
+ * Mirrors the workspace SummaryTable's `fixedCosts` breakdown exactly.
+ * The caller resolves the aircraft rate basis (current vs naked) before
+ * calling; this reads the input's rate fields as-is.
+ */
+export function computeMsnMonthlyFixedCosts(
+  input: MsnInput,
+  crew: CrewStoreData,
+  costs: CostsStoreData,
+  exchangeRate: number,
+): { aircraft: number; crew: number; maintenance: number; insurance: number; doc: number; overhead: number } {
+  // Aircraft: dry lease + fixed maintenance reserves (6Y + 12Y + LDG)
+  const aircraft =
+    parseFloat(input.leaseRentEur || '0') +
+    parseFloat(input.sixYearCheckEur || '0') +
+    parseFloat(input.twelveYearCheckEur || '0') +
+    parseFloat(input.ldgEur || '0')
+
+  // Crew fixed: salaries × crew sets + uniform + training (per AC per month)
+  const pilotSalaryPerSet =
+    crew.payroll[0].grossSalary + crew.payroll[0].benefits +
+    crew.payroll[1].grossSalary + crew.payroll[1].benefits
+  const cabinAttendantSS = crew.payroll[2].grossSalary + crew.payroll[2].benefits
+  const seniorAttendantSS = crew.payroll[6].grossSalary + crew.payroll[6].benefits
+  const pilotSalary = pilotSalaryPerSet * input.crewSets
+  let cabinCrewSalary = 0
+  if (input.leaseType === 'wet') {
+    cabinCrewSalary = input.aircraftType === 'A321'
+      ? (4 * cabinAttendantSS + seniorAttendantSS) * input.crewSets
+      : (3 * cabinAttendantSS + seniorAttendantSS) * input.crewSets
+  } else if (input.leaseType === 'moist') {
+    cabinCrewSalary = seniorAttendantSS * input.crewSets
+  }
+  const uniformsRow = crew.otherCost.find((r) => r.item === 'Uniforms')
+  const uniformPerMonth =
+    uniformsRow?.amount && crew.averageAC > 0 ? uniformsRow.amount / crew.averageAC / 12 : 0
+  const trainingTotal = crew.training.reduce((s, r) => s + (r.amount ?? 0), 0)
+  const trainingPerMonth = crew.averageAC > 0 ? trainingTotal / crew.averageAC / 12 : 0
+  const crewFixed = pilotSalary + cabinCrewSalary + uniformPerMonth + trainingPerMonth
+
+  // Maintenance fixed: line + base + personnel salary + training + C-check
+  const findMaintCost = (name: string) =>
+    costs.maintCosts.find((c) => c.name === name)?.perMonthPerAc ?? 0
+  const maintenance =
+    findMaintCost('Line Maintenance - Internal') +
+    findMaintCost('Line Maintenance - 3rd Party') +
+    findMaintCost('Capital Maintenance') +
+    findMaintCost('Maintenance Personnel Salary') +
+    findMaintCost('Trainning') +
+    findMaintCost('C-Check')
+
+  const insurance =
+    (costs.insurance.find((i) => i.msn === input.msn)?.priceUsd ?? 0) * exchangeRate
+
+  // DOC-side fixed: Technical + Other Fixed (per-month derivations)
+  const technicalItem = costs.otherCogs.find((c) => c.name === 'Technical')
+  const technicalVal = technicalItem?.hasTotal && technicalItem.total !== undefined
+    ? (costs.avgAc > 0 ? technicalItem.total / costs.avgAc / 12 : 0)
+    : technicalItem?.perMonth ?? 0
+  const otherFixedItem = costs.otherCogs.find((c) => c.name === 'Other Fixed')
+  const otherFixedVal = otherFixedItem?.hasTotal && otherFixedItem.total !== undefined
+    ? otherFixedItem.total / 9 / 7
+    : otherFixedItem?.perMonth ?? 0
+  const doc = technicalVal + otherFixedVal
+
+  // Overhead base (per AC per month), without the MXC commission
+  const overhead = costs.overhead.reduce(
+    (s, o) => s + (costs.avgAc > 0 ? o.total / costs.avgAc / 12 : 0), 0)
+
+  return { aircraft, crew: crewFixed, maintenance, insurance, doc, overhead }
+}
+
+/**
+ * Absolute fixed-cost coverage for one MSN (EUR over the term):
+ * coverage% × monthly fixed costs × coverage months. Seasonal MSNs use the
+ * duration-weighted average of the two seasons' fixed costs (crew sets can
+ * differ per season), matching the workspace SummaryTable. 0 when disabled.
+ */
+export function computeFixedCostCoverage(
+  input: MsnInput,
+  crew: CrewStoreData,
+  costs: CostsStoreData,
+  exchangeRate: number,
+): number {
+  if (!input.fixedCostCoverageEnabled) return 0
+  const pct = (parseFloat(input.fixedCostCoveragePercent || '0') || 0) / 100
+  const months = parseFloat(input.fixedCostCoverageMonths || '0') || 0
+  if (!(pct > 0) || !(months > 0)) return 0
+
+  const totalOf = (f: ReturnType<typeof computeMsnMonthlyFixedCosts>) =>
+    f.aircraft + f.crew + f.maintenance + f.insurance + f.doc + f.overhead
+
+  let monthlyFixed: number
+  if (input.seasonalityEnabled && input.summer && input.winter) {
+    const sFixed = totalOf(computeMsnMonthlyFixedCosts(
+      { ...input, crewSets: input.summer.crewSets }, crew, costs, exchangeRate))
+    const wFixed = totalOf(computeMsnMonthlyFixedCosts(
+      { ...input, crewSets: input.winter.crewSets }, crew, costs, exchangeRate))
+    const sMo = computePeriodMonths(
+      input.summer.periodStart || input.periodStart,
+      input.summer.periodEnd || input.periodEnd,
+    )
+    const wMo = computePeriodMonths(
+      input.winter.periodStart || input.periodStart,
+      input.winter.periodEnd || input.periodEnd,
+    )
+    monthlyFixed = sMo + wMo > 0 ? (sFixed * sMo + wFixed * wMo) / (sMo + wMo) : 0
+  } else {
+    monthlyFixed = totalOf(computeMsnMonthlyFixedCosts(input, crew, costs, exchangeRate))
+  }
+
+  return monthlyFixed * pct * months
 }
 
 /**
