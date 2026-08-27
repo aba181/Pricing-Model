@@ -1,6 +1,5 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
 import { logoutAction } from '@/app/actions/auth'
 import { LogOut } from 'lucide-react'
 import { ROLE_LABEL, initials } from '@/lib/user-display'
@@ -10,41 +9,15 @@ interface TopBarProps {
   userRole?: string
 }
 
-// Route → breadcrumb (group › page)
-const ROUTES: Record<string, { group: string; page: string }> = {
-  dashboard: { group: 'Workspace', page: 'Dashboard' },
-  calculation: { group: 'Workspace', page: 'Pricing Workspace' },
-  pnl: { group: 'Workspace', page: 'Profit & Loss' },
-  quotes: { group: 'Workspace', page: 'Quotes' },
-  aircraft: { group: 'Reference Data', page: 'Aircraft Fleet' },
-  crew: { group: 'Reference Data', page: 'Crew Costs' },
-  costs: { group: 'Reference Data', page: 'Cost Assumptions' },
-  admin: { group: 'Reference Data', page: 'Admin' },
-}
-
+// Mobile/tablet only: at lg+ the sidebar footer carries the user + sign-out,
+// so the bar is hidden there rather than holding an empty strip of chrome.
 export function TopBar({ userEmail, userRole = 'user' }: TopBarProps) {
-  const pathname = usePathname()
-  const key = pathname.split('/').filter(Boolean)[0] ?? 'dashboard'
-  const crumb = ROUTES[key] ?? { group: 'Workspace', page: 'Dashboard' }
-
   return (
     <header
-      className="h-[62px] flex items-center gap-4 px-4 lg:px-6 shrink-0 sticky top-0 z-30"
+      className="h-[62px] lg:hidden flex items-center justify-end gap-4 px-4 shrink-0 sticky top-0 z-30"
       style={{ background: 'var(--card)', borderBottom: '1px solid var(--line)' }}
     >
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-[12px]" style={{ color: 'var(--muted)' }}>
-        <span>{crumb.group}</span>
-        <span style={{ color: 'var(--muted-2)' }}>›</span>
-        <span className="font-semibold" style={{ color: 'var(--ink)' }}>
-          {crumb.page}
-        </span>
-      </div>
-
-      <div className="flex-1" />
-
-      {/* User — mobile/tablet only; at lg+ this lives in the sidebar footer */}
-      <div className="flex lg:hidden items-center gap-2.5 pl-4" style={{ borderLeft: '1px solid var(--line)' }}>
+      <div className="flex items-center gap-2.5">
         <div
           className="w-8 h-8 rounded-full grid place-items-center text-[12px] font-bold text-white"
           style={{ background: 'var(--navy)' }}
