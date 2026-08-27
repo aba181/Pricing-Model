@@ -7,6 +7,7 @@ import { StatusBadge } from '@/components/quotes/StatusBadge'
 import { FleetBoard, type CalendarSegment, type FleetTail } from './FleetBoard'
 import { useCanViewCosts } from '@/providers/CostVisibilityProvider'
 import { useIsMobile } from '@/lib/hooks/useIsMobile'
+import { fmtMonths } from '@/lib/format'
 
 // ---- Types (mirror the dashboard payload) ----
 
@@ -308,7 +309,7 @@ function ProjectDetail({ p, canViewCosts }: { p: DashboardProject; canViewCosts:
         <Metric label="Mo. revenue" value={eur(p.monthly_revenue)} />
         {canViewCosts && <Metric label="Mo. cost" value={eur(p.monthly_cost)} />}
         {canViewCosts && <Metric label="Mo. profit" value={signed(p.monthly_profit)} cls={profitClass(p.monthly_profit)} />}
-        <Metric label="Period" value={p.period_months ? `${p.period_months} mo` : '—'} />
+        <Metric label="Period" value={p.period_months ? `${fmtMonths(p.period_months)} mo` : '—'} />
         <Metric label="Total revenue" value={eur(p.total_revenue)} />
         {canViewCosts && <Metric label="Total profit" value={signed(p.total_profit)} cls={profitClass(p.total_profit)} />}
       </div>

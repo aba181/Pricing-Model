@@ -7,7 +7,7 @@ import type { MsnInput } from '@/stores/pricing-store'
 import { computePeriodMonths, generateMonthRange } from '@/stores/pricing-store'
 import { useCrewConfigStore } from '@/stores/crew-config-store'
 import { useCostsConfigStore } from '@/stores/costs-config-store'
-import { fmt } from '@/lib/format'
+import { fmt, fmtMonths } from '@/lib/format'
 import { interpolateEpr } from '@/lib/pnl-engine'
 import { pickAircraftRates } from '@/lib/aircraft-rate-basis'
 import { buildMonthDayInfos } from '@/lib/pnl-proration'
@@ -1041,7 +1041,7 @@ export function SummaryTable({
     bdScope === 'month'
       ? `per month · ${bdUnit}`
       : bdScope === 'total'
-        ? `project total (${periodMonths > 0 ? `${periodMonths} mo` : '—'}) · ${bdUnit}`
+        ? `project total (${periodMonths > 0 ? `${fmtMonths(periodMonths)} mo` : '—'}) · ${bdUnit}`
         : `per block hour (${fmt(monthlyBh, 0)} BH / mo) · ${bdUnit}`
 
   return (
@@ -1067,7 +1067,7 @@ export function SummaryTable({
             <div className={`v av-num${mNetProfit < 0 ? ' neg' : ' pos'}`}>{fmt(cur(mNetProfit), 0)} {bdUnit}</div>
             <div className="s av-num">
               {periodMonths > 0
-                ? `${fmt(cur(projectNet), 0)} over ${periodMonths}-mo term`
+                ? `${fmt(cur(projectNet), 0)} over ${fmtMonths(periodMonths)}-mo term`
                 : 'Set a contract term to see project total'}
             </div>
           </div>
@@ -1184,7 +1184,7 @@ export function SummaryTable({
             <span className="av-hint av-num">{bdScopeHint}</span>
           ) : (
             <span className="av-hint">
-              monthly · project total ({periodMonths > 0 ? `${periodMonths} mo` : '—'}) · per block hour ({fmt(monthlyBh, 0)} BH)
+              monthly · project total ({periodMonths > 0 ? `${fmtMonths(periodMonths)} mo` : '—'}) · per block hour ({fmt(monthlyBh, 0)} BH)
             </span>
           )}
         </div>

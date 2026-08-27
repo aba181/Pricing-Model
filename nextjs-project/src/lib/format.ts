@@ -54,6 +54,19 @@ export function fmtDec(
   return value.toFixed(decimals)
 }
 
+/**
+ * Contract term length in months for display. Terms are measured in days, so
+ * the value is usually fractional: a whole-month term prints as an integer
+ * ("12"), a part-month term keeps one decimal ("1.5"). A 31-day term (1.03)
+ * reads as "1" — the exact day count is shown next to the term dates.
+ */
+export function fmtMonths(value: number | null | undefined): string {
+  if (value === null || value === undefined || isNaN(value) || !isFinite(value))
+    return '-'
+  const rounded = Math.round(value * 10) / 10
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1)
+}
+
 /** Rate formatting: always 2 decimals, '0.00' fallback on invalid. */
 export function fmtRate(value: number | null | undefined): string {
   return fmt(value, 2, '0.00')

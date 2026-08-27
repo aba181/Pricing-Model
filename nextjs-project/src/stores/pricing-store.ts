@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { buildMonthDayInfos } from '@/lib/pnl-proration'
 
 // ---- Types ----
 
@@ -82,15 +83,39 @@ export interface MsnInput {
   isDraft?: boolean
 }
 
-/** Compute period in months from start/end strings (YYYY-MM or YYYY-MM-DD, inclusive) */
+/**
+ * Term length in months from start/end strings (YYYY-MM or YYYY-MM-DD, inclusive).
+ *
+ * Measured in DAYS, not in calendar months touched: the result is the sum of
+ * each month's active-day fraction (activeDays / daysInMonth) over the term.
+ * A term of 2026-09-03 -> 2026-10-03 is 31 days = 28/30 + 3/31 = 1.03 months,
+ * NOT the 2 calendar months it happens to straddle.
+ *
+ * This is the exact denominator that turns the engine's day-prorated project
+ * totals back into per-month figures: the engine prorates a month's fixed cost
+ * by the same day fraction, so dividing the term total by the summed fractions
+ * recovers the true per-full-month rate, and multiplying back reproduces the
+ * project total. Whole-month terms (YYYY-MM, or 1st-to-last-day ranges) are
+ * unaffected — every fraction is 1, so the result is the plain month count.
+ *
+ * Returns 1 as a neutral fallback when the dates are missing or unparseable.
+ */
 export function computePeriodMonths(start: string | null | undefined, end: string | null | undefined): number {
   if (!start || !end) return 1
-  const sp = start.split('-').map(Number)
-  const ep = end.split('-').map(Number)
-  const sy = sp[0], sm = sp[1], ey = ep[0], em = ep[1]
-  if (!sy || !sm || !ey || !em) return 1
-  const months = (ey - sy) * 12 + (em - sm) + 1
-  return Math.max(1, months)
+  const months = generateMonthRange(start, end)
+  if (months.length === 0) return 1
+  const infos = buildMonthDayInfos(months, start, end)
+  const term = infos.reduce((sum, i) => sum + (i.totalDays > 0 ? i.activeDays / i.totalDays : 0), 0)
+  return term > 0 ? term : 1
+}
+
+/**
+ * Whole-month term for the API payload / DB, where `period_months` is an
+ * INTEGER column and is stored as metadata only (the pricing engine never
+ * computes with it). Display and math use the fractional computePeriodMonths.
+ */
+export function computePeriodMonthsInt(start: string | null | undefined, end: string | null | undefined): number {
+  return Math.max(1, Math.round(computePeriodMonths(start, end)))
 }
 
 /** Generate an array of {year, month} for each month from start to end (inclusive).

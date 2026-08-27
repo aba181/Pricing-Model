@@ -10,6 +10,7 @@
 
 import { computeMsnPnlSummarySeasonal } from '@/lib/pnl-engine'
 import type { CrewStoreData, CostsStoreData } from '@/lib/pnl-engine'
+import { computePeriodMonths } from '@/stores/pricing-store'
 import type { MsnInput, SeasonInput } from '@/stores/pricing-store'
 import type { QuoteDetailResponse, QuoteMsnSnapshot } from '@/app/actions/quotes'
 
@@ -101,15 +102,6 @@ export function reconstructEngineInputs(
   }
 }
 
-/** Count whole calendar months spanned by a YYYY-MM[-DD] range (min 1). */
-function monthsCount(start: string, end: string): number {
-  if (!start || !end) return 1
-  const [sy, sm] = start.split('-').map(Number)
-  const [ey, em] = end.split('-').map(Number)
-  if (!sy || !sm || !ey || !em) return 1
-  return Math.max(1, (ey - sy) * 12 + (em - sm) + 1)
-}
-
 /** MGH for display. Seasonal quotes keep a stale top-level mgh, so blend the
  *  seasons' MGH weighted by season duration — the same weighting the workspace
  *  SummaryTable applies to per-month figures. */
@@ -117,11 +109,11 @@ function effectiveMgh(input: MsnInput): number {
   if (input.seasonalityEnabled && input.summer && input.winter) {
     // Season periods can be absent on quote-loaded MSNs — fall back to the
     // MSN's top-level period, mirroring computeMsnPnlSummarySeasonal.
-    const sMonths = monthsCount(
+    const sMonths = computePeriodMonths(
       input.summer.periodStart || input.periodStart,
       input.summer.periodEnd || input.periodEnd,
     )
-    const wMonths = monthsCount(
+    const wMonths = computePeriodMonths(
       input.winter.periodStart || input.periodStart,
       input.winter.periodEnd || input.periodEnd,
     )
@@ -233,7 +225,7 @@ export function computeQuoteFinancials(quote: QuoteDetailResponse): QuoteFinanci
     } catch {
       continue
     }
-    const months = monthsCount(input.periodStart, input.periodEnd)
+    const months = computePeriodMonths(input.periodStart, input.periodEnd)
     maxMonths = Math.max(maxMonths, months)
 
     const mgh = effectiveMgh(input)

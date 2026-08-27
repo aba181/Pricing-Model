@@ -6,7 +6,7 @@ import { calculatePnlAction } from '@/app/actions/pricing'
 import type { CalculateResponse } from '@/app/actions/pricing'
 import { useCanViewNaked } from '@/providers/CostVisibilityProvider'
 import type { MsnPnlResult, ComponentBreakdown } from '@/stores/pricing-store'
-import { computePeriodMonths } from '@/stores/pricing-store'
+import { computePeriodMonthsInt } from '@/stores/pricing-store'
 
 function mapBreakdown(api: CalculateResponse['msn_results'][number]['breakdown']): ComponentBreakdown {
   return {
@@ -61,7 +61,7 @@ export function MarginInput() {
           mgh: i.mgh,
           cycle_ratio: i.cycleRatio,
           environment: i.environment,
-          period_months: computePeriodMonths(i.periodStart, i.periodEnd),
+          period_months: computePeriodMonthsInt(i.periodStart, i.periodEnd),
           lease_type: i.leaseType,
           crew_sets: i.crewSets,
           fixed_cost_coverage_enabled: i.fixedCostCoverageEnabled ?? false,

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { usePricingStore } from '@/stores/pricing-store'
 import type { MsnInput } from '@/stores/pricing-store'
-import { computePeriodMonths } from '@/stores/pricing-store'
+import { computePeriodMonthsInt } from '@/stores/pricing-store'
 import { calculatePnlAction } from '@/app/actions/pricing'
 import type { CalculateResponse } from '@/app/actions/pricing'
 import { toStoreMsnResult, toStoreBreakdown } from '@/lib/api-converters'
@@ -65,7 +65,7 @@ export function useCalculation(
               mgh: i.summer.mgh,
               cycle_ratio: i.summer.cycleRatio,
               environment: i.environment,
-              period_months: computePeriodMonths(i.summer.periodStart, i.summer.periodEnd),
+              period_months: computePeriodMonthsInt(i.summer.periodStart, i.summer.periodEnd),
               lease_type: i.leaseType,
               crew_sets: i.summer.crewSets,
               ...coverage,
@@ -75,7 +75,7 @@ export function useCalculation(
               mgh: i.winter.mgh,
               cycle_ratio: i.winter.cycleRatio,
               environment: i.environment,
-              period_months: computePeriodMonths(i.winter.periodStart, i.winter.periodEnd),
+              period_months: computePeriodMonthsInt(i.winter.periodStart, i.winter.periodEnd),
               lease_type: i.leaseType,
               crew_sets: i.winter.crewSets,
               // Coverage is a per-MSN term-level amount; sending it on both
@@ -90,7 +90,7 @@ export function useCalculation(
           mgh: i.mgh,
           cycle_ratio: i.cycleRatio,
           environment: i.environment,
-          period_months: computePeriodMonths(i.periodStart, i.periodEnd),
+          period_months: computePeriodMonthsInt(i.periodStart, i.periodEnd),
           lease_type: i.leaseType,
           crew_sets: i.crewSets,
           ...coverage,
