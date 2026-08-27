@@ -7,6 +7,7 @@ import { Search, Trash2, Plus, Pencil } from 'lucide-react'
 import { NewQuoteModal } from './NewQuoteModal'
 import type { AircraftOption } from '@/lib/api-converters'
 import { StatusBadge } from './StatusBadge'
+import { ShareQuoteButton } from './ShareQuoteButton'
 import { useIsMobile } from '@/lib/hooks/useIsMobile'
 import { listQuotesAction, updateQuoteStatusAction, deleteQuoteAction, getQuoteAction } from '@/app/actions/quotes'
 import type { QuoteListItem, QuoteDetailResponse } from '@/app/actions/quotes'
@@ -277,6 +278,14 @@ export function QuoteList({ initialQuotes, financials = {}, isViewer = false, ai
                           <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
                         ))}
                       </select>
+                      <ShareQuoteButton
+                        sharePath={`/quotes/${q.id}`}
+                        quoteNumber={q.quote_number}
+                        variant="icon"
+                        iconSize={16}
+                        className="grid place-items-center w-11 h-11 rounded-lg touch-manip"
+                        style={{ border: '1px solid var(--line)' }}
+                      />
                       <button
                         type="button"
                         onClick={() => handleEdit(q.id)}
@@ -361,6 +370,11 @@ export function QuoteList({ initialQuotes, financials = {}, isViewer = false, ai
                             <Link href={`/quotes/${q.id}`} className="av-btn av-btn-ghost !py-1 !px-2.5 !text-[12px]">
                               Open
                             </Link>
+                            <ShareQuoteButton
+                              sharePath={`/quotes/${q.id}`}
+                              quoteNumber={q.quote_number}
+                              variant="icon"
+                            />
                             <button
                               type="button"
                               onClick={() => handleEdit(q.id)}
