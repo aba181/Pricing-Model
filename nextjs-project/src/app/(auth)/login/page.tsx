@@ -22,6 +22,13 @@ function LoginContent() {
   const searchParams = useSearchParams()
   const azureError = searchParams.get('error')
 
+  // Set by middleware when an unauthenticated visitor opens a deep link (e.g. a
+  // shared quote). Handed to the SSO route so the callback can land there.
+  const nextPath = searchParams.get('next')
+  const azureHref = nextPath
+    ? `/api/auth/login/azure?next=${encodeURIComponent(nextPath)}`
+    : '/api/auth/login/azure'
+
   return (
     <div className="av-panel w-full" style={{ maxWidth: 400 }}>
       <div className="av-card-b" style={{ padding: 32 }}>
@@ -67,7 +74,7 @@ function LoginContent() {
         )}
 
         <a
-          href="/api/auth/login/azure"
+          href={azureHref}
           className="av-btn av-btn-cyan w-full justify-center"
         >
           <svg className="w-5 h-5" viewBox="0 0 21 21" fill="none">

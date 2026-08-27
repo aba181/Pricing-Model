@@ -58,6 +58,7 @@ export function QuoteDetailClient({ quote, aircraftList = [], isViewer = false }
         status={quote.status}
         createdAt={quote.created_at}
         pnlHref={`/pnl?quote=${quote.id}`}
+        sharePath={`/quotes/${quote.id}`}
         onEdit={!isViewer ? () => setShowEdit(true) : undefined}
       />
 

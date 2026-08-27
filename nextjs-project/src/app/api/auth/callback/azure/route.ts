@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { DEFAULT_NEXT, sanitizeNext } from '@/lib/safe-next'
 
 const TENANT_ID = process.env.AZURE_TENANT_ID!
 const CLIENT_ID = process.env.AZURE_CLIENT_ID!
@@ -7,7 +8,22 @@ const REDIRECT_URI = process.env.AZURE_REDIRECT_URI!
 const API_BASE = process.env.API_URL ?? 'http://localhost:8000'
 const IS_PRODUCTION = process.env.NODE_ENV === 'production'
 
+/**
+ * Back to the login screen, keeping the intended destination so a retry still
+ * lands on the shared link rather than the dashboard.
+ */
+function loginRedirect(req: NextRequest, error: string, next: string) {
+  const url = new URL('/login', req.url)
+  url.searchParams.set('error', error)
+  if (next !== DEFAULT_NEXT) url.searchParams.set('next', next)
+  return NextResponse.redirect(url)
+}
+
 export async function GET(req: NextRequest) {
+  // `state` carries the post-login destination set by /api/auth/login/azure.
+  // It came back through the browser, so it is validated again here.
+  const next = sanitizeNext(req.nextUrl.searchParams.get('state'))
+
   try {
     const code = req.nextUrl.searchParams.get('code')
     const error = req.nextUrl.searchParams.get('error')
@@ -15,7 +31,7 @@ export async function GET(req: NextRequest) {
     if (error || !code) {
       const desc = req.nextUrl.searchParams.get('error_description') ?? 'Azure login failed'
       console.error('[azure-callback] Error:', error, desc)
-      return NextResponse.redirect(new URL('/login?error=azure_failed', req.url))
+      return loginRedirect(req, 'azure_failed', next)
     }
 
     // Exchange auth code for tokens
@@ -38,7 +54,7 @@ export async function GET(req: NextRequest) {
     if (!tokenRes.ok) {
       const err = await tokenRes.text()
       console.error('[azure-callback] Token exchange failed:', err)
-      return NextResponse.redirect(new URL('/login?error=token_failed', req.url))
+      return loginRedirect(req, 'token_failed', next)
     }
 
     const tokens = await tokenRes.json()
@@ -54,7 +70,7 @@ export async function GET(req: NextRequest) {
 
     if (!email || !azureId) {
       console.error('[azure-callback] Missing email or oid in token:', payload)
-      return NextResponse.redirect(new URL('/login?error=missing_claims', req.url))
+      return loginRedirect(req, 'missing_claims', next)
     }
 
     // Call FastAPI to create/find user and get JWT
@@ -68,15 +84,15 @@ export async function GET(req: NextRequest) {
       const err = await apiRes.text()
       console.error('[azure-callback] API call failed:', apiRes.status, err)
       if (apiRes.status === 403) {
-        return NextResponse.redirect(new URL('/login?error=not_allowed', req.url))
+        return loginRedirect(req, 'not_allowed', next)
       }
-      return NextResponse.redirect(new URL('/login?error=api_failed', req.url))
+      return loginRedirect(req, 'api_failed', next)
     }
 
     const { token } = await apiRes.json()
 
     // Set the JWT cookie on the redirect response directly
-    const response = NextResponse.redirect(new URL('/dashboard', req.url))
+    const response = NextResponse.redirect(new URL(next, req.url))
     response.cookies.set('access_token', token, {
       httpOnly: true,
       secure: IS_PRODUCTION,
@@ -87,6 +103,6 @@ export async function GET(req: NextRequest) {
     return response
   } catch (e) {
     console.error('[azure-callback] Unexpected error:', e)
-    return NextResponse.redirect(new URL('/login?error=api_failed', req.url))
+    return loginRedirect(req, 'api_failed', next)
   }
 }

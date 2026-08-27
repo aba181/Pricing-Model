@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { sanitizeNext } from '@/lib/safe-next'
 
 const protectedRoutes = ['/dashboard', '/calculation', '/pricing', '/quotes', '/aircraft', '/admin']
 const publicRoutes = ['/login', '/api/auth/login/azure', '/api/auth/callback/azure']
@@ -20,10 +21,17 @@ export default function middleware(req: NextRequest) {
   const token = req.cookies.get('access_token')?.value
 
   if (isProtected && !token) {
-    return NextResponse.redirect(new URL('/login', req.nextUrl))
+    // Remember where they were headed so a shared deep link (e.g. /quotes/12)
+    // survives the round-trip through Microsoft SSO instead of dumping the
+    // recipient on the dashboard.
+    const loginUrl = new URL('/login', req.nextUrl)
+    loginUrl.searchParams.set('next', `${path}${req.nextUrl.search}`)
+    return NextResponse.redirect(loginUrl)
   }
   if (isPublic && token) {
-    return NextResponse.redirect(new URL('/dashboard', req.nextUrl))
+    // Already signed in — honour ?next= so a shared link still lands on target.
+    const next = sanitizeNext(req.nextUrl.searchParams.get('next'))
+    return NextResponse.redirect(new URL(next, req.nextUrl))
   }
 
   // Viewer role: restrict to Dashboard and Quotes only
