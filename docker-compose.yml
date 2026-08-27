@@ -20,9 +20,11 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      # Host 5433: 5432 is usually occupied by the asset-app stack's Postgres.
+      # Host 5434: 5432 is taken by the asset-app stack's Postgres and 5433 by
+      # the task-tracker stack's. A clash here leaves the db container created
+      # but detached from the compose network, so the api can't resolve `db`.
       # In-network traffic (api -> db:5432) is unaffected by this mapping.
-      - "5433:5432"
+      - "5434:5432"
     volumes:
       # Postgres 18+ images store data in a major-version subdirectory, so the
       # mount goes at /var/lib/postgresql (not .../data as on 16 and earlier).
