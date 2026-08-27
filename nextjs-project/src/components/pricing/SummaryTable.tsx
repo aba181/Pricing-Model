@@ -962,6 +962,7 @@ export function SummaryTable({
   const netMargin = mRevenue > 0 ? mNetProfit / mRevenue : 0
   const gpMargin = mRevenue > 0 ? mGrossProfit / mRevenue : 0
   const projectNet = mNetProfit * (periodMonths > 0 ? periodMonths : 1)
+  const projectGross = mGrossProfit * (periodMonths > 0 ? periodMonths : 1)
   const marginTone = (m: number) =>
     m >= 0.1 ? 'var(--pos)' : m >= 0.02 ? 'var(--amber)' : 'var(--neg)'
   const flag =
@@ -1049,6 +1050,24 @@ export function SummaryTable({
       {/* ── Verdict strip: metrics card over verdict card, 2:1 vertical split ── */}
       <div className={canViewCosts ? 'av-verdict-stack' : undefined}>
       <div className="av-strip">
+        {/* Deal read left to right: what comes in → what's left after ACMI cost
+            → what's left after overhead → how thick that last slice is. */}
+        <div className="m">
+          <div className="l">Revenue · mo</div>
+          <div className="v av-num">{fmt(cur(mRevenue), 0)} {bdUnit}</div>
+          <div className="s av-num">{fmt(mBhActual, 0)} BH · {fmt(mFc, 0)} cycles</div>
+        </div>
+        {canViewCosts && (
+          <div className="m">
+            <div className="l"><span className="whitespace-nowrap">Gross profit · mo</span></div>
+            <div className={`v av-num${mGrossProfit < 0 ? ' neg' : ''}`}>{fmt(cur(mGrossProfit), 0)} {bdUnit}</div>
+            <div className="s av-num">
+              {periodMonths > 0
+                ? `${fmt(cur(projectGross), 0)} over ${fmtMonths(periodMonths)}-mo term`
+                : 'Set a contract term to see project total'}
+            </div>
+          </div>
+        )}
         {canViewCosts && (
           <div className="m">
             <div className="l">
@@ -1079,11 +1098,6 @@ export function SummaryTable({
             <div className="s av-num">GP margin {(gpMargin * 100).toFixed(1)}%</div>
           </div>
         )}
-        <div className="m">
-          <div className="l">Revenue · mo</div>
-          <div className="v av-num">{fmt(cur(mRevenue), 0)} {bdUnit}</div>
-          <div className="s av-num">{fmt(mBhActual, 0)} BH · {fmt(mFc, 0)} cycles</div>
-        </div>
         {!canViewCosts && msnInputs.some((i) => i.seasonalityEnabled) && (
           <div className="scope">
             <div className="av-seg">
