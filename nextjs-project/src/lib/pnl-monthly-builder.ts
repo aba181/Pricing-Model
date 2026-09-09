@@ -120,6 +120,9 @@ export function buildMonthlyData(
   for (let m = 0; m < monthCount; m++) {
     // -- Proration factors --
     const info = monthDayInfos?.[m]
+    // A month the MSN does not operate in (outside its period / season) has
+    // no revenue, cost, or KPI activity at all — leave every line at 0.
+    if (info && info.activeDays <= 0) continue
     const isPartial = info ? info.activeDays < info.totalDays : false
     const df = isPartial ? info!.activeDays / info!.totalDays : 1.0 // dayFraction for BH/DOC
     const cdf = (isPartial && workingDays > 0) // crewDayFraction for pilot/cabin per diems

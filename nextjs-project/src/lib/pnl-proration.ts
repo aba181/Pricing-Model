@@ -7,7 +7,7 @@
 
 /** Per-month day information for proration */
 export interface MonthDayInfo {
-  activeDays: number // How many days the MSN operates in this month
+  activeDays: number // How many days the MSN operates in this month (0 = not in period)
   totalDays: number  // Total calendar days in the month (28-31)
 }
 
@@ -40,9 +40,17 @@ export function parsePeriod(period: string | null | undefined): {
 /**
  * Build MonthDayInfo[] for a month range given start/end period strings.
  *
- * For YYYY-MM format (backward compat): all months are full (activeDays === totalDays).
- * For YYYY-MM-DD format: first month starts at startDay, last month ends at endDay.
- * Middle months are always full.
+ * Each month's active days are derived from the period DATES, not from the
+ * month's position in `months`: the start month runs from startDay to its last
+ * day, the end month from the 1st to endDay, middle months are full, and any
+ * month outside [start, end] has 0 active days. This makes the result correct
+ * whether `months` is exactly the MSN's own term or a wider grid (e.g. the
+ * project-wide range the P&L total view iterates, or the full MSN range a
+ * season is laid over) — an MSN that starts on the 15th bears 15/31 of that
+ * month regardless of where the month sits in the array.
+ *
+ * For YYYY-MM format (backward compat) every in-period month is full
+ * (activeDays === totalDays). Unparseable periods yield all-full months.
  */
 export function buildMonthDayInfos(
   months: { year: number; month: number }[],
@@ -51,28 +59,21 @@ export function buildMonthDayInfos(
 ): MonthDayInfo[] {
   const start = parsePeriod(periodStart)
   const end = parsePeriod(periodEnd)
+  const startYm = start.year * 12 + start.month
+  const endYm = end.year * 12 + end.month
+  const bounded = !isNaN(startYm) && !isNaN(endYm)
 
-  return months.map((m, i) => {
+  return months.map((m) => {
     const total = daysInMonth(m.year, m.month)
-    let active = total // default: full month
+    if (!bounded) return { activeDays: total, totalDays: total }
 
-    const isFirst = i === 0
-    const isLast = i === months.length - 1
+    const ym = m.year * 12 + m.month
+    if (ym < startYm || ym > endYm) return { activeDays: 0, totalDays: total }
 
-    // Single-month period with both day components
-    if (isFirst && isLast && start.hasDay && end.hasDay) {
-      active = end.day - start.day + 1
-    } else {
-      if (isFirst && start.hasDay && start.day > 1) {
-        // Partial first month: from startDay to end of month
-        active = total - start.day + 1
-      }
-      if (isLast && end.hasDay && end.day < total) {
-        // Partial last month: from 1st to endDay
-        active = end.day
-      }
-    }
+    const clampDay = (d: number) => Math.min(Math.max(d, 1), total)
+    const firstDay = ym === startYm && start.hasDay ? clampDay(start.day) : 1
+    const lastDay = ym === endYm && end.hasDay ? clampDay(end.day) : total
 
-    return { activeDays: Math.max(1, active), totalDays: total }
+    return { activeDays: Math.max(1, lastDay - firstDay + 1), totalDays: total }
   })
 }

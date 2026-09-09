@@ -144,12 +144,6 @@ function buildMsnMonthlyData(
     const sSummerEnd = input.summer.periodEnd || input.periodEnd || ''
     const sWinterStart = input.winter.periodStart || input.periodStart || ''
     const sWinterEnd = input.winter.periodEnd || input.periodEnd || ''
-    // Determine effective period for each season (YYYY-MM from periodStart)
-    const summerStart = sSummerStart.substring(0, 7)
-    const summerEnd = sSummerEnd.substring(0, 7)
-    const winterStart = sWinterStart.substring(0, 7)
-    const winterEnd = sWinterEnd.substring(0, 7)
-
     // Build virtual MsnInput for each season by overlaying season fields
     const makeSeasonal = (s: typeof input.summer): MsnInput => ({
       ...input,
@@ -184,24 +178,32 @@ function buildMsnMonthlyData(
       winterR.cycleRatio, winterR.bhFhRatio, winterR.apuFhRatio, winterR.cfg, winterMdi, winterWeights,
     )
 
-    // For each month, pick the correct season's data
+    // Each season's data is already zero outside its own dates (its day infos
+    // carry 0 active days there), so the MSN's month is the SUM of both — a
+    // mid-month handoff (summer to the 15th, winter from the 16th) bears each
+    // season's own day share, exactly as the P&L engine and the workspace
+    // summary compute it. Months in neither season stay 0.
     const data: Record<string, number[]> = {}
     for (const k of ALL_KEYS_IMPORT) {
       data[k] = new Array(months.length).fill(0)
     }
 
     for (let m = 0; m < months.length; m++) {
-      const ms = `${months[m].year}-${String(months[m].month).padStart(2, '0')}`
-      const inSummer = ms >= summerStart && ms <= summerEnd
-      const inWinter = ms >= winterStart && ms <= winterEnd
-
-      const src = inSummer ? summerData : inWinter ? winterData : null
-      if (src) {
-        for (const k of ALL_KEYS_IMPORT) {
-          data[k][m] = src[k][m]
-        }
+      const summerActive = summerMdi[m].activeDays > 0
+      const winterActive = winterMdi[m].activeDays > 0
+      for (const k of ALL_KEYS_IMPORT) {
+        data[k][m] = (summerActive ? summerData[k][m] : 0) + (winterActive ? winterData[k][m] : 0)
       }
-      // If month is in neither season, values stay 0
+      // Ratios / flags don't add across seasons — recompute from the summed
+      // absolutes (same as the Total Project view does across MSNs).
+      const rev = data['totalRevenue'][m]
+      data['ebitdaMargin'][m] = rev > 0 ? data['ebitda'][m] / rev : 0
+      data['ebitMargin'][m] = rev > 0 ? data['ebit'][m] / rev : 0
+      data['netProfitMargin'][m] = rev > 0 ? data['netProfit'][m] / rev : 0
+      data['acOperational'][m] = summerActive || winterActive ? 1 : 0
+      data['avgBhPerAc'][m] = data['bh'][m]
+      const fcVal = data['fc'][m]
+      data['fhFcRatio'][m] = fcVal > 0 ? data['fh'][m] / fcVal : 0
     }
 
     return data
